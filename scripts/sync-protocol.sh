@@ -19,5 +19,7 @@ install -d "$ROOT/docs"
 cp "$SOURCE/protocol.py" "$ROOT/backend/app/protocol.py"
 cp "$SOURCE/protocol.ts" "$ROOT/frontend/src/protocol.ts"
 cp "$SOURCE/PROTOCOL.md" "$ROOT/docs/PROTOCOL.md"
+# Hand-written, but it belongs with the reference it explains.
+cp "$SERVER/protocol/MIGRATION.md" "$ROOT/docs/MIGRATION.md"
 
 echo "protocol: synced from $SOURCE"
