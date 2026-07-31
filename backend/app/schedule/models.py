@@ -1,51 +1,56 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
-from datetime import time
+from datetime import date
 from pathlib import Path
 
 _WEEKDAY_KEYS = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
 WEEKDAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"]
+_CLOCK = re.compile(r"^([01]\d|2[0-3]):([0-5]\d)$")
+
+# Field names each kind of flow part carries. Kept in step with the media
+# server's protocol, but checked here so a typo in the schedules file fails at
+# boot rather than at 19:30 on a Wednesday.
+_PART_FIELDS: dict[str, tuple[str, ...]] = {"lock": ("at", "until"), "music": ("tracks", "endsAt")}
 
 
 @dataclass(frozen=True)
-class Flow:
-    """A scheduled flow: admin-lock engage/release at fixed clock times,
-    optionally around a wall-clock-anchored track sequence. The song sequence
-    ending does NOT release the lock — unlock_at is its own scheduled step.
-    A flow with no tracks simply holds the lock between lock_at and unlock_at."""
+class ScheduledFlow:
+    """A flow the operator can start, authored here rather than on the media
+    server. This side owns the calendar — which flows exist and when they may
+    be run — and the parts pass through to the server untouched, because how a
+    run is carried out is the server's business."""
 
     id: str
     name: str
     weekdays: frozenset[int]
-    lock_at: time
-    play_at: time | None
-    unlock_at: time
-    track_ids: tuple[str, ...]
+    parts: tuple[dict, ...]
 
-    def to_payload(self) -> dict:
+    def runnable_on(self, day: date) -> bool:
+        return day.weekday() in self.weekdays
+
+    def to_payload(self, today: date) -> dict:
         ordered = sorted(self.weekdays)
         return {
             "id": self.id,
             "name": self.name,
             "weekdays": ordered,
             "weekdayLabels": [WEEKDAY_LABELS[day] for day in ordered],
-            "lockAt": self.lock_at.isoformat(timespec="minutes"),
-            "playAt": self.play_at.isoformat(timespec="minutes") if self.play_at is not None else None,
-            "unlockAt": self.unlock_at.isoformat(timespec="minutes"),
-            "trackIds": list(self.track_ids),
+            "parts": [dict(part) for part in self.parts],
+            "runnableToday": self.runnable_on(today),
         }
 
 
-def load_flows(path: str) -> dict[str, Flow]:
-    """Loads flow definitions from a JSON file, failing fast on any invalid
-    entry (matching the media server's no-defaults policy)."""
+def load_flows(path: str) -> dict[str, ScheduledFlow]:
+    """Loads flow definitions, failing fast on any invalid entry (matching the
+    media server's no-defaults policy)."""
     entries = json.loads(Path(path).read_text(encoding="utf-8"))
     if not isinstance(entries, list):
         raise ValueError(f"Schedules file must be a JSON array: {path}")
 
-    flows: dict[str, Flow] = {}
+    flows: dict[str, ScheduledFlow] = {}
     for entry in entries:
         flow = _parse_flow(entry)
         if flow.id in flows:
@@ -54,55 +59,63 @@ def load_flows(path: str) -> dict[str, Flow]:
     return flows
 
 
-def _parse_flow(entry: object) -> Flow:
+def _parse_flow(entry: object) -> ScheduledFlow:
     if not isinstance(entry, dict):
         raise ValueError(f"Invalid flow entry: {entry!r}")
 
     flow_id = entry.get("id")
     name = entry.get("name")
     weekday_keys = entry.get("weekdays")
-    track_ids = entry.get("tracks")
+    parts = entry.get("parts")
+
     if not isinstance(flow_id, str) or not flow_id:
         raise ValueError(f"Flow id must be a non-empty string: {entry!r}")
     if not isinstance(name, str) or not name:
         raise ValueError(f"Flow {flow_id}: name must be a non-empty string")
     if not isinstance(weekday_keys, list) or not weekday_keys:
         raise ValueError(f"Flow {flow_id}: weekdays must be a non-empty list")
-    if not isinstance(track_ids, list) or not all(isinstance(t, str) and t for t in track_ids):
-        raise ValueError(f"Flow {flow_id}: tracks must be a list of track ids (may be empty)")
+    if not isinstance(parts, list) or not parts:
+        raise ValueError(f"Flow {flow_id}: parts must be a non-empty list")
 
     try:
         weekdays = frozenset(_WEEKDAY_KEYS[key] for key in weekday_keys)
     except KeyError as exc:
         raise ValueError(f"Flow {flow_id}: unknown weekday {exc} (use mon..sun)") from exc
 
-    lock_at = _parse_time(flow_id, "lockAt", entry.get("lockAt"))
-    unlock_at = _parse_time(flow_id, "unlockAt", entry.get("unlockAt"))
-    if lock_at >= unlock_at:
-        raise ValueError(f"Flow {flow_id}: lockAt must be before unlockAt")
+    seen: set[str] = set()
+    for part in parts:
+        kind = _check_part(flow_id, part)
+        if kind in seen:
+            raise ValueError(f"Flow {flow_id}: {kind} appears more than once")
+        seen.add(kind)
 
-    raw_play_at = entry.get("playAt")
-    if track_ids and raw_play_at is None:
-        raise ValueError(f"Flow {flow_id}: playAt is required when tracks are set")
-    play_at = _parse_time(flow_id, "playAt", raw_play_at) if raw_play_at is not None else None
-    if play_at is not None and not (lock_at <= play_at < unlock_at):
-        raise ValueError(f"Flow {flow_id}: times must satisfy lockAt <= playAt < unlockAt")
-
-    return Flow(
-        id=flow_id,
-        name=name,
-        weekdays=weekdays,
-        lock_at=lock_at,
-        play_at=play_at,
-        unlock_at=unlock_at,
-        track_ids=tuple(track_ids),
-    )
+    return ScheduledFlow(id=flow_id, name=name, weekdays=weekdays, parts=tuple(parts))
 
 
-def _parse_time(flow_id: str, field: str, value: object) -> time:
-    if not isinstance(value, str):
-        raise ValueError(f"Flow {flow_id}: {field} must be an HH:MM string")
-    try:
-        return time.fromisoformat(value)
-    except ValueError as exc:
-        raise ValueError(f"Flow {flow_id}: invalid {field} time {value!r}") from exc
+def _check_part(flow_id: str, part: object) -> str:
+    if not isinstance(part, dict):
+        raise ValueError(f"Flow {flow_id}: each part must be an object")
+
+    kind = part.get("kind")
+    if kind not in _PART_FIELDS:
+        raise ValueError(f"Flow {flow_id}: unknown part kind {kind!r} (use lock or music)")
+
+    missing = [field for field in _PART_FIELDS[kind] if field not in part]
+    if missing:
+        raise ValueError(f"Flow {flow_id}: {kind} part is missing {', '.join(missing)}")
+
+    if kind == "lock":
+        _check_clock(flow_id, "at", part["at"])
+        _check_clock(flow_id, "until", part["until"])
+    else:
+        tracks = part["tracks"]
+        if not isinstance(tracks, list) or not tracks or not all(isinstance(t, str) and t for t in tracks):
+            raise ValueError(f"Flow {flow_id}: music tracks must be a non-empty list of track ids")
+        _check_clock(flow_id, "endsAt", part["endsAt"])
+
+    return kind
+
+
+def _check_clock(flow_id: str, field: str, value: object) -> None:
+    if not isinstance(value, str) or not _CLOCK.match(value):
+        raise ValueError(f"Flow {flow_id}: {field} must be an HH:MM time, got {value!r}")

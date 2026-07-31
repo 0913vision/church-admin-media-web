@@ -1,5 +1,5 @@
 import { el } from "../../util/dom.js";
-import type { SystemStats } from "../../domain/protocol.js";
+import type { SystemStats } from "../../api/events.js";
 
 interface Meter {
   root: HTMLElement;

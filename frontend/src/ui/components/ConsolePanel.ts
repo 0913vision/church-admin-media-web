@@ -1,5 +1,4 @@
 import { el } from "../../util/dom.js";
-import type { MediaState } from "../../domain/protocol.js";
 import { icon } from "../icons.js";
 
 export interface ConsolePanelOptions {
@@ -44,9 +43,9 @@ export class ConsolePanel {
     ]);
   }
 
-  update(state: MediaState): void {
-    const disabled = !state.connected;
-    this.micButton.disabled = disabled;
-    this.auxButton.disabled = disabled;
+  /** Disabled while the media server is out of reach — the console is its job. */
+  setReachable(reachable: boolean): void {
+    this.micButton.disabled = !reachable;
+    this.auxButton.disabled = !reachable;
   }
 }
