@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Env / secrets
+.env
+
+# Site-specific schedule flows (kept out of the repo)
+backend/schedules.json
+
+# Frontend
+node_modules/
+frontend/web/js/
+
+# Exported session transcripts
+*-local-command-caveat*.txt
+
+# OS
+.DS_Store
