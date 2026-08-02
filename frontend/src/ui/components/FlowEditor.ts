@@ -4,7 +4,7 @@ import type { FlowEntry, ScheduledFlow } from "../../api/device.js";
 import type { FlowDraft } from "./WeekView.js";
 
 const WEEKDAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
-// Sunday first, matching the calendar next to this editor.
+// Note(yoochan.kim): Sunday first, matching the calendar next to this editor.
 const DAY_CHOICES: { day: number; label: string }[] = [
   { day: 6, label: "주일" },
   { day: 0, label: "월" }, { day: 1, label: "화" }, { day: 2, label: "수" },
@@ -244,7 +244,7 @@ export class FlowEditor {
       const startsAt = minusSeconds(this.endsAt, totalSec);
       const cut = asMinutes(startsAt) < asMinutes(this.lockAt) ? ", 앞 잘림" : "";
       lines.push(["음악", `${startsAt} → ${this.endsAt} (${this.trackIds.length}곡${cut})`]);
-      // Only the finish is bound to the lock window: a timeline that begins
+      // Note(yoochan.kim): Only the finish is bound to the lock window: a timeline that begins
       // earlier just has its front cut, so an early start is not an error.
       if (asMinutes(this.endsAt) <= asMinutes(this.lockAt)) {
         warnings.push("음악이 잠금 시작 전에 끝나요");

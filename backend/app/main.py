@@ -40,10 +40,10 @@ async def lifespan(app: FastAPI):
     app.state.broadcaster = broadcaster
     app.state.bridge = bridge
     app.state.monitor = monitor
-    # Flow definitions are this side's, and are read once at boot so a bad
+    # Note(yoochan.kim): Flow definitions are this side's, and are read once at boot so a bad
     # schedules file fails here rather than when someone presses start.
     app.state.flows = load_flows(settings.schedules_file_path)
-    # Flows marked autoStart run whether or not a dashboard is open, so the
+    # Note(yoochan.kim): Flows marked autoStart run whether or not a dashboard is open, so the
     # runner lives on this machine rather than in a browser.
     autostarter = AutoStarter(bridge, app.state.flows)
     app.state.autostarter = autostarter
@@ -67,7 +67,7 @@ def create_app() -> FastAPI:
     app.include_router(events.router)
     app.include_router(schedule.router)
     app.include_router(system.router)
-    # Static frontend last so the API routes above take precedence.
+    # Note(yoochan.kim): Static frontend last so the API routes above take precedence.
     app.mount("/", FreshStaticFiles(directory=WEB_ROOT, html=True), name="static")
     return app
 

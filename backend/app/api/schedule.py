@@ -120,7 +120,7 @@ async def save(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
-    # Pure schedule arithmetic — no track library needed, so it also guards
+    # Note(yoochan.kim): Pure schedule arithmetic — no track library needed, so it also guards
     # edits made while the media server is unreachable.
     _check_covered(parsed)
 

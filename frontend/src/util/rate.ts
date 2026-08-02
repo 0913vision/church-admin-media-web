@@ -1,4 +1,4 @@
-// Trailing-edge throttle: runs at most once per `ms`, and always delivers the
+// Note(yoochan.kim): Trailing-edge throttle: runs at most once per `ms`, and always delivers the
 // final call so a drag that ends between ticks still sends its last value.
 export function throttle<A extends unknown[]>(fn: (...args: A) => void, ms: number): (...args: A) => void {
   let last = 0;

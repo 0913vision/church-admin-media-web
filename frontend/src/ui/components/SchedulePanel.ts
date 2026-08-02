@@ -45,7 +45,7 @@ export class SchedulePanel {
       onSave: (id, entry) => options.onSave(id, entry),
       onDelete: (id) => options.onDelete(id),
       onCancel: () => this.closeEditor(),
-      // The calendar draws the draft as it is typed — dashed, red on a clash.
+      // Note(yoochan.kim): The calendar draws the draft as it is typed — dashed, red on a clash.
       onChange: (draft) => this.week.setDraft(draft),
     });
     this.week = new WeekView({ onPick: () => this.renderDetail() });
@@ -149,7 +149,7 @@ export class SchedulePanel {
       row("잠금", el("span", { class: "num", textContent: `${flow.lock.at} → ${this.closesOf(flow)}` })),
     ];
 
-    // The music line and the per-track list carry computed start times: the
+    // Note(yoochan.kim): The music line and the per-track list carry computed start times: the
     // schedule stores when the music *ends*, and the tracks' lengths say when
     // each one begins.
     const songs = el("div", { class: "detail__songs" });

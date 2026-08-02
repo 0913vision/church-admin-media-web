@@ -12,7 +12,7 @@ _WEEKDAY_KEYS = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "su
 WEEKDAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"]
 _CLOCK = re.compile(r"^([01]\d|2[0-3]):([0-5]\d)$")
 
-# Field names each kind of flow part carries. Kept in step with the media
+# Note(yoochan.kim): Field names each kind of flow part carries. Kept in step with the media
 # server's protocol, but checked here so a typo in the schedules file fails at
 # boot rather than at 19:30 on a Wednesday.
 #
@@ -33,7 +33,7 @@ class ScheduledFlow:
     weekdays: frozenset[int]
     lock: dict
     parts: tuple[dict, ...]
-    # Whether this flow starts without anyone approving it. Dangerous on
+    # Note(yoochan.kim): Whether this flow starts without anyone approving it. Dangerous on
     # purpose: an unattended service still needs its music.
     auto_start: bool
 
@@ -66,7 +66,7 @@ class ScheduledFlow:
 
         until = self.lock["until"]
         if until["kind"] == "music":
-            # The usual case: the gate opens for the music and closes with it.
+            # Note(yoochan.kim): The usual case: the gate opens for the music and closes with it.
             # Written as an intent rather than a copied time, so changing when
             # the music ends moves the gate with it.
             closes_at = music_ends_at
@@ -175,7 +175,7 @@ def _parse_flow(entry: object) -> ScheduledFlow:
         raise ValueError(f"Flow {flow_id}: name must be a non-empty string")
     if not isinstance(weekday_keys, list) or not weekday_keys:
         raise ValueError(f"Flow {flow_id}: weekdays must be a non-empty list")
-    # Every flow holds the gate; music on an open panel could be taken over
+    # Note(yoochan.kim): Every flow holds the gate; music on an open panel could be taken over
     # from the tablet mid-run, so a flow without a lock is not a flow.
     if not isinstance(lock, dict):
         raise ValueError(f"Flow {flow_id}: lock is required")

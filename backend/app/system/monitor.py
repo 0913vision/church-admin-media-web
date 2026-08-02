@@ -46,7 +46,7 @@ class SystemMonitor:
             "diskPercent": disk.percent,
             "tempC": self._temperature(),
             "uptimeSeconds": int(time.time() - psutil.boot_time()),
-            # The htop half of the system tab. Everything below is what makes
+            # Note(yoochan.kim): The htop half of the system tab. Everything below is what makes
             # SSH-ing into the Pi unnecessary rather than merely inconvenient.
             "host": self._hostname(),
             "cores": psutil.cpu_percent(interval=None, percpu=True),

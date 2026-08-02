@@ -16,7 +16,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       const body = (await response.json()) as { detail?: string };
       if (body.detail) detail = body.detail;
     } catch {
-      // non-JSON error body — keep the generic message
+      // Note(yoochan.kim): non-JSON error body — keep the generic message
     }
     throw new Error(detail);
   }

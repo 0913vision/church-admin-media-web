@@ -21,10 +21,10 @@ class MediaBridge:
     def __init__(self, broadcaster: Broadcaster) -> None:
         self._sio = socketio.AsyncClient(reconnection=True, logger=False, engineio_logger=False)
         self._broadcaster = broadcaster
-        # Attribute values as last reported. Patches merge into this, so a
+        # Note(yoochan.kim): Attribute values as last reported. Patches merge into this, so a
         # dashboard joining late gets the same picture as one already open.
         self._state: dict = {}
-        # What the far end is: either not there, or there and describing itself.
+        # Note(yoochan.kim): What the far end is: either not there, or there and describing itself.
         # Tagged on `connected` rather than left half-filled, matching the
         # protocol's own rule about absence.
         self._link: dict = {"connected": False}
@@ -70,7 +70,7 @@ class MediaBridge:
         await self._emit(C2S.INVOKE, {"command": command, "args": args})
 
     async def _emit(self, event: str, payload: dict) -> None:
-        # Commands are dropped, not queued, while the media server is
+        # Note(yoochan.kim): Commands are dropped, not queued, while the media server is
         # unreachable — the dashboard already shows the link as down.
         if not self._sio.connected:
             logger.warning("media bridge: dropping %s while disconnected", event)
@@ -100,20 +100,20 @@ class MediaBridge:
                     PROTOCOL_VERSION,
                 )
             self._publish_link()
-            # A reconnect drops admin standing, so claim it again straight away.
+            # Note(yoochan.kim): A reconnect drops admin standing, so claim it again straight away.
             if self._admin_secret:
                 await self.invoke("authenticate", {"password": self._admin_secret})
 
         @sio.on(S2C.STATE)
         async def on_state(patch) -> None:
             self._state.update(patch)
-            # Forwarded as a patch, so the dashboard merges exactly what the
+            # Note(yoochan.kim): Forwarded as a patch, so the dashboard merges exactly what the
             # device reported rather than a re-derived snapshot.
             self._broadcaster.publish("state", patch)
 
         @sio.on(S2C.PING)
         async def on_ping(payload) -> None:
-            # Church time, straight through. The dashboard draws its clock from
+            # Note(yoochan.kim): Church time, straight through. The dashboard draws its clock from
             # this rather than from the browser's, which is the whole point.
             self._broadcaster.publish("ping", payload)
 

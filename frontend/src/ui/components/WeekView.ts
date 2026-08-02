@@ -37,7 +37,7 @@ export class WeekView {
   private draft: FlowDraft | null = null;
 
   constructor(private readonly options: WeekViewOptions) {
-    // Clicking past the blocks lets the pick go.
+    // Note(yoochan.kim): Clicking past the blocks lets the pick go.
     this.el.addEventListener("click", (event) => {
       if ((event.target as HTMLElement).closest(".blk")) return;
       if (!this.selected) return;
@@ -49,7 +49,7 @@ export class WeekView {
 
   setFlows(flows: ScheduledFlow[]): void {
     this.flows = flows;
-    // Nothing is picked for the user: the calendar opens quiet.
+    // Note(yoochan.kim): Nothing is picked for the user: the calendar opens quiet.
     if (!flows.some((flow) => flow.id === this.selected)) this.selected = "";
     this.render();
   }
@@ -173,7 +173,7 @@ export class WeekView {
     const children: HTMLElement[] = [];
     if (music) {
       const endsAt = minutesOf(music.endsAt);
-      // Without track lengths here the music span is drawn from the lock's own
+      // Note(yoochan.kim): Without track lengths here the music span is drawn from the lock's own
       // start; the editor is where exact lengths are checked.
       const top = ((Math.max(opens, endsAt - 60) - opens) / Math.max(1, closes - opens)) * 100;
       const height = ((endsAt - Math.max(opens, endsAt - 60)) / Math.max(1, closes - opens)) * 100;

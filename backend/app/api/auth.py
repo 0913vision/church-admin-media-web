@@ -19,7 +19,7 @@ async def login(body: LoginRequest, response: Response, bridge: MediaBridge = De
     if not verify_password(body.password, settings.admin_password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid password")
 
-    # The verified plaintext is the media-server admin password too; hand it to
+    # Note(yoochan.kim): The verified plaintext is the media-server admin password too; hand it to
     # the bridge so the console acts as admin. It lives only in process memory.
     await bridge.ensure_admin(body.password)
 

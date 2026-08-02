@@ -6,7 +6,7 @@ from app.bridge.media_client import MediaBridge
 
 router = APIRouter(prefix="/api/device", tags=["device"], dependencies=[Depends(require_session)])
 
-# Admin standing belongs to the bridge, not to a browser: it is claimed once
+# Note(yoochan.kim): Admin standing belongs to the bridge, not to a browser: it is claimed once
 # with a secret the dashboard never sees, so the dashboard may not claim it.
 _BRIDGE_ONLY_COMMANDS = frozenset({"authenticate"})
 

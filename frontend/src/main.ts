@@ -4,7 +4,7 @@ import { renderLogin } from "./ui/login.js";
 
 const root = document.getElementById("app");
 
-// Applied before anything paints, so the login screen matches the dashboard
+// Note(yoochan.kim): Applied before anything paints, so the login screen matches the dashboard
 // the operator left in.
 document.documentElement.dataset.theme = localStorage.getItem("theme") ?? "light";
 

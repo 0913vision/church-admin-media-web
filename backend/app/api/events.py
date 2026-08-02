@@ -31,7 +31,7 @@ async def events(
     async def stream():
         queue = broadcaster.register()
         try:
-            # Current picture first, so a fresh subscriber renders at once and
+            # Note(yoochan.kim): Current picture first, so a fresh subscriber renders at once and
             # then follows the same patches as everyone else.
             yield _event("link", bridge.link)
             yield _event("state", bridge.state)

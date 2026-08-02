@@ -147,7 +147,7 @@ export class FlowPanel {
       stop.addEventListener("click", () => this.options.onStop());
       return stop;
     }
-    // An autostart the runner let pass is a person's to start now.
+    // Note(yoochan.kim): An autostart the runner let pass is a person's to start now.
     if (flow.autoStart && !missed) {
       const skip = el("button", { class: "btn", type: "button", textContent: "이번만 건너뛰기" });
       skip.addEventListener("click", () => this.options.onSkip(flow.id));
@@ -164,7 +164,7 @@ export class FlowPanel {
     const pct = (minutes: number): number => ((minutes - span.opens) / width) * 100;
 
     const children: HTMLElement[] = [el("div", { class: "tl__lock" })];
-    // The bar shows the lock window, so a timeline that begins earlier is cut
+    // Note(yoochan.kim): The bar shows the lock window, so a timeline that begins earlier is cut
     // at the gate — the part before it never sounds.
     children.push(el("div", { class: "seg seg--gap", style: `width:${pct(Math.max(span.opens, span.musicFrom))}%` }));
     for (const segment of span.segments) {

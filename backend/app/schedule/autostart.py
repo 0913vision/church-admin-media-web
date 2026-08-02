@@ -10,7 +10,7 @@ from app.schedule.models import ScheduledFlow
 logger = logging.getLogger("autostart")
 
 _TICK_SECONDS = 5
-# Only the moment itself is the runner's: past this, starting is a person's
+# Note(yoochan.kim): Only the moment itself is the runner's: past this, starting is a person's
 # call, and the dashboard offers the start key for exactly that case.
 _GRACE = timedelta(seconds=5)
 
@@ -28,7 +28,7 @@ class AutoStarter:
         self._bridge = bridge
         self._flows = flows
         self._task: asyncio.Task | None = None
-        # One occurrence each: (flow id, day) already started or skipped.
+        # Note(yoochan.kim): One occurrence each: (flow id, day) already started or skipped.
         self._done: set[tuple[str, date]] = set()
 
     def set_flows(self, flows: dict[str, ScheduledFlow]) -> None:
@@ -68,7 +68,7 @@ class AutoStarter:
 
         if not self._bridge.link.get("connected"):
             return
-        # Only one flow runs at a time, and the server would refuse a second.
+        # Note(yoochan.kim): Only one flow runs at a time, and the server would refuse a second.
         flow_status = self._bridge.state.get("flow") or {}
         if flow_status.get("phase") not in (None, "idle"):
             return
