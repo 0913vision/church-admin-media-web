@@ -1,12 +1,27 @@
 import type { RejectReason, StatePatch } from "../protocol.js";
 import type { Link } from "../state/store.js";
 
+export interface Process {
+  pid: number;
+  command: string;
+  cpuPercent: number;
+  memPercent: number;
+}
+
 export interface SystemStats {
   cpuPercent: number;
   memPercent: number;
   diskPercent: number;
   tempC: number | null;
   uptimeSeconds: number;
+  host?: string;
+  cores?: number[];
+  memUsedBytes?: number;
+  memTotalBytes?: number;
+  swapUsedBytes?: number;
+  swapTotalBytes?: number;
+  load?: number[];
+  processes?: Process[];
 }
 
 export interface Rejection {
@@ -14,11 +29,17 @@ export interface Rejection {
   reason: RejectReason;
 }
 
+/** The media server's heartbeat, carrying the clock this building runs on. */
+export interface Heartbeat {
+  at: string;
+}
+
 export interface StreamHandlers {
   onLink: (link: Link) => void;
   onState: (patch: StatePatch) => void;
   onRejected: (rejection: Rejection) => void;
   onSystem: (stats: SystemStats) => void;
+  onPing: (beat: Heartbeat) => void;
 }
 
 /**
@@ -36,6 +57,7 @@ export function subscribeEvents(handlers: StreamHandlers): () => void {
   on<StatePatch>("state", handlers.onState);
   on<Rejection>("rejected", handlers.onRejected);
   on<SystemStats>("system", handlers.onSystem);
+  on<Heartbeat>("ping", handlers.onPing);
 
   return () => source.close();
 }

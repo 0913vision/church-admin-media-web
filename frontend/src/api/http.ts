@@ -30,4 +30,7 @@ export const http = {
       method: "POST",
       body: body === undefined ? undefined : JSON.stringify(body),
     }),
+  put: <T>(path: string, body: unknown): Promise<T> =>
+    request<T>(path, { method: "PUT", body: JSON.stringify(body) }),
+  delete: <T>(path: string): Promise<T> => request<T>(path, { method: "DELETE" }),
 };

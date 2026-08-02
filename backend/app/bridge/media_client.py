@@ -111,6 +111,12 @@ class MediaBridge:
             # device reported rather than a re-derived snapshot.
             self._broadcaster.publish("state", patch)
 
+        @sio.on(S2C.PING)
+        async def on_ping(payload) -> None:
+            # Church time, straight through. The dashboard draws its clock from
+            # this rather than from the browser's, which is the whole point.
+            self._broadcaster.publish("ping", payload)
+
         @sio.on(S2C.REJECTED)
         async def on_rejected(payload) -> None:
             logger.info("media bridge: %s refused (%s)", payload.get("target"), payload.get("reason"))
