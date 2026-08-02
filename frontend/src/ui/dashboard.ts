@@ -33,7 +33,7 @@ const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 /** Every attribute the dashboard needs before it can claim to show the device */
 const ATTRIBUTES = [
-  "playback", "volume", "mute", "song", "adminLock", "audioLock", "isAdmin", "flow", "clockOffsetSec",
+  "playback", "volume", "mute", "song", "adminLock", "audioLock", "isAdmin", "flow", "clockOffsetSec", "console",
 ] as const;
 
 const REJECT_LABEL: Record<string, string> = {
@@ -117,7 +117,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     });
   };
 
-  // Writes are relayed as attribute writes, the same shape the device speaks.
+  // Note(yoochan.kim): Writes are relayed as attribute writes, the same shape the device speaks.
   const write = <K extends keyof State>(field: K, value: State[K]): void => {
     guard(deviceApi.write(field, value));
   };
@@ -191,7 +191,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
 
   // --- topbar ---
   const topDate = el("div", { class: "clock__date num" });
-  // The gate is toggled here and only here: press the chip, the server answers.
+  // Note(yoochan.kim): The gate is toggled here and only here: press the chip, the server answers.
   const lockValue = el("span", { class: "gate__v" });
   const gate = el("button", { class: "gate", type: "button" }, [
     el("span", { class: "led led--off" }),
@@ -199,12 +199,12 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     lockValue,
   ]);
   let adminLocked = false;
-  // The gate only moves if you mean it: hold until the chip fills.
+  // Note(yoochan.kim): The gate only moves if you mean it: hold until the chip fills.
   const gateArm = el("i", { class: "arm" });
   gate.prepend(gateArm);
   gateArm.addEventListener("transitionend", () => {
     if (gate.classList.contains("arming")) {
-      // Fired: ignore further presses until the gauge has drained back.
+      // Note(yoochan.kim): Fired: ignore further presses until the gauge has drained back.
       gate.classList.remove("arming");
       gate.classList.add("cooling");
       write("adminLock", !adminLocked);
@@ -218,7 +218,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   for (const ev of ["pointerup", "pointerleave", "pointercancel"])
     gate.addEventListener(ev, () => gate.classList.remove("arming"));
   const notice = el("span", { class: "notice is-hidden" });
-  // Light while setting up, dark during a service. Remembered per browser.
+  // Note(yoochan.kim): Light while setting up, dark during a service. Remembered per browser.
   const SUN = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
   const MOON = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>';
   const theme = el("button", { class: "nav__tab themebtn", type: "button" });
@@ -246,23 +246,52 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     return go;
   };
 
-  /** Read-only until the console reports its own state back. */
+  const consoleRows: {
+    input: "mic" | "aux";
+    root: HTMLElement;
+    led: HTMLElement;
+    state: HTMLElement;
+    fill: HTMLElement;
+    db: HTMLElement;
+    button: HTMLButtonElement;
+  }[] = [];
+  let consoleReachable = false;
+  let consoleState: State["console"] = { mic: { kind: "unknown" }, aux: { kind: "unknown" } };
+
   const channelRow = (name: string, input: "mic" | "aux"): HTMLElement => {
     const button = el("button", { class: "pick", type: "button", textContent: "켜기" });
     button.addEventListener("click", () =>
       guard(deviceApi.invoke({ command: "enableConsoleInput", args: { input } })),
     );
-    consoleButtons.push(button);
-    return el("div", { class: "chrow" }, [
+    const led = el("span", { class: "led led--off" });
+    const stateText = el("span", { textContent: "—" });
+    const fill = el("i", {});
+    const db = el("span", { class: "chrow__db", textContent: "—" });
+    const root = el("div", { class: "chrow" }, [
       el("span", { class: "chrow__n", textContent: name }),
-      el("span", { class: "chrow__s" }, [el("span", { class: "led led--off" }), "—"]),
-      el("span", { class: "chrow__bar" }),
-      el("span", { class: "chrow__db", textContent: "—" }),
+      el("span", { class: "chrow__s" }, [led, stateText]),
+      el("span", { class: "chrow__bar" }, [fill]),
+      db,
       el("span", {}),
       button,
     ]);
+    consoleRows.push({ input, root, led, state: stateText, fill, db, button });
+    return root;
   };
-  const consoleButtons: HTMLButtonElement[] = [];
+
+  const renderConsoleRows = (): void => {
+    for (const row of consoleRows) {
+      const read = consoleState[row.input];
+      const on = read.kind === "read" && read.on;
+      row.root.classList.toggle("on", on);
+      row.led.className = `led ${on ? "led--go" : "led--off"}`;
+      row.state.textContent = read.kind === "read" ? (read.on ? "ON" : "OFF") : "—";
+      row.fill.style.width = read.kind === "read" ? `${Math.round(read.fader * 100)}%` : "0%";
+      row.db.textContent = read.kind === "read" ? `${Math.round(read.fader * 100)}%` : "—";
+      row.button.textContent = on ? "켜져 있음" : "켜기";
+      row.button.disabled = !consoleReachable || on;
+    }
+  };
   const x32Led = el("span", { class: "led led--go" });
   const x32Conn = el("span", { textContent: "—" });
   const sysBars = el("div", {});
@@ -319,7 +348,6 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
           x32Led,
           el("b", { textContent: "X32 콘솔" }),
           x32Conn,
-          el("span", { class: "tag", textContent: "미개발" }),
           goto("console", true),
         ]),
         channelRow("목사님 마이크", "mic"),
@@ -408,13 +436,14 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     x32Led.className = `led ${link.connected ? "led--go" : "led--bad"}`;
     x32Conn.textContent = link.connected ? "연결됨" : "알 수 없음";
     consolePanel.setReachable(link.connected);
-    for (const button of consoleButtons) button.disabled = !link.connected;
+    consoleReachable = link.connected;
+    renderConsoleRows();
 
     if (!link.connected) return;
     if (!link.accepted) {
       showRejection({ target: "hello", reason: "protocolMismatch" });
     }
-    // Catalogues are fixed for the connection, so they are applied once here
+    // Note(yoochan.kim): Catalogues are fixed for the connection, so they are applied once here
     // rather than re-read on every state patch.
     songTitles = new Map(link.songs.map((song) => [song.id, song.title]));
     schedulePanel.setTracks(link.tracks);
@@ -428,7 +457,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     if (!device.known) return;
     const state = device.state;
 
-    // While a flow plays its own track, the selected song is not what sounds.
+    // Note(yoochan.kim): While a flow plays its own track, the selected song is not what sounds.
     const title =
       state.flow.phase === "playing" ? state.flow.track.title : (songTitles.get(state.song) ?? state.song);
     deckSong.textContent = title;
@@ -444,14 +473,18 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     lockValue.textContent = state.adminLock ? "잠김" : "풀림";
     gate.classList.toggle("on", state.adminLock);
     gate.querySelector(".led")!.className = `led led--${state.adminLock ? "bad" : "off"}`;
-    // A running flow owns the gate, so the chip goes quiet rather than
+    // Note(yoochan.kim): A running flow owns the gate, so the chip goes quiet rather than
     // offering a toggle the server would refuse.
     gate.disabled = !state.isAdmin || state.flow.phase !== "idle";
+
+    consoleState = state.console;
+    renderConsoleRows();
+    consolePanel.setState(state.console);
 
     schedulePanel.setStatus(state.flow);
     flowPanel.setStatus(state.flow);
     clockPanel.setOffset(state.clockOffsetSec);
-    // A run always holds the gate, so this is also "no clock changes while
+    // Note(yoochan.kim): A run always holds the gate, so this is also "no clock changes while
     // music is playing".
     clockPanel.setGated(state.adminLock);
     clockDrift.textContent = driftOf(state.clockOffsetSec);
@@ -503,7 +536,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     });
 
   const stopLog = systemPanel.watchLog((lines) => {
-    // The same log the system tab shows, cut to what fits here.
+    // Note(yoochan.kim): The same log the system tab shows, cut to what fits here.
     sysLog.replaceChildren(...lines.slice(0, 5).map((line) => line.cloneNode(true)));
   });
   const stopEvents = subscribeEvents({
