@@ -65,26 +65,14 @@ export class WeekView {
   }
 
   /**
-   * The hours on show: an hour of margin around the earliest and latest flow,
-   * at least six hours wide, clamped to the day. A fixed 13:00–23:00 was the
-   * mockup's sample data leaking into the ruler.
+   * A fixed 06:00–24:00 ruler. It used to hug the registered flows, but an
+   * axis that moves whenever the schedule changes reads as arbitrary — a
+   * calendar should look the same every time it is opened.
    */
   private range(): { from: number; to: number } {
-    const spans: { opens: number; closes: number }[] = this.flows.map((flow) => this.spanOf(flow));
-    if (this.draft) spans.push({ opens: this.draft.opens, closes: this.draft.closes });
-    if (spans.length === 0) return { from: 8 * 60, to: 22 * 60 };
-
-    const lo = Math.min(...spans.map((span) => span.opens));
-    const hi = Math.max(...spans.map((span) => span.closes));
-    let from = Math.max(0, Math.floor(lo / 60) * 60 - 60);
-    let to = Math.min(24 * 60, Math.ceil(hi / 60) * 60 + 60);
-    while (to - from < 6 * 60) {
-      if (from > 0) from -= 60;
-      else if (to < 24 * 60) to += 60;
-      else break;
-    }
-    return { from, to };
+    return { from: 6 * 60, to: 24 * 60 };
   }
+
 
   private spanOf(flow: ScheduledFlow): { opens: number; closes: number } {
     const opens = minutesOf(flow.lock.at);
@@ -199,8 +187,9 @@ export class WeekView {
       children,
     );
     block.addEventListener("click", () => {
-      this.selected = flow.id;
-      this.options.onPick(flow.id);
+      // Picking the picked one lets it go.
+      this.selected = this.selected === flow.id ? "" : flow.id;
+      this.options.onPick(this.selected);
       this.render();
     });
     return block;

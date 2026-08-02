@@ -153,6 +153,7 @@ export class SchedulePanel {
     // schedule stores when the music *ends*, and the tracks' lengths say when
     // each one begins.
     const songs = el("div", { class: "detail__songs" });
+    if (!music) rows.push(row("음악", el("span", { textContent: "없음 — 잠금만 걸어요" })));
     if (music) {
       const lengths = music.tracks.map((id) => (this.tracks.get(id)?.durationSec ?? 0) / 60);
       const total = lengths.reduce((sum, minutes) => sum + minutes, 0);

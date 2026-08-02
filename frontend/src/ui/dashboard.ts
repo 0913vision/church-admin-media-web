@@ -203,10 +203,18 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   const gateArm = el("i", { class: "arm" });
   gate.prepend(gateArm);
   gateArm.addEventListener("transitionend", () => {
-    if (gate.classList.contains("arming")) write("adminLock", !adminLocked);
-    gate.classList.remove("arming");
+    if (gate.classList.contains("arming")) {
+      // Fired: ignore further presses until the gauge has drained back.
+      gate.classList.remove("arming");
+      gate.classList.add("cooling");
+      write("adminLock", !adminLocked);
+    } else {
+      gate.classList.remove("cooling");
+    }
   });
-  gate.addEventListener("pointerdown", () => gate.classList.add("arming"));
+  gate.addEventListener("pointerdown", () => {
+    if (!gate.classList.contains("cooling")) gate.classList.add("arming");
+  });
   for (const ev of ["pointerup", "pointerleave", "pointercancel"])
     gate.addEventListener(ev, () => gate.classList.remove("arming"));
   const notice = el("span", { class: "notice is-hidden" });

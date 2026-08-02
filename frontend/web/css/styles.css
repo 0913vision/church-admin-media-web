@@ -51,6 +51,7 @@ button { font: inherit; }
   height: 100%;
   display: grid;
   grid-template-columns: 190px 1fr;
+  grid-template-rows: minmax(0, 100%);
   background: var(--bg);
   color: var(--c-ink);
 }
@@ -80,7 +81,7 @@ button { font: inherit; }
 }
 .nav__tab.is-active { background: var(--raised); color: var(--c-ink); font-weight: 600; }
 
-.main { display: flex; flex-direction: column; min-width: 0; }
+.main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .top {
   flex: none;
   height: 52px;
@@ -198,6 +199,7 @@ button { font: inherit; }
 .gate .arm { position: absolute; inset: 0; width: 0; background: var(--bad-soft); transition: width 0.9s linear; }
 .gate.on .arm { background: rgba(255, 255, 255, 0.35); }
 .gate.arming .arm { width: 100%; }
+.gate.cooling { pointer-events: none; }
 .gate__l { color: inherit; }
 .gate__v { font-weight: 700; }
 .gate.on { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
@@ -348,6 +350,7 @@ button { font: inherit; }
 
 /* ================= dashboard summary: the system tab in miniature ================= */
 .sum { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-top: 1px solid var(--line); padding-top: 12px; }
+.sum > div { min-width: 0; }
 .sum__t { display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; color: var(--c-fnt); margin-bottom: 8px; }
 .sum__row { display: grid; grid-template-columns: 56px 1fr 48px; gap: 9px; align-items: center;
             font-size: 13px; color: var(--c-mut); line-height: 2; }
@@ -357,11 +360,11 @@ button { font: inherit; }
 .log--sum b { width: 38px; }
 
 /* ================= system tab: htop + the server's own log ================= */
-.sys { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.sys__p { background: var(--panel); border-radius: 12px; padding: 13px 15px; display: flex; flex-direction: column; min-height: 0; }
+.sys { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(360px, 1fr) minmax(0, 1fr); gap: 14px; }
+.sys__p { background: var(--panel); border-radius: 12px; padding: 13px 15px; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
 .sys__t { display: flex; align-items: center; gap: 13px; font-size: 13px; color: var(--c-fnt); margin-bottom: 9px; }
 .htop { font-family: var(--mono); font-size: 12.5px; line-height: 1.75; }
-.htop__r { display: grid; grid-template-columns: 30px 1fr 74px; gap: 8px; align-items: center; }
+.htop__r { display: grid; grid-template-columns: 46px 1fr 78px; gap: 8px; align-items: center; }
 .htop__l { color: var(--c-fnt); }
 .htop__b { height: 9px; background: var(--well); border-radius: 2px; display: flex; overflow: hidden; }
 .htop__b i { height: 100%; background: var(--go); }
@@ -383,6 +386,7 @@ button { font: inherit; }
 .log b.error { color: var(--bad); }
 .log b.debug { color: var(--c-fnt); }
 .log span { color: var(--c-mut); overflow: hidden; text-overflow: ellipsis; }
+.sys .log span { overflow: visible; text-overflow: clip; }
 .log__none { color: var(--c-fnt); }
 
 /* ================= week grid: the schedule drawn as a week ================= */
@@ -403,7 +407,7 @@ button { font: inherit; }
 .cal__now span { position: absolute; right: 2px; top: -16px; font-size: 11.5px; font-weight: 700; color: var(--go); }
 .blk { position: absolute; left: 3px; right: 3px; border-radius: 6px; overflow: hidden;
        display: block; background: var(--panel); border: 1px solid var(--c-mut); cursor: pointer; padding: 0;
-       text-align: left; color: inherit; font: inherit; }
+       text-align: center; color: inherit; font: inherit; }
 /* Picked = painted, like the chosen cell of a bar. */
 .blk.sel { background: var(--go); border-color: var(--go); }
 .blk.sel .blk__n { color: #fff; }
@@ -415,8 +419,8 @@ button { font: inherit; }
 .blk.sel .blk__m { background: #fff; opacity: 0.35; }
 
 .detail { background: var(--panel); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
-.detail__n { font-size: 16px; font-weight: 700; }
-.detail__r { display: flex; gap: 10px; font-size: 15px; }
+.detail__n { font-size: 18px; font-weight: 700; margin-bottom: 2px; }
+.detail__r { display: flex; align-items: center; gap: 10px; font-size: 15px; }
 .detail__r span:first-child { width: 68px; color: var(--c-fnt); flex: none; }
 .detail__songs { display: flex; flex-direction: column; gap: 5px; font-size: 15px; }
 .detail__songs div { display: flex; justify-content: space-between; color: var(--c-mut); }
