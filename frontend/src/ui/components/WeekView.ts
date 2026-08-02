@@ -36,7 +36,16 @@ export class WeekView {
   private now = new Date();
   private draft: FlowDraft | null = null;
 
-  constructor(private readonly options: WeekViewOptions) {}
+  constructor(private readonly options: WeekViewOptions) {
+    // Clicking past the blocks lets the pick go.
+    this.el.addEventListener("click", (event) => {
+      if ((event.target as HTMLElement).closest(".blk")) return;
+      if (!this.selected) return;
+      this.selected = "";
+      this.options.onPick("");
+      this.render();
+    });
+  }
 
   setFlows(flows: ScheduledFlow[]): void {
     this.flows = flows;
@@ -187,9 +196,8 @@ export class WeekView {
       children,
     );
     block.addEventListener("click", () => {
-      // Picking the picked one lets it go.
-      this.selected = this.selected === flow.id ? "" : flow.id;
-      this.options.onPick(this.selected);
+      this.selected = flow.id;
+      this.options.onPick(flow.id);
       this.render();
     });
     return block;

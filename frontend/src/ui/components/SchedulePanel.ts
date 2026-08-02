@@ -191,7 +191,7 @@ export class SchedulePanel {
       el("div", { class: "detail__n", textContent: flow.name }),
       ...rows,
       songs,
-      el("div", { class: "detail__b" }, [action, edit, this.addButton()]),
+      el("div", { class: "detail__b" }, [action, edit]),
     );
   }
 
