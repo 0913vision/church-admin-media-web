@@ -68,8 +68,6 @@ export class ConsolePanel {
   /** Disabled while the media server is out of reach — the console is its job. */
   setReachable(reachable: boolean): void {
     this.reachable = reachable;
-    this.led.className = `led ${reachable ? "led--go" : "led--bad"}`;
-    this.conn.textContent = reachable ? "연결됨" : "알 수 없음";
     this.render();
   }
 
@@ -79,6 +77,12 @@ export class ConsolePanel {
   }
 
   private render(): void {
+    // Note(yoochan.kim): connected means the desk itself answered, not that
+    // the media server did — a silent desk says 응답 없음.
+    const heard = this.state.mic.kind === "read" || this.state.aux.kind === "read";
+    this.led.className = `led ${this.reachable && heard ? "led--go" : "led--bad"}`;
+    this.conn.textContent = !this.reachable ? "알 수 없음" : heard ? "연결됨" : "응답 없음";
+
     for (const row of this.rows) {
       const read = this.state[row.key];
       const on = read.kind === "read" && read.on;

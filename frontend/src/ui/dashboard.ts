@@ -280,6 +280,10 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   };
 
   const renderConsoleRows = (): void => {
+    const heard = consoleState.mic.kind === "read" || consoleState.aux.kind === "read";
+    x32Led.className = `led ${consoleReachable && heard ? "led--go" : "led--bad"}`;
+    x32Conn.textContent = !consoleReachable ? "알 수 없음" : heard ? "연결됨" : "응답 없음";
+
     for (const row of consoleRows) {
       const read = consoleState[row.input];
       const on = read.kind === "read" && read.on;
