@@ -387,6 +387,10 @@ button { font: inherit; }
 .log b.debug { color: var(--c-fnt); }
 .log span { color: var(--c-mut); overflow: hidden; text-overflow: ellipsis; }
 .sys .log span { overflow: visible; text-overflow: clip; }
+.sys .log::-webkit-scrollbar { width: 10px; height: 10px; }
+.sys .log::-webkit-scrollbar-thumb { background: var(--slot); border-radius: 5px; }
+.sys .log::-webkit-scrollbar-thumb:hover { background: var(--c-fnt); }
+.sys .log::-webkit-scrollbar-corner { background: transparent; }
 .log__none { color: var(--c-fnt); }
 
 /* ================= week grid: the schedule drawn as a week ================= */
