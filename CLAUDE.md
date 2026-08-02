@@ -17,7 +17,7 @@ one scrypt hash covers both, and the browser never sees the media server.
 - **Backend**: `cd backend && .venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000`
 - **Frontend**: `cd frontend && npm run build` (tsc only, no bundler) or `npm run watch`
 - **Protocol**: `./scripts/sync-protocol.sh [path-to-media-server]` copies the generated bindings in. See below
-- **Environment**: `backend/.env`, all values required (fail-fast): `HOST`, `PORT`, `MEDIA_SERVER_URL`, `ADMIN_PASSWORD_HASH` (the **same** scrypt hash as the media server), `SESSION_SECRET`, `SESSION_MAX_AGE`, `COOKIE_SECURE`, `SCHEDULES_FILE_PATH`
+- **Environment**: `backend/.env`, all values required (fail-fast): `HOST`, `PORT`, `MEDIA_SERVER_URL`, `ADMIN_PASSWORD_HASH` (the **same** scrypt hash as the media server), `SESSION_SECRET`, `SESSION_MAX_AGE`, `COOKIE_SECURE`, `SCHEDULES_FILE_PATH`, `MEDIA_LOG_PATH` (media server log file, shown in the system tab)
 
 ## The protocol is not ours
 
@@ -51,9 +51,18 @@ repo speaks that model end to end rather than translating it.
   there, which is what stops a lock outliving this process
 - **`schedule/models.py`** — loads `schedules.json` at boot, failing fast, so a
   typo surfaces then rather than at 19:30 on a Wednesday. A flow's `parts` are
-  in the protocol's own shape and pass through untouched
-- **`system/monitor.py`** — psutil host stats, this machine's business rather
-  than the device's
+  in the protocol's own shape and pass through untouched. `autoStart` says
+  whether the flow needs approval
+- **`schedule/autostart.py`** — starts `autoStart` flows when their window
+  opens. Here rather than in the browser because a dashboard nobody has open is
+  the normal case. The media server still holds no calendar: this presses start
+  exactly as a person would, once per occurrence, and only while nothing is
+  running
+- **`system/monitor.py`** — psutil host stats (per-core, memory, swap, load,
+  top processes), this machine's business rather than the device's
+- **`api/system.py`** — the tail of `MEDIA_LOG_PATH`, so "what happened at
+  19:30" is on screen instead of behind SSH. Standard time, never church time:
+  a log records when something actually happened
 - **`security/`** — Node-compatible scrypt verification and signed session cookies
 
 ### Frontend
@@ -64,6 +73,11 @@ repo speaks that model end to end rather than translating it.
 - `api/device.ts` writes attributes and invokes commands, mirroring the wire
 - Components take the protocol's `State`; catalogues (songs, tracks) come from
   `ready`, so **no display name for a song is written in this repo**
+- **Church time, never the browser's clock.** `util/churchClock.ts` keeps the
+  skew from `ping.at` and everything on screen is drawn against that — the
+  whole point of the offset is that local clocks disagree
+- Korean copy is 해요체, short, and free of `·`. Labels stay labels: no
+  explanatory sentence trailing a control
 
 ## Conventions
 

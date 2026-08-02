@@ -1,5 +1,4 @@
 import { clamp, el } from "../../util/dom.js";
-import { icon } from "../icons.js";
 
 export interface FaderOptions {
   min?: number;
@@ -7,15 +6,16 @@ export interface FaderOptions {
   onInput: (value: number) => void;
 }
 
-// Horizontal volume fader built on Pointer Events: one capture-based drag path
-// covers mouse and touch, the whole track is grabbable, and it is keyboard
-// accessible. Disabled while the audio device is busy (audio lock).
+/**
+ * The mockup's slider, exactly: a 6px track with a fill and a round thumb.
+ * The label and the big number live in the volrow around it — `valueEl` is
+ * handed out so the row can place the number where the mockup puts it.
+ */
 export class Fader {
   readonly el: HTMLElement;
-  private readonly track: HTMLElement;
+  readonly valueEl: HTMLElement;
   private readonly fill: HTMLElement;
   private readonly thumb: HTMLElement;
-  private readonly valueLabel: HTMLElement;
   private readonly min: number;
   private readonly max: number;
   private value: number;
@@ -27,21 +27,13 @@ export class Fader {
     this.max = options.max ?? 100;
     this.value = this.min;
 
-    this.valueLabel = el("span", { class: "fader__value" }, ["0"]);
-    this.fill = el("div", { class: "fader__fill" });
-    this.thumb = el("div", { class: "fader__thumb" });
-    this.track = el("div", { class: "fader__track" }, [this.fill, this.thumb]);
+    this.fill = el("i", {});
+    this.thumb = el("u", {});
+    this.valueEl = el("span", { class: "volrow__n num", textContent: "0" });
     this.el = el(
-      "div",
-      { class: "fader", tabIndex: 0, role: "slider", ariaValueMin: String(this.min), ariaValueMax: String(this.max) },
-      [
-        el("div", { class: "fader__head" }, [
-          el("span", { class: "fader__label" }, [icon("volume", 18), "볼륨"]),
-          this.valueLabel,
-        ]),
-        this.track,
-        el("div", { class: "fader__ends" }, [el("span", { textContent: String(this.min) }), el("span", { textContent: String(this.max) })]),
-      ],
+      "span",
+      { class: "slider", tabIndex: 0, role: "slider", ariaValueMin: String(this.min), ariaValueMax: String(this.max) },
+      [this.fill, this.thumb],
     );
 
     this.attachPointer();
@@ -62,20 +54,20 @@ export class Fader {
   }
 
   private attachPointer(): void {
-    this.track.addEventListener("pointerdown", (event) => {
+    this.el.addEventListener("pointerdown", (event) => {
       if (this.disabled) return;
       this.dragging = true;
-      this.track.setPointerCapture(event.pointerId);
+      this.el.setPointerCapture(event.pointerId);
       this.commit(this.valueFromPointer(event.clientX));
     });
-    this.track.addEventListener("pointermove", (event) => {
+    this.el.addEventListener("pointermove", (event) => {
       if (this.dragging) this.commit(this.valueFromPointer(event.clientX));
     });
-    this.track.addEventListener("pointerup", (event) => {
+    this.el.addEventListener("pointerup", (event) => {
       this.dragging = false;
-      this.track.releasePointerCapture(event.pointerId);
+      this.el.releasePointerCapture(event.pointerId);
     });
-    this.track.addEventListener("pointercancel", () => {
+    this.el.addEventListener("pointercancel", () => {
       this.dragging = false;
     });
   }
@@ -95,7 +87,7 @@ export class Fader {
   }
 
   private valueFromPointer(clientX: number): number {
-    const rect = this.track.getBoundingClientRect();
+    const rect = this.el.getBoundingClientRect();
     const ratio = (clientX - rect.left) / rect.width;
     return this.min + ratio * (this.max - this.min);
   }
@@ -111,7 +103,7 @@ export class Fader {
     this.fill.style.width = percent;
     this.thumb.style.left = percent;
     const rounded = Math.round(this.value);
-    this.valueLabel.textContent = String(rounded);
+    this.valueEl.textContent = String(rounded);
     this.el.setAttribute("aria-valuenow", String(rounded));
   }
 }

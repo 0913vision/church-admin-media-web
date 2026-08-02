@@ -11,49 +11,45 @@ import { el } from "../util/dom.js";
 import { throttle } from "../util/rate.js";
 import { ConsolePanel } from "./components/ConsolePanel.js";
 import { Fader } from "./components/Fader.js";
-import { NowPlaying } from "./components/NowPlaying.js";
-import { SchedulePanel, describeStatus } from "./components/SchedulePanel.js";
-import { SongSelector } from "./components/SongSelector.js";
-import { Switch } from "./components/Switch.js";
-import { SystemPanel } from "./components/SystemPanel.js";
+import { SchedulePanel } from "./components/SchedulePanel.js";
+import { SystemPanel, formatUptime } from "./components/SystemPanel.js";
+import { ClockPanel } from "./components/ClockPanel.js";
+import { FlowPanel } from "./components/FlowPanel.js";
+import { ChurchClock, driftOf, hhmmOf, ssOf } from "../util/churchClock.js";
 import { TransportControls } from "./components/TransportControls.js";
 import { icon } from "./icons.js";
 
-type ViewKey = "overview" | "playback" | "schedule" | "console" | "system";
+type ViewKey = "overview" | "schedule" | "console" | "clock" | "system";
 
 const NAV: { key: ViewKey; label: string; icon: string }[] = [
   { key: "overview", label: "대시보드", icon: "grid" },
-  { key: "playback", label: "재생", icon: "play" },
-  { key: "schedule", label: "순서", icon: "clock" },
-  { key: "console", label: "콘솔", icon: "sliders" },
-  { key: "system", label: "시스템", icon: "cpu" },
+  { key: "schedule", label: "자동 진행", icon: "music" },
+  { key: "clock", label: "시계", icon: "clock" },
+  { key: "console", label: "X32", icon: "sliders" },
+  { key: "system", label: "라즈베리파이", icon: "cpu" },
 ];
-
-const DOMAIN: Record<Exclude<ViewKey, "overview">, { icon: string; accent: string }> = {
-  playback: { icon: "play", accent: "is-indigo" },
-  schedule: { icon: "clock", accent: "is-violet" },
-  console: { icon: "sliders", accent: "is-amber" },
-  system: { icon: "cpu", accent: "is-green" },
-};
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 /** Every attribute the dashboard needs before it can claim to show the device */
-const ATTRIBUTES = ["playback", "volume", "mute", "song", "adminLock", "audioLock", "isAdmin", "flow"] as const;
+const ATTRIBUTES = [
+  "playback", "volume", "mute", "song", "adminLock", "audioLock", "isAdmin", "flow", "clockOffsetSec",
+] as const;
 
 const REJECT_LABEL: Record<string, string> = {
-  invalidValue: "값이 올바르지 않습니다",
-  invalidPassword: "비밀번호가 올바르지 않습니다",
-  notAdmin: "관리자만 할 수 있습니다",
-  notWritable: "바꿀 수 없는 값입니다",
-  adminLocked: "관리자 락이 걸려 있습니다",
-  deviceBusy: "기기가 사용 중입니다",
-  unknownTrack: "등록되지 않은 곡입니다",
-  flowActive: "진행 중인 순서가 있습니다",
-  noFlow: "진행 중인 순서가 없습니다",
-  windowPassed: "이미 지난 시간이라 실행할 수 없습니다",
-  unknownTarget: "서버가 모르는 요청입니다",
-  protocolMismatch: "서버와 버전이 맞지 않습니다. 업데이트가 필요합니다",
+  invalidValue: "값이 올바르지 않아요",
+  invalidPassword: "비밀번호가 올바르지 않아요",
+  notAdmin: "방송실에서만 할 수 있어요",
+  notWritable: "바꿀 수 없어요",
+  adminLocked: "관리자 잠금이 걸려 있어요",
+  deviceBusy: "바뀌는 중이에요",
+  unknownTrack: "등록되지 않은 곡이에요",
+  flowActive: "이미 도는 자동 진행이 있어요",
+  noFlow: "도는 자동 진행이 없어요",
+  windowPassed: "이미 지난 시각이에요",
+  musicOutsideLock: "곡이 잠금 시간을 벗어나요",
+  unknownTarget: "서버가 모르는 요청이에요",
+  protocolMismatch: "버전이 맞지 않아요. 업데이트가 필요해요",
 };
 
 /**
@@ -67,15 +63,52 @@ function deviceOf(patch: StatePatch): { known: true; state: State } | { known: f
     : { known: false };
 }
 
+/** The deck's second line: a lamp and a phrase, plus the flow chip when one plays. */
+interface DeckMeta {
+  el: HTMLElement;
+  set(state: State, titles: Map<string, string>): void;
+}
+
+function deckMeta(): DeckMeta {
+  const led = el("span", { class: "led led--off" });
+  const text = el("span", {});
+  const chip = el("span", { class: "chip chip--go is-hidden" });
+  return {
+    el: el("div", { class: "deck__meta" }, [led, text, chip]),
+    set(state) {
+      const playing = state.playback === "playing";
+      led.className = `led ${playing ? "led--go" : "led--off"}`;
+      text.textContent = playing ? "재생 중" : "정지됨";
+      const flow = state.flow;
+      chip.classList.toggle("is-hidden", flow.phase !== "playing");
+      if (flow.phase === "playing") chip.textContent = `자동 진행 ${flow.track.index}/${flow.track.total}`;
+    },
+  };
+}
+
+/** The mockup's mute chip: a small pill that goes amber while muted. */
+function muteChip(onChange: (next: boolean) => void): { el: HTMLButtonElement; set(on: boolean, disabled: boolean): void } {
+  let muted = false;
+  const button = el("button", { class: "mute", type: "button", textContent: "음소거" });
+  button.addEventListener("click", () => onChange(!muted));
+  return {
+    el: button,
+    set(on, disabled) {
+      muted = on;
+      button.classList.toggle("on", on);
+      button.textContent = on ? "음소거 중" : "음소거";
+      button.disabled = disabled;
+    },
+  };
+}
+
 export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): void {
   const store = new Store();
 
   let stopStream: () => void = () => {};
-  let clockTimer = 0;
   let noticeTimer = 0;
   const leave = (): void => {
     stopStream();
-    window.clearInterval(clockTimer);
     onLoggedOut();
   };
   const guard = (promise: Promise<unknown>): void => {
@@ -91,81 +124,214 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   const sendVolume = throttle((value: number) => write("volume", value), 60);
 
   // --- controls ---
-  const now = new NowPlaying();
-  const fader = new Fader({ onInput: sendVolume });
   const transport = new TransportControls({ onToggle: (next) => write("playback", next) });
-  const songs = new SongSelector({ onSelect: (songId) => write("song", songId) });
-  const muteSwitch = new Switch({
-    onLabel: "음소거 중",
-    offLabel: "소리 켜짐",
-    tone: "accent",
-    onChange: (next) => write("mute", next ? MuteState.MUTED : MuteState.UNMUTED),
-  });
-  const lockSwitch = new Switch({
-    onLabel: "잠금",
-    offLabel: "해제",
-    tone: "danger",
-    onChange: (next) => write("adminLock", next),
-  });
+  const fader = new Fader({ onInput: sendVolume });
+  const mute = muteChip((next) => write("mute", next ? MuteState.MUTED : MuteState.UNMUTED));
   const schedulePanel = new SchedulePanel({
     onStart: (flowId) => {
       scheduleApi.start(flowId).catch((err) => {
         if (err instanceof UnauthorizedError) leave();
-        else schedulePanel.showMessage(err instanceof Error ? err.message : "시작하지 못했습니다.");
+        else schedulePanel.showMessage(err instanceof Error ? err.message : "시작하지 못했어요");
       });
     },
     onStop: () => guard(scheduleApi.stop()),
+    onSave: (id, entry) => {
+      guard(
+        scheduleApi
+          .save(id, entry)
+          .then(() => scheduleApi.list())
+          .then(({ flows }) => {
+            schedulePanel.setFlows(flows);
+            flowPanel.setFlows(flows);
+            schedulePanel.closeEditor();
+            schedulePanel.showMessage("저장했어요");
+          }),
+      );
+    },
+    onDelete: (id) => {
+      guard(
+        scheduleApi
+          .remove(id)
+          .then(() => scheduleApi.list())
+          .then(({ flows }) => {
+            schedulePanel.setFlows(flows);
+            flowPanel.setFlows(flows);
+            schedulePanel.closeEditor();
+            schedulePanel.showMessage("삭제했어요");
+          }),
+      );
+    },
   });
   const consolePanel = new ConsolePanel({
     onMic: () => guard(deviceApi.invoke({ command: "enableConsoleInput", args: { input: "mic" } })),
     onAux: () => guard(deviceApi.invoke({ command: "enableConsoleInput", args: { input: "aux" } })),
   });
   const systemPanel = new SystemPanel();
+  const church = new ChurchClock();
+  const clockPanel = new ClockPanel({
+    clock: church,
+    onOffset: (offsetSec) => write("clockOffsetSec", offsetSec),
+  });
+  const flowPanel = new FlowPanel({
+    onStart: (flowId) => {
+      scheduleApi.start(flowId).catch((err) => {
+        if (err instanceof UnauthorizedError) leave();
+      });
+    },
+    onSkip: (flowId) => guard(scheduleApi.skip(flowId)),
+    onStop: () => guard(scheduleApi.stop()),
+    onGoto: () => setView("schedule"),
+  });
 
-  // --- dashboard widgets (live readouts) ---
-  const nowDash = new NowPlaying();
-  const sysDash = new SystemPanel();
-  const wgVolFill = el("div", { class: "wvol__fill" });
-  const wgVolNum = el("span", { class: "wvol__num", textContent: "—" });
-  const wgMute = el("span", { class: "badge is-warn is-hidden", textContent: "음소거" });
-  const ovSchedMain = el("span", { class: "widget__big", textContent: "진행 중인 순서가 없습니다" });
-  const ovSchedSub = el("span", { class: "widget__sub" });
-  const ovLockBadge = el("span", { class: "badge" });
-  const ovConnBadge = el("span", { class: "badge" });
+  // --- deck readouts ---
+  const deckSong = el("div", { class: "deck__song", textContent: "—" });
+  const meta = deckMeta();
+  const clockVal = el("div", { class: "clock__v" });
+  const clockDrift = el("div", { class: "clock__d" });
 
   // --- topbar ---
-  const clockTime = el("time", { class: "clock__time" });
-  const clockDate = el("span", { class: "clock__date" });
-  const connDot = el("span", { class: "conn" });
-  const notice = el("span", { class: "badge is-bad is-hidden" });
-  const logout = el("button", { class: "logout", type: "button", textContent: "로그아웃" });
+  const topDate = el("div", { class: "clock__date num" });
+  // The gate is toggled here and only here: press the chip, the server answers.
+  const lockValue = el("span", { class: "gate__v" });
+  const gate = el("button", { class: "gate", type: "button" }, [
+    el("span", { class: "led led--off" }),
+    el("span", { class: "gate__l", textContent: "관리자 잠금" }),
+    lockValue,
+  ]);
+  let adminLocked = false;
+  // The gate only moves if you mean it: hold until the chip fills.
+  const gateArm = el("i", { class: "arm" });
+  gate.prepend(gateArm);
+  gateArm.addEventListener("transitionend", () => {
+    if (gate.classList.contains("arming")) write("adminLock", !adminLocked);
+    gate.classList.remove("arming");
+  });
+  gate.addEventListener("pointerdown", () => gate.classList.add("arming"));
+  for (const ev of ["pointerup", "pointerleave", "pointercancel"])
+    gate.addEventListener(ev, () => gate.classList.remove("arming"));
+  const notice = el("span", { class: "notice is-hidden" });
+  // Light while setting up, dark during a service. Remembered per browser.
+  const SUN = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+  const MOON = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>';
+  const theme = el("button", { class: "nav__tab themebtn", type: "button" });
+  const applyTheme = (mode: string): void => {
+    document.documentElement.dataset.theme = mode;
+    theme.innerHTML = `<span class="icon">${mode === "dark" ? SUN : MOON}</span><span>${mode === "dark" ? "밝게" : "어둡게"}</span>`;
+    localStorage.setItem("theme", mode);
+  };
+  applyTheme(document.documentElement.dataset.theme ?? "light");
+  theme.addEventListener("click", () =>
+    applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"),
+  );
+  const logout = el("button", { type: "button", textContent: "로그아웃" });
   logout.addEventListener("click", () => authApi.logout().finally(leave));
 
-  // --- views ---
-  const views: Record<ViewKey, HTMLElement> = {
-    overview: el("section", { class: "view view--overview" }, []),
-    playback: el("section", { class: "view" }, [
-      el("div", { class: "sheet" }, [
-        now.el,
-        el("hr", { class: "rule" }),
-        el("div", { class: "playback__controls" }, [transport.el, songs.el]),
-        el("hr", { class: "rule" }),
-        fader.el,
-        controlRow("음소거", muteSwitch.el, undefined, "volume"),
-      ]),
-    ]),
-    schedule: el("section", { class: "view" }, [
-      el("div", { class: "sheet" }, [
-        schedulePanel.el,
-        el("hr", { class: "rule" }),
-        controlRow("관리자 락", lockSwitch.el, "관리자가 아닌 사용자의 조작을 막습니다.", "lock"),
-      ]),
-    ]),
-    console: el("section", { class: "view" }, [el("div", { class: "sheet" }, [consolePanel.el])]),
-    system: el("section", { class: "view" }, [el("div", { class: "sheet" }, [systemPanel.el])]),
+  /** A link naming the tab that owns the block it sits in. */
+  const goto = (key: Exclude<ViewKey, "overview">, atRight = false): HTMLElement => {
+    const go = el("button", {
+      class: "goto",
+      type: "button",
+      textContent: `${NAV.find((entry) => entry.key === key)!.label} 탭`,
+    });
+    if (atRight) go.setAttribute("style", "margin-left:auto");
+    go.addEventListener("click", () => setView(key));
+    return go;
   };
 
-  const pageTitle = el("h1", { class: "topbar__title" });
+  /** Read-only until the console reports its own state back. */
+  const channelRow = (name: string, input: "mic" | "aux"): HTMLElement => {
+    const button = el("button", { class: "pick", type: "button", textContent: "켜기" });
+    button.addEventListener("click", () =>
+      guard(deviceApi.invoke({ command: "enableConsoleInput", args: { input } })),
+    );
+    consoleButtons.push(button);
+    return el("div", { class: "chrow" }, [
+      el("span", { class: "chrow__n", textContent: name }),
+      el("span", { class: "chrow__s" }, [el("span", { class: "led led--off" }), "—"]),
+      el("span", { class: "chrow__bar" }),
+      el("span", { class: "chrow__db", textContent: "—" }),
+      el("span", {}),
+      button,
+    ]);
+  };
+  const consoleButtons: HTMLButtonElement[] = [];
+  const x32Led = el("span", { class: "led led--go" });
+  const x32Conn = el("span", { textContent: "—" });
+  const sysBars = el("div", {});
+  const sysLog = el("div", { class: "log log--sum" });
+  const songRadios = el("div", { class: "radios" });
+
+  /** The deck's song list — the confirmed radio, one row per song. */
+  const renderSongRadios = (state: State): void => {
+    const flowOwnsDeck = state.flow.phase === "playing";
+    songRadios.replaceChildren(
+      ...[...songTitles.entries()].map(([id, title]) => {
+        const selected = !flowOwnsDeck && id === state.song;
+        const row = el("button", { class: selected ? "on" : "", type: "button" }, [
+          el("span", { class: "r" }),
+          title,
+        ]);
+        row.disabled = state.audioLock || flowOwnsDeck;
+        row.title = flowOwnsDeck ? "자동 진행이 재생 중이에요" : "";
+        if (!selected) row.addEventListener("click", () => write("song", id));
+        return row;
+      }),
+    );
+  };
+
+  // --- views ---
+  const dashDeck = el("div", { class: "deck" }, [
+    el("div", { class: "deck__top" }, [
+      transport.el,
+      el("div", {}, [deckSong, meta.el]),
+    ]),
+    el("div", { class: "volrow" }, [
+      el("span", { class: "volrow__l", textContent: "볼륨" }),
+      fader.el,
+      fader.valueEl,
+      mute.el,
+    ]),
+    el("div", { class: "deck__songs" }, [songRadios]),
+  ]);
+
+  const views: Record<ViewKey, HTMLElement> = {
+    overview: el("section", { class: "view" }, [
+      el("div", { class: "head" }, [
+        dashDeck,
+        el("div", { class: "clock" }, [
+          el("div", { class: "clock__t" }, [el("span", { textContent: "교회 시각" }), goto("clock")]),
+          el("div", { class: "clock__b" }, [clockVal]),
+          topDate,
+          clockDrift,
+        ]),
+      ]),
+      flowPanel.el,
+      el("div", { class: "x32" }, [
+        el("div", { class: "x32__h" }, [
+          x32Led,
+          el("b", { textContent: "X32 콘솔" }),
+          x32Conn,
+          el("span", { class: "tag", textContent: "미개발" }),
+          goto("console", true),
+        ]),
+        channelRow("목사님 마이크", "mic"),
+        channelRow("노래", "aux"),
+      ]),
+      el("div", { class: "sum" }, [
+        el("div", {}, [el("div", { class: "sum__t" }, [el("span", { textContent: "시스템" })]), sysBars]),
+        el("div", {}, [
+          el("div", { class: "sum__t" }, [el("span", { textContent: "미디어 서버 로그" }), goto("system")]),
+          sysLog,
+        ]),
+      ]),
+    ]),
+    schedule: el("section", { class: "view" }, [schedulePanel.el, ...schedulePanel.below()]),
+    console: el("section", { class: "view" }, [consolePanel.el]),
+    clock: el("section", { class: "view" }, [clockPanel.el]),
+    system: el("section", { class: "view" }, [systemPanel.el]),
+  };
+
+  const pageTitle = el("b", {});
   const navButtons = new Map<ViewKey, HTMLButtonElement>();
   const setView = (key: ViewKey): void => {
     navButtons.forEach((button, k) => button.classList.toggle("is-active", k === key));
@@ -178,7 +344,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     { class: "nav" },
     NAV.map((entry) => {
       const button = el("button", { class: "nav__tab", type: "button" }, [
-        icon(entry.icon, 17),
+        icon(entry.icon, 15),
         el("span", { textContent: entry.label }),
       ]);
       button.addEventListener("click", () => setView(entry.key));
@@ -187,80 +353,54 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     }),
   );
 
-  views.overview.append(
-    widget("재생", "playback", "widget--playback", [
-      nowDash.el,
-      el("div", { class: "wvol" }, [icon("volume", 18), el("div", { class: "wvol__bar" }, [wgVolFill]), wgVolNum, wgMute]),
-    ]),
-    widget("시스템 상태", "system", "widget--system", [sysDash.el]),
-    widget("순서", "schedule", "widget--schedule", [ovSchedMain, ovSchedSub, el("div", { class: "widget__row" }, [ovLockBadge])]),
-    widget("X32 콘솔", "console", "widget--console", [
-      el("div", { class: "widget__row" }, [ovConnBadge]),
-      el("span", { class: "widget__sub", textContent: "목사님 마이크와 AUX 입력을 켭니다" }),
-    ]),
-  );
-
-  function widget(title: string, key: Exclude<ViewKey, "overview">, span: string, children: (Node | string)[]): HTMLElement {
-    const domain = DOMAIN[key];
-    const go = el("button", { class: "whead__go", type: "button" }, [el("span", { textContent: "관리" }), icon("arrow", 15)]);
-    go.addEventListener("click", () => setView(key));
-    return el("section", { class: `widget ${span} ${domain.accent}` }, [
-      el("div", { class: "whead" }, [
-        el("span", { class: "chip-ic" }, [icon(domain.icon, 20)]),
-        el("span", { class: "whead__title", textContent: title }),
-        go,
-      ]),
-      el("div", { class: "widget__body" }, children),
-    ]);
-  }
-
   root.replaceChildren(
     el("div", { class: "app" }, [
       el("aside", { class: "side" }, [
         el("div", { class: "brand" }, [
           el("span", { class: "brand__mark" }),
-          el("span", { class: "brand__name", textContent: "미디어 관리자" }),
+          el("span", { textContent: "미디어 관리자" }),
         ]),
         nav,
+        theme,
       ]),
       el("div", { class: "main" }, [
-        el("header", { class: "topbar" }, [
+        el("header", { class: "top" }, [
           pageTitle,
-          el("div", { class: "topbar__right" }, [
-            notice,
-            el("div", { class: "clock" }, [clockTime, clockDate]),
-            connDot,
-            logout,
-          ]),
+          el("div", { class: "right" }, [notice, gate, logout]),
         ]),
-        el("main", { class: "stage" }, [views.overview, views.playback, views.schedule, views.console, views.system]),
+        el("main", { class: "page" }, [
+          views.overview,
+          views.schedule,
+          views.console,
+          views.clock,
+          views.system,
+        ]),
       ]),
     ]),
   );
 
   setView("overview");
 
-  const tick = (): void => {
-    const d = new Date();
-    clockTime.textContent = [d.getHours(), d.getMinutes(), d.getSeconds()].map((n) => String(n).padStart(2, "0")).join(":");
-    clockDate.textContent = `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAYS[d.getDay()]})`;
-  };
-  tick();
-  clockTimer = window.setInterval(tick, 1000);
+  church.start((now) => {
+    topDate.textContent = `${now.getMonth() + 1}월 ${now.getDate()}일 (${WEEKDAYS[now.getDay()]})`;
+    clockVal.replaceChildren(hhmmOf(now), el("s", { textContent: `:${ssOf(now)}` }));
+    flowPanel.setNow(now);
+    schedulePanel.setNow(now);
+  });
 
   /** Shows why something did nothing, rather than leaving it looking broken. */
   const showRejection = (rejection: Rejection): void => {
-    notice.textContent = REJECT_LABEL[rejection.reason] ?? `거부됨: ${rejection.reason}`;
+    notice.textContent = REJECT_LABEL[rejection.reason] ?? `거부됐어요: ${rejection.reason}`;
     notice.classList.remove("is-hidden");
     window.clearTimeout(noticeTimer);
     noticeTimer = window.setTimeout(() => notice.classList.add("is-hidden"), 4000);
   };
 
   const renderLink = (link: Link): void => {
-    connDot.textContent = link.connected ? "연결됨" : "연결 끊김";
-    connDot.className = `conn ${link.connected ? "is-ok" : "is-bad"}`;
-    setBadge(ovConnBadge, link.connected ? "서버 연결됨" : "서버 연결 끊김", link.connected ? "is-ok" : "is-bad");
+    x32Led.className = `led ${link.connected ? "led--go" : "led--bad"}`;
+    x32Conn.textContent = link.connected ? "연결됨" : "알 수 없음";
     consolePanel.setReachable(link.connected);
+    for (const button of consoleButtons) button.disabled = !link.connected;
 
     if (!link.connected) return;
     if (!link.accepted) {
@@ -268,56 +408,75 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     }
     // Catalogues are fixed for the connection, so they are applied once here
     // rather than re-read on every state patch.
-    songs.setCatalogue(link.songs);
-    now.setCatalogue(link.songs);
-    nowDash.setCatalogue(link.songs);
+    songTitles = new Map(link.songs.map((song) => [song.id, song.title]));
+    schedulePanel.setTracks(link.tracks);
+    flowPanel.setTracks(link.tracks);
   };
+
+  let songTitles = new Map<string, string>();
 
   const renderDevice = (patch: StatePatch): void => {
     const device = deviceOf(patch);
     if (!device.known) return;
     const state = device.state;
 
-    setBadge(ovLockBadge, state.adminLock ? "관리자 락 잠금" : "관리자 락 해제", state.adminLock ? "is-bad" : "");
+    // While a flow plays its own track, the selected song is not what sounds.
+    const title =
+      state.flow.phase === "playing" ? state.flow.track.title : (songTitles.get(state.song) ?? state.song);
+    deckSong.textContent = title;
+    meta.set(state, songTitles);
 
-    nowDash.update(state);
-    wgVolFill.style.width = `${state.volume}%`;
-    wgVolNum.textContent = String(Math.round(state.volume));
-    wgMute.classList.toggle("is-hidden", state.mute !== MuteState.MUTED);
-
-    now.update(state);
     fader.setValue(state.volume);
     fader.setDisabled(state.audioLock);
     transport.update(state);
-    songs.update(state);
-    muteSwitch.set(state.mute === MuteState.MUTED, state.audioLock);
-    // A running flow owns the gate, so the switch goes quiet rather than
+    renderSongRadios(state);
+    mute.set(state.mute === MuteState.MUTED, state.audioLock);
+
+    adminLocked = state.adminLock;
+    lockValue.textContent = state.adminLock ? "잠김" : "풀림";
+    gate.classList.toggle("on", state.adminLock);
+    gate.querySelector(".led")!.className = `led led--${state.adminLock ? "bad" : "off"}`;
+    // A running flow owns the gate, so the chip goes quiet rather than
     // offering a toggle the server would refuse.
-    lockSwitch.set(state.adminLock, !state.isAdmin || state.flow.phase !== "idle");
+    gate.disabled = !state.isAdmin || state.flow.phase !== "idle";
 
     schedulePanel.setStatus(state.flow);
-    renderFlowWidget(state);
-  };
-
-  const renderFlowWidget = (state: State): void => {
-    const described = describeStatus(state.flow);
-    if (!described.known) {
-      ovSchedMain.textContent = "알 수 없는 상태";
-      ovSchedSub.textContent = "업데이트가 필요합니다";
-      return;
-    }
-    if (state.flow.phase === "idle") {
-      ovSchedMain.textContent = "진행 중인 순서가 없습니다";
-      ovSchedSub.textContent = "순서 탭에서 시작할 수 있습니다";
-      return;
-    }
-    ovSchedMain.textContent = described.name;
-    ovSchedSub.textContent = [described.phase, ...described.details].join(" · ");
+    flowPanel.setStatus(state.flow);
+    clockPanel.setOffset(state.clockOffsetSec);
+    // A run always holds the gate, so this is also "no clock changes while
+    // music is playing".
+    clockPanel.setGated(state.adminLock);
+    clockDrift.textContent = driftOf(state.clockOffsetSec);
+    clockDrift.className = `clock__d${state.clockOffsetSec !== 0 ? " is-off" : ""}`;
   };
 
   const renderSystem = (stats: SystemStats): void => {
     systemPanel.update(stats);
-    sysDash.update(stats);
+    const rows: [string, number, string][] = [
+      ["CPU", stats.cpuPercent, `${Math.round(stats.cpuPercent)}%`],
+      ["메모리", stats.memPercent, `${Math.round(stats.memPercent)}%`],
+      ["디스크", stats.diskPercent, `${Math.round(stats.diskPercent)}%`],
+    ];
+    if (stats.tempC !== null) rows.push(["온도", Math.min(100, stats.tempC), `${Math.round(stats.tempC)}°C`]);
+    sysBars.replaceChildren(
+      ...rows.map(([label, percent, text]) =>
+        el("div", { class: "sum__row" }, [
+          el("span", { textContent: label }),
+          el("span", { class: "htop__b" }, [
+            el("i", {
+              class: percent > 85 ? "is-bad" : percent > 70 ? "is-warn" : "",
+              style: `width:${Math.min(100, Math.max(0, percent))}%`,
+            }),
+          ]),
+          el("span", { class: "htop__v", textContent: text }),
+        ]),
+      ),
+      el("div", { class: "sum__row" }, [
+        el("span", { textContent: "가동" }),
+        el("span", { class: "sum__plain", textContent: formatUptime(stats.uptimeSeconds) }),
+        el("span", {}),
+      ]),
+    );
   };
 
   store.subscribe((dashboard: Dashboard) => {
@@ -327,30 +486,28 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
 
   scheduleApi
     .list()
-    .then(({ flows }) => schedulePanel.setFlows(flows))
+    .then(({ flows }) => {
+      schedulePanel.setFlows(flows);
+      flowPanel.setFlows(flows);
+    })
     .catch((err) => {
       if (err instanceof UnauthorizedError) leave();
     });
 
-  stopStream = subscribeEvents({
+  const stopLog = systemPanel.watchLog((lines) => {
+    // The same log the system tab shows, cut to what fits here.
+    sysLog.replaceChildren(...lines.slice(0, 5).map((line) => line.cloneNode(true)));
+  });
+  const stopEvents = subscribeEvents({
     onLink: (link) => store.setLink(link),
     onState: (patch) => store.mergeState(patch),
     onRejected: showRejection,
     onSystem: renderSystem,
+    onPing: (beat) => church.sync(beat.at),
   });
-}
+  stopStream = () => {
+    stopLog();
+    stopEvents();
+  };
 
-function controlRow(label: string, control: HTMLElement, hint?: string, iconName?: string): HTMLElement {
-  const text = [el("span", { class: "ctl__label", textContent: label })];
-  if (hint) text.push(el("span", { class: "ctl__hint", textContent: hint }));
-  const children: (Node | string)[] = [];
-  if (iconName) children.push(el("span", { class: "ctl__icon" }, [icon(iconName, 20)]));
-  children.push(el("div", { class: "ctl__text" }, text), control);
-  return el("div", { class: "ctl" }, children);
 }
-
-function setBadge(badge: HTMLElement, text: string, modifier: string): void {
-  badge.textContent = text;
-  badge.className = `badge ${modifier}`.trim();
-}
-

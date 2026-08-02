@@ -1,19 +1,23 @@
 import { el } from "../../util/dom.js";
 import { PlaybackState } from "../../protocol.js";
 import type { State } from "../../protocol.js";
-import { icon } from "../icons.js";
 
 export interface TransportOptions {
   onToggle: (next: PlaybackState) => void;
 }
 
-// Play/pause as one large button whose fill means "currently playing".
+// The mockup's own glyphs, so the deck reads exactly like the approved design.
+const PLAY = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+const PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg>';
+
+/** The deck's round play button: green while sounding, raised while paused. */
 export class TransportControls {
   readonly el: HTMLButtonElement;
   private state: PlaybackState = PlaybackState.PAUSED;
 
   constructor(options: TransportOptions) {
-    this.el = el("button", { class: "btn play__btn", type: "button" });
+    this.el = el("button", { class: "play paused", type: "button" });
+    this.el.innerHTML = PLAY;
     this.el.addEventListener("click", () => {
       options.onToggle(this.state === PlaybackState.PLAYING ? PlaybackState.PAUSED : PlaybackState.PLAYING);
     });
@@ -22,8 +26,14 @@ export class TransportControls {
   update(state: State): void {
     this.state = state.playback;
     const playing = state.playback === PlaybackState.PLAYING;
-    this.el.classList.toggle("is-active", playing);
-    this.el.replaceChildren(icon(playing ? "pause" : "play", 22), el("span", { textContent: playing ? "정지" : "재생" }));
-    this.el.disabled = state.audioLock;
+    this.el.classList.toggle("paused", !playing);
+    // The glyph is the action, not the state: press ▶ to play, ⏸ to stop.
+    this.el.innerHTML = playing ? PAUSE : PLAY;
+    this.el.title = playing ? "정지" : "재생";
+    // A flow's music is the flow's to stop: pausing under it would leave the
+    // run describing sound that is not there.
+    const flowOwnsDeck = state.flow.phase === "playing";
+    this.el.disabled = state.audioLock || flowOwnsDeck;
+    if (flowOwnsDeck) this.el.title = "자동 진행이 재생 중이에요";
   }
 }

@@ -1,5 +1,9 @@
-type ElementProps<K extends keyof HTMLElementTagNameMap> = Partial<HTMLElementTagNameMap[K]> & {
+type ElementProps<K extends keyof HTMLElementTagNameMap> = Partial<
+  Omit<HTMLElementTagNameMap[K], "style">
+> & {
   class?: string;
+  /** Inline style as text, for the positions a layout computes. */
+  style?: string;
 };
 
 export function el<K extends keyof HTMLElementTagNameMap>(
@@ -8,8 +12,9 @@ export function el<K extends keyof HTMLElementTagNameMap>(
   children: (Node | string)[] = [],
 ): HTMLElementTagNameMap[K] {
   const node = document.createElement(tag);
-  const { class: className, ...rest } = props;
+  const { class: className, style, ...rest } = props;
   if (className) node.className = className;
+  if (style) node.setAttribute("style", style);
   Object.assign(node, rest);
   for (const child of children) node.append(child);
   return node;
