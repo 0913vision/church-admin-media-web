@@ -10,10 +10,9 @@ from app.schedule.models import ScheduledFlow
 logger = logging.getLogger("autostart")
 
 _TICK_SECONDS = 5
-# How long after a window opens the runner will still start it. Wide enough to
-# survive a restart or a brief disconnect, narrow enough that a flow never
-# begins long after the service did.
-_GRACE = timedelta(minutes=5)
+# Only the moment itself is the runner's: past this, starting is a person's
+# call, and the dashboard offers the start key for exactly that case.
+_GRACE = timedelta(seconds=5)
 
 
 class AutoStarter:

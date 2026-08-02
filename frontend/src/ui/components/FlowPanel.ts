@@ -5,6 +5,8 @@ import { durationOf } from "../../util/churchClock.js";
 
 /** How early a flow announces itself on the dashboard. */
 export const WINDOW_MINUTES = 30;
+/** Mirrors the backend AutoStarter's grace: past this, starting is a person's call. */
+const GRACE_SECONDS = 5;
 
 interface FlowPanelOptions {
   onStart: (flowId: string) => void;
@@ -117,7 +119,7 @@ export class FlowPanel {
             el("span", { textContent: `${hhmm(span.closes)} 해제` }),
           ]),
         ]),
-        el("div", { class: "tl__act" }, [this.action(flow, running)]),
+        el("div", { class: "tl__act" }, [this.action(flow, running, minutesNow > span.opens + GRACE_SECONDS / 60)]),
       ]),
     );
   }
@@ -139,13 +141,14 @@ export class FlowPanel {
     );
   }
 
-  private action(flow: ScheduledFlow, running: boolean): HTMLElement {
+  private action(flow: ScheduledFlow, running: boolean, missed: boolean): HTMLElement {
     if (running) {
       const stop = el("button", { class: "btn btn--stop", type: "button", textContent: "중단" });
       stop.addEventListener("click", () => this.options.onStop());
       return stop;
     }
-    if (flow.autoStart) {
+    // An autostart the runner let pass is a person's to start now.
+    if (flow.autoStart && !missed) {
       const skip = el("button", { class: "btn", type: "button", textContent: "이번만 건너뛰기" });
       skip.addEventListener("click", () => this.options.onSkip(flow.id));
       return skip;
