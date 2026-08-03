@@ -74,6 +74,7 @@ class AutoStarter:
             return
 
         now = church_now(self._bridge)
+        self.prune(now.date())
         for flow in self._flows.values():
             if not flow.auto_start or not flow.runnable_on(now.date()):
                 continue
