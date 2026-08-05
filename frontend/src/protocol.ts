@@ -1,4 +1,4 @@
-// Note(yoochan.kim): Generated from protocol/protocol.json — do not edit by hand.
+// Generated from protocol/protocol.json — do not edit by hand.
 // Run `npm run gen-protocol` in church-media-server after changing the spec.
 
 /**
@@ -140,8 +140,8 @@ export interface FlowTrack {
 }
 
 /**
- * Both inputs this server drives. mic covers the pastor's channel pair, and reads on
- * only while every channel of the pair is on.
+ * Both inputs this server drives. Enabling mic drives the pastor's channel pair, but
+ * its reading follows the pair's first channel alone.
  */
 export interface ConsoleState {
   mic: ConsoleRead;
