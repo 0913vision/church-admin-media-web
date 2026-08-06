@@ -1,4 +1,4 @@
-import type { InvokeRequest, State } from "../protocol.js";
+import type { InvokeRequest, ScheduledTrack, State } from "../protocol.js";
 import { http } from "./http.js";
 
 /** When the panel unlocks: with the music, or at a time of its own. */
@@ -6,7 +6,8 @@ export type LockUntil = { kind: "music" } | { kind: "clock"; at: string };
 
 export interface MusicPart {
   kind: "music";
-  tracks: string[];
+  /** Each song with the level it plays at in this flow */
+  tracks: ScheduledTrack[];
   endsAt: string;
 }
 

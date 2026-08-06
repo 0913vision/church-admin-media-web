@@ -196,13 +196,13 @@ export class FlowPanel {
     const segments: Span["segments"] = [];
     let from = musicEnds;
     if (music) {
-      const known = music.tracks.map((id) => this.tracks.get(id));
+      const known = music.tracks.map((cue) => this.tracks.get(cue.id));
       const totalMin = known.reduce((sum, track) => sum + (track?.durationSec ?? 0), 0) / 60;
       from = musicEnds - totalMin;
       let cursor = from;
-      music.tracks.forEach((id, index) => {
+      music.tracks.forEach((cue, index) => {
         const lengthMin = (known[index]?.durationSec ?? 0) / 60;
-        segments.push({ from: cursor, to: cursor + lengthMin, title: known[index]?.title ?? id });
+        segments.push({ from: cursor, to: cursor + lengthMin, title: known[index]?.title ?? cue.id });
         cursor += lengthMin;
       });
     }

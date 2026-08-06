@@ -243,9 +243,18 @@ def _check_part(flow_id: str, part: object) -> str:
     if missing:
         raise ValueError(f"Flow {flow_id}: {kind} part is missing {', '.join(missing)}")
 
+    # Note(yoochan.kim): every track carries the level it plays at. The editor
+    # fills it in from the track's own volume when a song is added, so a flow
+    # never reaches the media server with the level left open.
     tracks = part["tracks"]
-    if not isinstance(tracks, list) or not tracks or not all(isinstance(t, str) and t for t in tracks):
-        raise ValueError(f"Flow {flow_id}: music tracks must be a non-empty list of track ids")
+    if not isinstance(tracks, list) or not tracks:
+        raise ValueError(f"Flow {flow_id}: music needs at least one track")
+    for track in tracks:
+        if not isinstance(track, dict) or not isinstance(track.get("id"), str) or not track["id"]:
+            raise ValueError(f"Flow {flow_id}: each music track needs an id")
+        volume = track.get("volume")
+        if not isinstance(volume, int) or isinstance(volume, bool) or not 0 <= volume <= 100:
+            raise ValueError(f"Flow {flow_id}: track {track['id']} needs a volume between 0 and 100")
     _check_clock(flow_id, "endsAt", part["endsAt"])
 
     return kind

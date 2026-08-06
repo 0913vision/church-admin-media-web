@@ -155,17 +155,17 @@ export class SchedulePanel {
     const songs = el("div", { class: "detail__songs" });
     if (!music) rows.push(row("음악", el("span", { textContent: "없음" })));
     if (music) {
-      const lengths = music.tracks.map((id) => (this.tracks.get(id)?.durationSec ?? 0) / 60);
+      const lengths = music.tracks.map((cue) => (this.tracks.get(cue.id)?.durationSec ?? 0) / 60);
       const total = lengths.reduce((sum, minutes) => sum + minutes, 0);
       const startsAt = minutesOf(music.endsAt) - total;
       rows.push(row("음악", el("span", { class: "num", textContent: `${hhmm(startsAt)} → ${music.endsAt}` })));
 
       let cursor = startsAt;
-      music.tracks.forEach((id, index) => {
+      music.tracks.forEach((cue, index) => {
         songs.append(
           el("div", {}, [
-            el("span", { textContent: `${index + 1}. ${this.tracks.get(id)?.title ?? id}` }),
-            el("span", { class: "num", textContent: hhmm(cursor) }),
+            el("span", { textContent: `${index + 1}. ${this.tracks.get(cue.id)?.title ?? cue.id}` }),
+            el("span", { class: "num", textContent: `${hhmm(cursor)} · ${cue.volume}` }),
           ]),
         );
         cursor += lengths[index]!;

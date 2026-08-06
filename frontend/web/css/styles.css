@@ -459,6 +459,13 @@ button { font: inherit; }
 .editor__track-no { color: var(--c-fnt); width: 20px; font-variant-numeric: tabular-nums; }
 .editor__track-name { flex: 1; color: var(--c-ink); font-weight: 600; }
 .editor__track-len { color: var(--c-fnt); font-size: 13px; font-family: var(--mono); }
+/* The level this song plays at in this order — a number, sized like one. */
+.editor__track-vol {
+  width: 52px; font: inherit; font-size: 14px; font-family: var(--mono); text-align: right;
+  color: var(--c-ink); background: transparent; border: 0; border-bottom: 1px solid var(--slot);
+  border-radius: 0; padding: 4px 2px;
+}
+.editor__track-vol:focus { outline: none; border-bottom-color: var(--go); }
 .editor__track .textbtn { padding: 5px 8px; font-size: 16.5px; line-height: 1; }
 .editor__adders { display: flex; gap: 2px; flex-wrap: wrap; margin-top: 4px; }
 .editor__summary { display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; color: var(--c-mut);

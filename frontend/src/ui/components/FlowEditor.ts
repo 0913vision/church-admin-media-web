@@ -1,5 +1,5 @@
 import { el } from "../../util/dom.js";
-import type { Track } from "../../protocol.js";
+import type { ScheduledTrack, Track } from "../../protocol.js";
 import type { FlowEntry, ScheduledFlow } from "../../api/device.js";
 import type { FlowDraft } from "./WeekView.js";
 
@@ -38,7 +38,7 @@ export class FlowEditor {
   private lockUntil = "21:30";
   private followsMusic = true;
   private autoStart = false;
-  private trackIds: string[] = [];
+  private cues: ScheduledTrack[] = [];
   private endsAt = "20:00";
   private tracks: Track[] = [];
 
@@ -58,7 +58,7 @@ export class FlowEditor {
 
   /** Where this draft sits on the week, for the calendar's dashed preview. */
   private emit(): void {
-    const closes = this.followsMusic && this.trackIds.length > 0 ? this.endsAt : this.lockUntil;
+    const closes = this.followsMusic && this.cues.length > 0 ? this.endsAt : this.lockUntil;
     this.options.onChange?.({
       id: this.id,
       weekdays: [...this.weekdays],
@@ -77,7 +77,7 @@ export class FlowEditor {
     this.followsMusic = flow ? flow.lock.until.kind === "music" : false;
     this.lockUntil = flow && flow.lock.until.kind === "clock" ? flow.lock.until.at : "21:30";
     this.autoStart = flow?.autoStart ?? false;
-    this.trackIds = music ? [...music.tracks] : [];
+    this.cues = music ? music.tracks.map((cue) => ({ ...cue })) : [];
     this.endsAt = music?.endsAt ?? "20:00";
 
     this.el.classList.remove("is-hidden");
@@ -91,7 +91,7 @@ export class FlowEditor {
       this.field("요일", this.weekdayRow()),
       this.field("잠금 시작", this.time(this.lockAt, (value) => { this.lockAt = value; this.emit(); })),
       this.field("곡", this.trackList()),
-      ...(this.trackIds.length > 0
+      ...(this.cues.length > 0
         ? [this.field("음악 마치는 시각", this.time(this.endsAt, (value) => { this.endsAt = value; this.emit(); this.render(existing); }))]
         : []),
       this.field("잠금 해제", this.unlockRow()),
@@ -162,17 +162,18 @@ export class FlowEditor {
    * underneath — nothing hides in a dropdown.
    */
   private trackList(): HTMLElement {
-    const rows = this.trackIds.map((id, index) => {
-      const track = this.tracks.find((candidate) => candidate.id === id);
-      const label = track ? track.title : `${id} (등록되지 않은 곡)`;
+    const rows = this.cues.map((cue, index) => {
+      const track = this.tracks.find((candidate) => candidate.id === cue.id);
+      const label = track ? track.title : `${cue.id} (등록되지 않은 곡)`;
       return el("div", { class: "editor__track" }, [
         el("span", { class: "editor__track-no", textContent: `${index + 1}.` }),
         el("span", { class: "editor__track-name", textContent: label }),
         el("span", { class: "editor__track-len", textContent: track ? minutes(track.durationSec) : "" }),
+        this.volumeInput(cue),
         this.smallButton("↑", "위로", () => this.move(index, -1)),
         this.smallButton("↓", "아래로", () => this.move(index, 1)),
         this.smallButton("✕", "빼기", () => {
-          this.trackIds.splice(index, 1);
+          this.cues.splice(index, 1);
           this.emit();
           this.render(true);
         }),
@@ -185,7 +186,9 @@ export class FlowEditor {
       this.tracks.map((track) => {
         const add = el("button", { class: "textbtn textbtn--add", type: "button", textContent: `+ ${track.title}` });
         add.addEventListener("click", () => {
-          this.trackIds.push(track.id);
+          // Note(yoochan.kim): a song joins at its own level, which is the one
+          // someone would have picked anyway — and can then be changed here.
+          this.cues.push({ id: track.id, volume: track.volume });
           this.emit();
           this.render(true);
         });
@@ -196,9 +199,26 @@ export class FlowEditor {
     return el("div", { class: "editor__tracks" }, [...rows, adders]);
   }
 
+  /** How loud this song plays in this order, kept in 0-100 like the panel's. */
+  private volumeInput(cue: ScheduledTrack): HTMLElement {
+    const input = el("input", {
+      class: "editor__track-vol",
+      type: "number",
+      value: String(cue.volume),
+      title: "이 순서에서의 볼륨",
+    }) as HTMLInputElement;
+    input.min = "0";
+    input.max = "100";
+    input.addEventListener("input", () => {
+      cue.volume = input.value === "" ? Number.NaN : Number(input.value);
+      this.render(true);
+    });
+    return input;
+  }
+
   /** The gate closes with the music, or at a time of its own — a choice. */
   private unlockRow(): HTMLElement {
-    const follows = this.followsMusic && this.trackIds.length > 0;
+    const follows = this.followsMusic && this.cues.length > 0;
     const choice = (label: string, value: boolean, disabled = false): HTMLElement => {
       const button = el("button", { class: follows === value ? "on" : "", type: "button", textContent: label });
       button.disabled = disabled;
@@ -212,7 +232,7 @@ export class FlowEditor {
 
     const children: HTMLElement[] = [
       el("div", { class: "segctl" }, [
-        choice("음악이 끝나면", true, this.trackIds.length === 0),
+        choice("음악이 끝나면", true, this.cues.length === 0),
         choice("시각을 정해서", false),
       ]),
     ];
@@ -233,17 +253,22 @@ export class FlowEditor {
     const lines: [string, string][] = [];
     const warnings: string[] = [];
 
-    const totalSec = this.trackIds.reduce(
-      (sum, id) => sum + (this.tracks.find((track) => track.id === id)?.durationSec ?? 0),
+    const totalSec = this.cues.reduce(
+      (sum, cue) => sum + (this.tracks.find((track) => track.id === cue.id)?.durationSec ?? 0),
       0,
     );
-    const closesAt = this.followsMusic && this.trackIds.length > 0 ? this.endsAt : this.lockUntil;
+    const closesAt = this.followsMusic && this.cues.length > 0 ? this.endsAt : this.lockUntil;
     lines.push(["잠금", `${this.lockAt} → ${closesAt}`]);
 
-    if (this.trackIds.length > 0) {
+    if (this.cues.length > 0) {
       const startsAt = minusSeconds(this.endsAt, totalSec);
       const cut = asMinutes(startsAt) < asMinutes(this.lockAt) ? ", 앞 잘림" : "";
-      lines.push(["음악", `${startsAt} → ${this.endsAt} (${this.trackIds.length}곡${cut})`]);
+      lines.push(["음악", `${startsAt} → ${this.endsAt} (${this.cues.length}곡${cut})`]);
+      // Note(yoochan.kim): the media server refuses a track with no level, so a
+      // blank box stops the save here rather than at the moment someone starts it.
+      if (this.cues.some((cue) => !Number.isInteger(cue.volume) || cue.volume < 0 || cue.volume > 100)) {
+        warnings.push("볼륨은 0에서 100 사이여야 해요");
+      }
       // Note(yoochan.kim): Only the finish is bound to the lock window: a timeline that begins
       // earlier just has its front cut, so an early start is not an error.
       if (asMinutes(this.endsAt) <= asMinutes(this.lockAt)) {
@@ -287,7 +312,7 @@ export class FlowEditor {
   }
 
   private entry(): FlowEntry {
-    const follows = this.followsMusic && this.trackIds.length > 0;
+    const follows = this.followsMusic && this.cues.length > 0;
     return {
       name: this.name.trim(),
       weekdays: [...this.weekdays].sort().map((day) => WEEKDAY_KEYS[day]!),
@@ -297,17 +322,17 @@ export class FlowEditor {
         until: follows ? { kind: "music" } : { kind: "clock", at: this.lockUntil },
       },
       parts:
-        this.trackIds.length > 0
-          ? [{ kind: "music", tracks: [...this.trackIds], endsAt: this.endsAt }]
+        this.cues.length > 0
+          ? [{ kind: "music", tracks: this.cues.map((cue) => ({ ...cue })), endsAt: this.endsAt }]
           : [],
     };
   }
 
   private move(index: number, by: number): void {
     const to = index + by;
-    if (to < 0 || to >= this.trackIds.length) return;
-    const [moved] = this.trackIds.splice(index, 1);
-    this.trackIds.splice(to, 0, moved!);
+    if (to < 0 || to >= this.cues.length) return;
+    const [moved] = this.cues.splice(index, 1);
+    this.cues.splice(to, 0, moved!);
     this.emit();
     this.render(true);
   }
