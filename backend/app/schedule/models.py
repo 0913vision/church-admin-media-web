@@ -62,7 +62,7 @@ class ScheduledFlow:
             if ends_at < opens_at:
                 ends_at += timedelta(days=1)
             music_ends_at = ends_at
-            parts.append({**part, "endsAt": ends_at.isoformat()})
+            parts.append({**part, "endsAt": _wire(ends_at)})
 
         until = self.lock["until"]
         if until["kind"] == "music":
@@ -77,7 +77,7 @@ class ScheduledFlow:
 
         return {
             "name": self.name,
-            "lock": {"at": opens_at.isoformat(), "until": closes_at.isoformat()},
+            "lock": {"at": _wire(opens_at), "until": _wire(closes_at)},
             "parts": parts,
         }
 
@@ -105,6 +105,15 @@ class ScheduledFlow:
             "parts": [dict(part) for part in self.parts],
             "runnableToday": self.runnable_on(today),
         }
+
+
+def _wire(at: datetime) -> str:
+    """An instant in the one shape the media server accepts: 2026-08-05T19:30:00.000.
+
+    Wall-clock digits with no zone — every machine here stands on the same
+    clock, and the media server refuses any other spelling rather than guessing.
+    """
+    return at.replace(tzinfo=None).isoformat(timespec="milliseconds")
 
 
 def _on_day(now: datetime, clock: str) -> datetime:
