@@ -1,58 +1,27 @@
 import { el } from "../../util/dom.js";
-import type { ConsoleState } from "../../protocol.js";
+import type { ConsoleInput } from "../../protocol.js";
 
 export interface ConsolePanelOptions {
-  onMic: () => void;
-  onAux: () => void;
+  onEnable: (inputId: string) => void;
 }
 
-type InputKey = "mic" | "aux";
-
-const CHANNELS: { key: InputKey; name: string }[] = [
-  { key: "mic", name: "목사님 마이크" },
-  { key: "aux", name: "노래" },
-];
-
-interface Row {
-  key: InputKey;
-  root: HTMLElement;
-  led: HTMLElement;
-  state: HTMLElement;
-  fill: HTMLElement;
-  db: HTMLElement;
-  button: HTMLButtonElement;
-}
-
-/** The console as a channel strip, drawn from the desk's own answers. */
+/**
+ * The console as a channel strip, drawn from the desk's own answers.
+ *
+ * The inputs, their order and their names all arrive with the state: how a
+ * building is wired is the media server's to say, so rewiring or renaming one
+ * never means touching this page.
+ */
 export class ConsolePanel {
   readonly el: HTMLElement;
-  private readonly rows: Row[] = [];
+  private readonly strip: HTMLElement;
   private readonly led: HTMLElement;
   private readonly conn: HTMLElement;
   private reachable = false;
-  private state: ConsoleState = { mic: { kind: "unknown" }, aux: { kind: "unknown" } };
+  private state: ConsoleInput[] = [];
 
-  constructor(options: ConsolePanelOptions) {
-    const rowEls = CHANNELS.map((channel) => {
-      const button = el("button", { class: "pick", type: "button", textContent: "켜기" });
-      button.addEventListener("click", () => (channel.key === "mic" ? options.onMic() : options.onAux()));
-
-      const led = el("span", { class: "led led--off" });
-      const state = el("span", { textContent: "—" });
-      const fill = el("i", {});
-      const db = el("span", { class: "chrow__db", textContent: "—" });
-      const root = el("div", { class: "chrow" }, [
-        el("span", { class: "chrow__n", textContent: channel.name }),
-        el("span", { class: "chrow__s" }, [led, state]),
-        el("span", { class: "chrow__bar" }, [fill]),
-        db,
-        el("span", {}),
-        button,
-      ]);
-      this.rows.push({ key: channel.key, root, led, state, fill, db, button });
-      return root;
-    });
-
+  constructor(private readonly options: ConsolePanelOptions) {
+    this.strip = el("div", {});
     this.led = el("span", { class: "led led--go" });
     this.conn = el("span", { textContent: "연결됨" });
     this.el = el("div", { class: "x32" }, [
@@ -61,7 +30,7 @@ export class ConsolePanel {
         el("b", { textContent: "X32 콘솔" }),
         this.conn,
       ]),
-      ...rowEls,
+      this.strip,
     ]);
   }
 
@@ -71,7 +40,7 @@ export class ConsolePanel {
     this.render();
   }
 
-  setState(state: ConsoleState): void {
+  setState(state: ConsoleInput[]): void {
     this.state = state;
     this.render();
   }
@@ -79,20 +48,37 @@ export class ConsolePanel {
   private render(): void {
     // Note(yoochan.kim): connected means the desk itself answered, not that
     // the media server did — a silent desk says 응답 없음.
-    const heard = this.state.mic.kind === "read" || this.state.aux.kind === "read";
+    const heard = this.state.some((input) => input.state.kind === "read");
     this.led.className = `led ${this.reachable && heard ? "led--go" : "led--bad"}`;
     this.conn.textContent = !this.reachable ? "알 수 없음" : heard ? "연결됨" : "응답 없음";
 
-    for (const row of this.rows) {
-      const read = this.state[row.key];
-      const on = read.kind === "read" && read.on;
-      row.root.classList.toggle("on", on);
-      row.led.className = `led ${on ? "led--go" : "led--off"}`;
-      row.state.textContent = read.kind === "read" ? (read.on ? "ON" : "OFF") : "—";
-      row.fill.style.width = read.kind === "read" ? `${Math.round(read.fader * 100)}%` : "0%";
-      row.db.textContent = read.kind === "read" ? `${Math.round(read.fader * 100)}%` : "—";
-      row.button.textContent = on ? "켜져 있음" : "켜기";
-      row.button.disabled = !this.reachable || on;
-    }
+    this.strip.replaceChildren(
+      ...this.state.map((input) => {
+        const read = input.state;
+        const on = read.kind === "read" && read.on;
+        const percent = read.kind === "read" ? `${Math.round(read.fader * 100)}%` : "—";
+        const button = el("button", {
+          class: "pick",
+          type: "button",
+          textContent: on ? "켜져 있음" : "켜기",
+        }) as HTMLButtonElement;
+        button.disabled = !this.reachable || on;
+        button.addEventListener("click", () => this.options.onEnable(input.id));
+
+        return el("div", { class: `chrow${on ? " on" : ""}` }, [
+          el("span", { class: "chrow__n", textContent: input.label }),
+          el("span", { class: "chrow__s" }, [
+            el("span", { class: `led ${on ? "led--go" : "led--off"}` }),
+            el("span", { textContent: read.kind === "read" ? (read.on ? "ON" : "OFF") : "—" }),
+          ]),
+          el("span", { class: "chrow__bar" }, [
+            el("i", { style: `width:${read.kind === "read" ? Math.round(read.fader * 100) : 0}%` }),
+          ]),
+          el("span", { class: "chrow__db", textContent: percent }),
+          el("span", {}),
+          button,
+        ]);
+      }),
+    );
   }
 }

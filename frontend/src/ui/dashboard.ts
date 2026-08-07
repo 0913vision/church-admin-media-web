@@ -163,8 +163,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     },
   });
   const consolePanel = new ConsolePanel({
-    onMic: () => guard(deviceApi.invoke({ command: "enableConsoleInput", args: { input: "mic" } })),
-    onAux: () => guard(deviceApi.invoke({ command: "enableConsoleInput", args: { input: "aux" } })),
+    onEnable: (input) => guard(deviceApi.invoke({ command: "enableConsoleInput", args: { input } })),
   });
   const systemPanel = new SystemPanel();
   const church = new ChurchClock();
@@ -246,55 +245,47 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     return go;
   };
 
-  const consoleRows: {
-    input: "mic" | "aux";
-    root: HTMLElement;
-    led: HTMLElement;
-    state: HTMLElement;
-    fill: HTMLElement;
-    db: HTMLElement;
-    button: HTMLButtonElement;
-  }[] = [];
+  // Note(yoochan.kim): the desk's inputs — how many and what they are called —
+  // come with the state, so rewiring or renaming one is a media-server change
+  const consoleStrip = el("div", {});
   let consoleReachable = false;
-  let consoleState: State["console"] = { mic: { kind: "unknown" }, aux: { kind: "unknown" } };
-
-  const channelRow = (name: string, input: "mic" | "aux"): HTMLElement => {
-    const button = el("button", { class: "pick", type: "button", textContent: "켜기" });
-    button.addEventListener("click", () =>
-      guard(deviceApi.invoke({ command: "enableConsoleInput", args: { input } })),
-    );
-    const led = el("span", { class: "led led--off" });
-    const stateText = el("span", { textContent: "—" });
-    const fill = el("i", {});
-    const db = el("span", { class: "chrow__db", textContent: "—" });
-    const root = el("div", { class: "chrow" }, [
-      el("span", { class: "chrow__n", textContent: name }),
-      el("span", { class: "chrow__s" }, [led, stateText]),
-      el("span", { class: "chrow__bar" }, [fill]),
-      db,
-      el("span", {}),
-      button,
-    ]);
-    consoleRows.push({ input, root, led, state: stateText, fill, db, button });
-    return root;
-  };
+  let consoleState: State["console"] = [];
 
   const renderConsoleRows = (): void => {
-    const heard = consoleState.mic.kind === "read" || consoleState.aux.kind === "read";
+    const heard = consoleState.some((input) => input.state.kind === "read");
     x32Led.className = `led ${consoleReachable && heard ? "led--go" : "led--bad"}`;
     x32Conn.textContent = !consoleReachable ? "알 수 없음" : heard ? "연결됨" : "응답 없음";
 
-    for (const row of consoleRows) {
-      const read = consoleState[row.input];
-      const on = read.kind === "read" && read.on;
-      row.root.classList.toggle("on", on);
-      row.led.className = `led ${on ? "led--go" : "led--off"}`;
-      row.state.textContent = read.kind === "read" ? (read.on ? "ON" : "OFF") : "—";
-      row.fill.style.width = read.kind === "read" ? `${Math.round(read.fader * 100)}%` : "0%";
-      row.db.textContent = read.kind === "read" ? `${Math.round(read.fader * 100)}%` : "—";
-      row.button.textContent = on ? "켜져 있음" : "켜기";
-      row.button.disabled = !consoleReachable || on;
-    }
+    consoleStrip.replaceChildren(
+      ...consoleState.map((input) => {
+        const read = input.state;
+        const on = read.kind === "read" && read.on;
+        const percent = read.kind === "read" ? `${Math.round(read.fader * 100)}%` : "—";
+        const button = el("button", {
+          class: "pick",
+          type: "button",
+          textContent: on ? "켜져 있음" : "켜기",
+        }) as HTMLButtonElement;
+        button.disabled = !consoleReachable || on;
+        button.addEventListener("click", () =>
+          guard(deviceApi.invoke({ command: "enableConsoleInput", args: { input: input.id } })),
+        );
+
+        return el("div", { class: `chrow${on ? " on" : ""}` }, [
+          el("span", { class: "chrow__n", textContent: input.label }),
+          el("span", { class: "chrow__s" }, [
+            el("span", { class: `led ${on ? "led--go" : "led--off"}` }),
+            el("span", { textContent: read.kind === "read" ? (read.on ? "ON" : "OFF") : "—" }),
+          ]),
+          el("span", { class: "chrow__bar" }, [
+            el("i", { style: `width:${read.kind === "read" ? Math.round(read.fader * 100) : 0}%` }),
+          ]),
+          el("span", { class: "chrow__db", textContent: percent }),
+          el("span", {}),
+          button,
+        ]);
+      }),
+    );
   };
   const x32Led = el("span", { class: "led led--go" });
   const x32Conn = el("span", { textContent: "—" });
@@ -354,8 +345,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
           x32Conn,
           goto("console", true),
         ]),
-        channelRow("목사님 마이크", "mic"),
-        channelRow("노래", "aux"),
+        consoleStrip,
       ]),
       el("div", { class: "sum" }, [
         el("div", {}, [el("div", { class: "sum__t" }, [el("span", { textContent: "시스템" })]), sysBars]),
