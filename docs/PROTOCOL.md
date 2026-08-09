@@ -1,4 +1,4 @@
-# 미디어 서버 프로토콜 v1
+# 미디어 서버 프로토콜 v3
 
 > Generated from protocol/protocol.json — do not edit by hand.
 
@@ -19,7 +19,7 @@ The server is modelled as a device that describes itself: it exposes attributes 
 - ready lists the attributes and commands this server actually implements. A client must hide controls for anything it does not see, so a server can gain features without a client release.
 - Every event carries exactly one object payload. No positional arguments, no bare scalars.
 - The server's state is always authoritative. A write or invoke expresses intent; the result arrives as a state patch.
-- Every time is an absolute instant, written in ISO 8601 with an explicit offset (2026-08-05T19:30:00+09:00, or ...Z). The server never works out which day a bare clock time belongs to — that inference is exactly what the no-null rule forbids elsewhere, and it is the caller's calendar that knows. Clients format instants for display.
+- Every time is written in exactly one shape: YYYY-MM-DDTHH:MM:SS.sss (2026-08-05T19:30:00.000) — a date and a time of day, milliseconds always, no zone marker. Anything else is refused rather than interpreted. One shape rather than 'any valid ISO 8601' because the panel app is installed by hand on mounted devices: a client that parses the one documented form cannot be broken later by a server that writes the same instant a different way. No zone because everything here — server, admin web, panels — stands in one building on one clock, and church time is that wall clock rather than a point pinned to UTC: the digits on the wire are the digits on the wall, and every machine reads them in its own zone, which is the same zone. The date is required: the server never works out which day a bare clock time belongs to, since that inference belongs to the caller's calendar.
 - Every instant on this wire is church time, not standard time. The service follows the clock on the sanctuary wall, so the server does too: clockOffsetSec says how far ahead of standard time that clock runs, and the server converts to standard time only when it arms a timer. A client never applies the offset itself — it sends and prints instants as they are, and reads ping.at rather than its own clock to know where 'now' is. The one thing not on church time is the server's log, which records when things actually happened.
 - Nothing here is transport-specific: an event name plus an object payload maps cleanly onto Socket.IO today, or topics later.
 
@@ -44,6 +44,7 @@ The server is modelled as a device that describes itself: it exposes attributes 
 | `isAdmin` | `boolean` | 읽기 전용 | — | Whether this connection holds admin rights. Per-connection, so it is only ever sent to the client it describes. |
 | `flow` | `FlowStatus` | 읽기 전용 | — | What the server's one flow slot is doing. Always readable: an idle slot says so rather than reading as nothing. Read-only — startFlow and stopFlow change it. |
 | `clockOffsetSec` | `number` (-3600–3600) | 읽기/쓰기 | admin | How far ahead of standard time the church clock runs, in seconds. Negative means behind. Every instant on this wire is read against it, so writing it moves the whole schedule. Refused with adminLocked while the gate is held: a flow holds the gate for its whole run, which makes it impossible to move the clock out from under music that is already playing. Survives restarts. |
+| `console` | `ConsoleInput[]` | 읽기 전용 | — | The inputs this server drives, in the order to show them, each with what the mixing desk itself reports for it. Read-only: enableConsoleInput changes the desk, and the desk's next answer changes this. Each starts unknown and falls back to unknown when the desk stops answering, so a dead console never wears a live face. |
 
 ## 명령 (인자를 받는 동작)
 
@@ -65,13 +66,21 @@ Switch a mixing console input on. Not subject to the audio lock, and open to any
 
 | 필드 | 타입 | 설명 |
 | --- | --- | --- |
-| `input` | `ConsoleInput` |  |
+| `input` | `string` | An id from the console attribute |
+
+### `initializeConsole`
+
+권한: any
+
+Put the mixing desk into the state a service starts from: every input on, the mute group released, and the masters at their levels. The steps are ordered and paced by the server, because raising the main before the matrix has come down would let the room hear everything at once. Like enableConsoleInput it takes no audio lock and reports nothing back — the desk's own answers arrive through the console attribute. Takes a few hundred milliseconds to finish, so a client should not expect the reading to have changed by the time the call returns.
+
+_필드 없음._
 
 ### `startFlow`
 
 권한: admin
 
-Hand the server one flow to run, and it owns that run to the end: it keeps to the wall clock, restores the user's song afterwards, and cleans up however it finishes. The schedule this came from stays with the caller — the server holds no flow definitions and no calendar, it only executes what it is given. Every flow holds the admin gate for a window it names, and its parts — music today — must fall entirely inside that window; anything sticking out is refused with musicOutsideLock rather than played on an open panel. Only one flow runs at a time. A flow whose window has already closed is refused with windowPassed rather than accepted and completed instantly, so pressing start never looks like nothing happened.
+Hand the server one flow to run, and it owns that run to the end: it keeps to the wall clock, restores the user's song afterwards, and cleans up however it finishes. The schedule this came from stays with the caller — the server holds no flow definitions and no calendar, it only executes what it is given. Every flow holds the admin gate for a window it names, and music must finish inside that window: running past the unlock is refused with musicOutsideLock rather than played on an open panel, as is music that would end before the gate even engages, since it could never sound. A timeline that begins before the window is accepted — the sound starts with the lock and joins the timeline where it already is, the opening cut exactly like a late start. Only one flow runs at a time. A flow whose window has already closed is refused with windowPassed rather than accepted and completed instantly, so pressing start never looks like nothing happened.
 
 | 필드 | 타입 | 설명 |
 | --- | --- | --- |
@@ -100,12 +109,6 @@ Whether the audio deck is sounding
 Whether output is muted
 
 `"unmuted"` · `"muted"`
-
-### ConsoleInput
-
-Mixing console input. Inputs are independent, not alternatives.
-
-`"mic"` · `"aux"`
 
 ### Access
 
@@ -163,6 +166,16 @@ A playable library entry. File paths never leave the server.
 | `id` | `string` | Stable identifier used by startFlow |
 | `title` | `string` | Human-readable name |
 | `durationSec` | `number` | Length in seconds, measured from the file |
+| `volume` | `number` | The level this track sounds at when nobody says otherwise, 0-100. Sent so an editor can offer it as the starting value when someone adds this track to a flow; the flow itself then carries a level for every track it plays. |
+
+### ScheduledTrack
+
+One track in a flow's music sequence, with the level it plays at. The level is always given: an editor starts it at the track's own volume and the person can lower or raise it there, so what a flow will sound like is decided when it is written rather than inherited from whatever the panel was left at.
+
+| 필드 | 타입 | 설명 |
+| --- | --- | --- |
+| `id` | `string` | Track id from ready.tracks |
+| `volume` | `number` | Level for this track in this flow, 0-100 |
 
 ### FlowTrack
 
@@ -173,6 +186,16 @@ Which track of a flow is sounding right now
 | `title` | `string` |  |
 | `index` | `number` | 1-based position in the sequence |
 | `total` | `number` |  |
+
+### ConsoleInput
+
+One input this server drives, as the desk last answered for it. A client draws one control per entry using the label it is given — how many inputs there are and what they are called belongs to the building, not to any app, so rewiring or renaming one is a server change alone. An input may cover several console channels: switching it on drives all of them, while the reading follows the first.
+
+| 필드 | 타입 | 설명 |
+| --- | --- | --- |
+| `id` | `string` | Value to pass to enableConsoleInput |
+| `label` | `string` | What to call it on screen, e.g. '목사님 마이크' |
+| `state` | `ConsoleRead` |  |
 
 ## 클라이언트 → 서버
 
@@ -221,7 +244,7 @@ Answer to hello: what this server speaks, what it supports, and the fixed track 
 | `accepted` | `boolean` |  |
 | `attributes` | `string[]` | Attributes this server implements. Hide controls for anything absent. |
 | `commands` | `string[]` | Commands this server implements. Hide controls for anything absent. |
-| `songs` | `Song[]` | Songs a user may select, with the names to show. Fixed at boot. |
+| `songs` | `Song[]` | Songs a user may select, with the names to show, in the order to show them. How many there are is the server's to say, so a client draws one control per entry rather than assuming a count — adding a song is then a server change alone. Fixed at boot. |
 | `tracks` | `Track[]` | Track library for flows, fixed at boot |
 | `contact` | `Contact` | Who a client should tell the user to call when something is broken. Fixed at boot. |
 
