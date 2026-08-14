@@ -83,8 +83,9 @@ button { font: inherit; }
 .nav__tab.is-active { background: var(--raised); color: var(--c-ink); font-weight: 600; }
 
 .main { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
-/* The theme sits at the foot; the gate and the way out are above the tabs. */
-.side__gap { flex: 1; }
+/* The gate stands over the tabs; below the rule are the two that are neither
+   navigation nor the device. */
+.side__gap { flex: 1; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
 .side > .gate { margin-bottom: 4px; }
 .side > button:not(.gate):not(.nav__tab) {
   background: none; border: 0; padding: 8px 11px; border-radius: 7px;
@@ -105,7 +106,8 @@ button { font: inherit; }
 }
 .notice.on { transform: translate(-50%, 16px); opacity: 1; }
 
-.led { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+/* A lamp carries no spacing of its own; the row it sits in decides. */
+.led { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
 .led--go { background: var(--go); box-shadow: 0 0 7px var(--go); }
 .led--hold { background: var(--hold); box-shadow: 0 0 7px var(--hold); }
 .led--bad { background: var(--bad); box-shadow: 0 0 7px var(--bad); }
@@ -246,7 +248,7 @@ button { white-space: nowrap; }
 .play svg { width: 26px; height: 26px; }
 .play:disabled { opacity: 0.45; cursor: default; }
 .deck__song { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
-.deck__meta { display: flex; align-items: center; gap: 9px; margin-top: 6px; color: var(--c-mut); font-size: 15px; }
+.deck__meta { display: flex; align-items: center; gap: 8px; margin-top: 6px; color: var(--c-mut); font-size: 15px; }
 .deck__songs { margin-top: 14px; padding-top: 9px; border-top: 1px solid var(--line); }
 
 .volrow { display: grid; grid-template-columns: 42px 1fr 52px auto; gap: 13px; align-items: center;
@@ -298,7 +300,7 @@ button { white-space: nowrap; }
 /* ================= timeline: the whole schedule in one picture ================= */
 .tl { background: var(--panel); border-radius: 12px; padding: 14px 18px 18px; }
 .tl__head:only-child { margin-bottom: 0; }
-.tl__head { display: flex; align-items: center; gap: 12px; font-size: 14.5px; color: var(--c-mut); margin-bottom: 12px; }
+.tl__head { display: flex; align-items: center; gap: 8px; font-size: 14.5px; color: var(--c-mut); margin-bottom: 12px; }
 .tl__head b { color: var(--c-ink); font-size: 16px; font-weight: 700; }
 .tl__facts { display: flex; align-items: center; }
 .tl__facts > span { padding: 0 13px; }
@@ -309,7 +311,7 @@ button { white-space: nowrap; }
 .tl__col.is-preview { opacity: 0.7; }
 .tl__act { flex: none; margin-top: 8px; height: 38px; display: flex; align-items: center; }
 .tl__bar { position: relative; height: 38px; margin-top: 8px; border-radius: 6px; background: var(--well); overflow: hidden; display: flex; }
-.tl__lock { position: absolute; inset: 0; background: repeating-linear-gradient(45deg, var(--bad-soft) 0 7px, transparent 7px 14px); }
+.tl__lock { position: absolute; inset: 0; background: repeating-linear-gradient(45deg, var(--hold-soft) 0 7px, transparent 7px 14px); }
 .seg { position: relative; height: 100%; display: flex; align-items: center; padding-left: 10px; overflow: hidden;
        font-size: 13px; font-weight: 600; white-space: nowrap;
        background: var(--seg-idle); color: var(--c-ink); box-shadow: inset -2px 0 0 var(--well); gap: 7px; }
@@ -330,6 +332,8 @@ button { white-space: nowrap; }
 .tl.is-ask, .tl.is-auto { color: #fff; }
 .tl.is-ask .tl__head, .tl.is-auto .tl__head { color: rgba(255, 255, 255, 0.85); }
 .tl.is-ask .tl__head b, .tl.is-auto .tl__head b { color: #fff; }
+/* On a painted card the card is the state, so the lamp joins the text. */
+.tl.is-ask .led, .tl.is-auto .led { background: #fff; box-shadow: 0 0 7px rgba(255, 255, 255, 0.55); }
 .tl.is-ask .tl__facts > span + span, .tl.is-auto .tl__facts > span + span { border-left-color: rgba(255, 255, 255, 0.35); }
 .tl.is-ask .goto, .tl.is-auto .goto { color: rgba(255, 255, 255, 0.75); }
 .tl.is-ask .goto:hover, .tl.is-auto .goto:hover { color: #fff; }
@@ -347,7 +351,7 @@ button { white-space: nowrap; }
 
 /* ================= console: a strip per input ================= */
 .x32 { background: var(--panel); border-radius: 12px; padding: 14px 18px 16px; }
-.x32__h { display: flex; align-items: center; gap: 10px; font-size: 14.5px; color: var(--c-mut); margin-bottom: 9px; }
+.x32__h { display: flex; align-items: center; gap: 8px; font-size: 14.5px; color: var(--c-mut); margin-bottom: 9px; }
 .x32__h b { color: var(--c-ink); font-size: 16px; font-weight: 700; }
 /* The name and the button both hold words the media server chooses — an input
    can be renamed, and the button says either 켜기 or 켜져 있음. Both columns are
@@ -357,7 +361,7 @@ button { white-space: nowrap; }
          padding: 11px 0; border-top: 1px solid var(--line); font-size: 15px; }
 .chrow__n { color: var(--c-mut); font-weight: 600; }
 .chrow.on .chrow__n { color: var(--c-ink); }
-.chrow__s { display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 700;
+.chrow__s { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700;
             letter-spacing: 0.04em; color: var(--c-fnt); }
 .chrow.on .chrow__s { color: var(--go); }
 .chrow__bar { height: 6px; border-radius: 3px; background: var(--slot); position: relative; }

@@ -113,7 +113,7 @@ export class FlowPanel {
       ]),
       el("div", { class: "tl__row" }, [
         el("div", { class: `tl__col${running ? "" : " is-preview"}` }, [
-          this.bar(span, running ? minutesNow : null),
+          this.bar(span, minutesNow),
           el("div", { class: "tl__ticks" }, [
             el("span", { textContent: `${hhmm(span.opens)} 잠금` }),
             el("span", { textContent: `${hhmm(span.closes)} 해제` }),
@@ -159,7 +159,7 @@ export class FlowPanel {
   }
 
   /** The bar: hatched lock window, the music inside it, and where we are. */
-  private bar(span: Span, nowMinutes: number | null): HTMLElement {
+  private bar(span: Span, nowMinutes: number): HTMLElement {
     const width = Math.max(1, span.closes - span.opens);
     const pct = (minutes: number): number => ((minutes - span.opens) / width) * 100;
 
@@ -179,7 +179,7 @@ export class FlowPanel {
         ]),
       );
     }
-    if (nowMinutes !== null && nowMinutes >= span.opens && nowMinutes <= span.closes) {
+    if (nowMinutes >= span.opens && nowMinutes <= span.closes) {
       children.push(el("div", { class: "now", style: `left:${pct(nowMinutes)}%` }));
     }
     return el("div", { class: "tl__bar" }, children);

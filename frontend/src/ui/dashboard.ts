@@ -387,7 +387,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     el("div", { class: "app" }, [
       // Note(yoochan.kim): what belongs to the dashboard rather than to one tab. The
       // bar across the top had nothing left in it once these moved, so it is gone.
-      el("aside", { class: "side" }, [gate, logout, nav, el("div", { class: "side__gap" }), theme]),
+      el("aside", { class: "side" }, [gate, nav, el("div", { class: "side__gap" }), theme, logout]),
       el("div", { class: "main" }, [
         notice,
         el("main", { class: "page" }, [
@@ -456,7 +456,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     mute.set(state.mute === MuteState.MUTED, state.audioLock);
 
     adminLocked = state.adminLock;
-    lockValue.textContent = state.adminLock ? "잠김" : "풀림";
+    lockValue.textContent = state.adminLock ? "활성화" : "해제";
     gate.classList.toggle("on", state.adminLock);
     gate.querySelector(".led")!.className = `led led--${state.adminLock ? "bad" : "off"}`;
     // Note(yoochan.kim): A running flow owns the gate, so the chip goes quiet rather than
