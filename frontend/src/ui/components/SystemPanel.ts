@@ -27,6 +27,14 @@ function bar(percent: number): HTMLElement {
 
 const LEVEL = /\[(INFO|WARN|ERROR|DEBUG)\]/;
 
+/** The tail of the log, or why there is none — with the file it looked in. */
+interface LogPayload {
+  available: boolean;
+  lines: string[];
+  path?: string;
+  reason?: string;
+}
+
 /**
  * htop on the left, the media server's own log on the right.
  *
@@ -64,7 +72,7 @@ export class SystemPanel {
   watchLog(onLines?: (lines: HTMLElement[]) => void): () => void {
     const pull = (): void => {
       http
-        .get<{ available: boolean; lines: string[] }>("/api/system/log")
+        .get<LogPayload>("/api/system/log")
         .then((payload) => onLines?.(this.renderLog(payload)))
         .catch(() => onLines?.(this.renderLog({ available: false, lines: [] })));
     };
@@ -162,9 +170,16 @@ export class SystemPanel {
     this.htop.replaceChildren(...rows);
   }
 
-  private renderLog(payload: { available: boolean; lines: string[] }): HTMLElement[] {
+  private renderLog(payload: LogPayload): HTMLElement[] {
     if (!payload.available) {
-      const none = [el("div", { class: "log__none", textContent: "로그 파일을 읽을 수 없어요" })];
+      // Note(yoochan.kim): which file, and why. "읽을 수 없어요" on its own sends
+      // the reader to SSH, which is the one thing this panel is here to avoid.
+      const none = [
+        el("div", { class: "log__none" }, [
+          el("span", { textContent: `로그 파일을 읽을 수 없어요 — ${payload.reason ?? "확인해 주세요"}` }),
+          ...(payload.path === undefined ? [] : [el("code", { textContent: payload.path })]),
+        ]),
+      ];
       this.log.replaceChildren(...none);
       return none;
     }
