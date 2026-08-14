@@ -216,7 +216,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   });
   for (const ev of ["pointerup", "pointerleave", "pointercancel"])
     gate.addEventListener(ev, () => gate.classList.remove("arming"));
-  const notice = el("span", { class: "notice is-hidden" });
+  const notice = el("span", { class: "notice" });
   // Note(yoochan.kim): Light while setting up, dark during a service. Remembered per browser.
   const SUN = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
   const MOON = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>';
@@ -362,9 +362,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   };
 
   const navButtons = new Map<ViewKey, HTMLButtonElement>();
-  // Note(yoochan.kim): the tab name is not repeated in a title bar. The sidebar
-  // already says which tab this is, by holding it lit, and a second telling of
-  // the same thing is one more place for the two to disagree.
+  // Note(yoochan.kim): no title bar — the sidebar already says which tab this is.
   const setView = (key: ViewKey): void => {
     navButtons.forEach((button, k) => button.classList.toggle("is-active", k === key));
     (Object.keys(views) as ViewKey[]).forEach((k) => views[k].classList.toggle("is-hidden", k !== key));
@@ -387,14 +385,11 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
 
   root.replaceChildren(
     el("div", { class: "app" }, [
-      el("aside", { class: "side" }, [nav, theme]),
+      // Note(yoochan.kim): what belongs to the dashboard rather than to one tab. The
+      // bar across the top had nothing left in it once these moved, so it is gone.
+      el("aside", { class: "side" }, [gate, logout, nav, el("div", { class: "side__gap" }), theme]),
       el("div", { class: "main" }, [
-        // Note(yoochan.kim): what is global and pressable, and nothing else.
-        // Naming the page here would only repeat the sidebar; the browser tab
-        // carries the name for anyone who has several windows open.
-        el("header", { class: "top" }, [
-          el("div", { class: "right" }, [notice, gate, logout]),
-        ]),
+        notice,
         el("main", { class: "page" }, [
           views.overview,
           views.schedule,
@@ -418,9 +413,9 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   /** Shows why something did nothing, rather than leaving it looking broken. */
   const showRejection = (rejection: Rejection): void => {
     notice.textContent = REJECT_LABEL[rejection.reason] ?? `거부됐어요: ${rejection.reason}`;
-    notice.classList.remove("is-hidden");
+    notice.classList.add("on");
     window.clearTimeout(noticeTimer);
-    noticeTimer = window.setTimeout(() => notice.classList.add("is-hidden"), 4000);
+    noticeTimer = window.setTimeout(() => notice.classList.remove("on"), 4000);
   };
 
   const renderLink = (link: Link): void => {

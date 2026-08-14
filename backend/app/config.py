@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     port: int
     media_server_url: str
     admin_password_hash: str
+    # Note(yoochan.kim): the same password in the clear — the media server verifies a
+    # password, not a hash, and the bridge claims admin without waiting for a login.
+    admin_password: str
     session_secret: str
     session_max_age: int
     cookie_secure: bool

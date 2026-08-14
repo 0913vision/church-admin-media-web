@@ -42,12 +42,8 @@ export class FlowEditor {
   private endsAt = "20:00";
   private tracks: Track[] = [];
   /**
-   * The one part of the editor that changes as you type.
-   *
-   * Note(yoochan.kim): it is a lasting element rather than something `render`
-   * makes afresh. Typing used to redraw the whole editor, which replaced the
-   * very box being typed into — the field lost focus after each character, and
-   * the second one landed nowhere.
+   * The one part that changes as you type. Lasting, not remade by `render`:
+   * redrawing the editor replaced the box being typed into and lost its focus.
    */
   private readonly summaryEl = el("div", { class: "editor__summary num" });
 
@@ -157,8 +153,8 @@ export class FlowEditor {
   private weekdayRow(): HTMLElement {
     return el(
       "div",
-      // Note(yoochan.kim): seven cells of one character each. Given the height the
-      // two-choice bars take, they read as seven large buttons rather than as a week.
+      // Note(yoochan.kim): seven cells of one character, sized as a week rather than
+      // as seven buttons.
       { class: "segctl segctl--days" },
       DAY_CHOICES.map(({ day, label }) => {
         const button = el("button", { type: "button", textContent: label });
@@ -175,10 +171,7 @@ export class FlowEditor {
     );
   }
 
-  /**
-   * The order as numbered rows, and every library track as an add button
-   * underneath — nothing hides in a dropdown.
-   */
+  /** The order as numbered rows, with the library behind an add button. */
   private trackList(): HTMLElement {
     const rows = this.cues.map((cue, index) => {
       const track = this.tracks.find((candidate) => candidate.id === cue.id);
@@ -198,28 +191,39 @@ export class FlowEditor {
       ]);
     });
 
-    // Note(yoochan.kim): one control rather than a button per track. The library
-    // grows by editing a manifest, so a row of buttons is a row that wraps to
-    // three lines the moment somebody adds songs.
-    const adder = el("select", { class: "editor__adder" }) as HTMLSelectElement;
-    adder.append(el("option", { value: "", textContent: "곡 추가" }));
-    for (const track of this.tracks) {
-      adder.append(el("option", { value: track.id, textContent: track.title }));
-    }
-    adder.addEventListener("change", () => {
-      const track = this.tracks.find((candidate) => candidate.id === adder.value);
-      if (track === undefined) return;
-      // Note(yoochan.kim): a song joins at its own level, which is the one
-      // someone would have picked anyway — and can then be changed here.
-      this.cues.push({ id: track.id, volume: track.volume });
-      this.emit();
-      this.render(true);
+    // Note(yoochan.kim): behind a button, because a button per track wrapped to
+    // three lines once the manifest grew.
+    const menu = el(
+      "div",
+      { class: "picker is-hidden" },
+      this.tracks.map((track) =>
+        el("button", { class: "picker__row", type: "button" }, [
+          el("span", { class: "picker__n", textContent: track.title }),
+          el("span", { class: "picker__d", textContent: minutes(track.durationSec) }),
+        ]),
+      ),
+    );
+    menu.querySelectorAll("button").forEach((row, index) => {
+      row.addEventListener("click", () => {
+        const track = this.tracks[index]!;
+        // Note(yoochan.kim): a song joins at its own level, which is the one
+        // someone would have picked anyway — and can then be changed here.
+        this.cues.push({ id: track.id, volume: track.volume });
+        this.emit();
+        this.render(true);
+      });
     });
-    const adders = el("div", { class: "editor__adders" }, [adder]);
 
-    // Note(yoochan.kim): the columns are named once above the list rather than on
-    // every row. A level needs saying what it is, and saying it three times costs
-    // the width the song's own name needs.
+    const open = el("button", { class: "textbtn textbtn--add", type: "button", textContent: "+ 추가" });
+    open.addEventListener("click", () => {
+      menu.classList.toggle("is-hidden");
+      open.classList.toggle("on", !menu.classList.contains("is-hidden"));
+    });
+
+    const adders = el("div", { class: "editor__adders" }, [open, menu]);
+
+    // Note(yoochan.kim): named once above the list; a label per row costs the width
+    // the song's own name needs.
     const head =
       rows.length === 0
         ? []
@@ -254,10 +258,8 @@ export class FlowEditor {
       this.refresh();
     });
 
-    // Note(yoochan.kim): put right when the box is left, not while it is being
-    // typed in. Rewriting 5 into 50 under someone's fingers is worse than a
-    // moment out of range, and an emptied box gets back the level it had rather
-    // than becoming a song that plays silently.
+    // Note(yoochan.kim): put right on the way out, not under someone's fingers. An
+    // emptied box gets its level back rather than becoming a silent song.
     input.addEventListener("blur", () => {
       cue.volume = Number.isFinite(cue.volume) ? Math.min(100, Math.max(0, Math.round(cue.volume))) : last;
       last = cue.volume;

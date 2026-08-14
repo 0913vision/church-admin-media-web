@@ -28,7 +28,9 @@ class MediaBridge:
         # Tagged on `connected` rather than left half-filled, matching the
         # protocol's own rule about absence.
         self._link: dict = {"connected": False}
-        self._admin_secret = ""
+        # Note(yoochan.kim): configured, not borrowed from whoever logs in first, so
+        # admin standing survives a restart of this process.
+        self._admin_secret = settings.admin_password
         self._register_handlers()
 
     @property

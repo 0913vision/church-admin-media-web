@@ -18,6 +18,9 @@
   --ink-tint: rgba(27, 32, 41, 0.05);
   --key-dn: rgba(20, 26, 40, 0.10);
   --cap: #FFFFFF; --cap-ink: #1B2029; --cap-line: rgba(20, 26, 40, 0.14);
+
+  /* Every field and bar in the flow editor stands this tall. */
+  --field: 36px;
 }
 :root[data-theme="dark"] {
   --bg: #0F1216; --panel: #161B22; --raised: #1D242D; --well: #10151B; --slot: #232B35;
@@ -79,23 +82,28 @@ button { font: inherit; }
 }
 .nav__tab.is-active { background: var(--raised); color: var(--c-ink); font-weight: 600; }
 
-.main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
-.top {
-  flex: none;
-  height: 52px;
-  padding: 0 20px;
-  display: flex;
-  align-items: center;
-  /* Note: the bar holds only global controls, so they sit at the far end
-     together rather than being spread across an empty width. */
-  justify-content: flex-end;
-  border-bottom: 1px solid var(--line);
+.main { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+/* The theme sits at the foot; the gate and the way out are above the tabs. */
+.side__gap { flex: 1; }
+.side > .gate { margin-bottom: 4px; }
+.side > button:not(.gate):not(.nav__tab) {
+  background: none; border: 0; padding: 8px 11px; border-radius: 7px;
+  color: var(--c-mut); font-size: 14px; text-align: left; cursor: pointer;
 }
-.top .right { display: flex; align-items: center; gap: 14px; color: var(--c-mut); font-size: 13px; }
-.top .right > button:not(.gate) { color: var(--c-mut); background: none; border: 0; padding: 0; cursor: pointer; font-size: 13px; }
-.top .right > button:not(.gate):hover { color: var(--c-ink); }
+.side > button:not(.gate):not(.nav__tab):hover { background: var(--raised); color: var(--c-ink); }
+.side > .nav { margin-top: 14px; }
 .clock__date { text-align: center; font-size: 14.5px; color: var(--c-mut); margin-bottom: 4px; }
-.notice { font-size: 13px; padding: 4px 11px; border-radius: 999px; background: var(--bad-soft); color: var(--bad); font-weight: 600; }
+/* Drops in from above and leaves, rather than holding a bar open all day. */
+.notice {
+  position: absolute; top: 0; left: 50%; z-index: 20;
+  transform: translate(-50%, -150%);
+  opacity: 0; pointer-events: none;
+  transition: transform 0.22s ease, opacity 0.22s ease;
+  font-size: 13.5px; padding: 9px 16px; border-radius: 999px;
+  background: var(--bad); color: #fff; font-weight: 600;
+  box-shadow: 0 6px 18px rgba(20, 26, 40, 0.18);
+}
+.notice.on { transform: translate(-50%, 16px); opacity: 1; }
 
 .led { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
 .led--go { background: var(--go); box-shadow: 0 0 7px var(--go); }
@@ -147,17 +155,17 @@ button { white-space: nowrap; }
 .btn--ghost { background: var(--cap); }
 
 /* ---- the bar: joined cells, the chosen cell is painted ---- */
-.segctl { display: flex; border: 1px solid var(--cap-line); border-radius: 0;
+.segctl { display: flex; height: var(--field); border: 1px solid var(--cap-line); border-radius: 0;
           background: var(--cap); box-shadow: 0 1px 2px var(--key-dn); }
 .segctl > button {
-  flex: 1; font-size: 15px; font-weight: 600; padding: 13px 6px; background: transparent; border: 0;
+  flex: 1; font-size: 15px; font-weight: 600; padding: 0 6px; background: transparent; border: 0;
   border-left: 1px solid var(--cap-line); color: var(--cap-ink); cursor: pointer;
   display: flex; align-items: center; justify-content: center; gap: 8px;
   transition: background-color 0.16s ease, color 0.16s ease;
 }
 .segctl > button:first-child { border-left: 0; }
-/* A day is one character; it does not need the height a sentence does. */
-.segctl--days > button { padding: 7px 4px; font-size: 14px; }
+/* A day is one character, so only its sides are tighter. */
+.segctl--days > button { padding: 0 4px; }
 .segctl > button:hover:not(:disabled):not(.on) { background: rgba(22, 163, 74, 0.08); }
 .segctl > button.on { background: var(--go); color: #fff; font-weight: 700; }
 .segctl > button:disabled { opacity: 0.38; cursor: default; }
@@ -455,22 +463,23 @@ button { white-space: nowrap; }
 
 /* ================= flow editor ================= */
 .editor { background: var(--panel); border-radius: 12px; padding: 6px 18px 16px; display: flex; flex-direction: column; }
-/* Note: fields are told apart by the space between them, not by a rule drawn
-   between every pair. Seven rules down a short form is seven things to look at
-   before the first thing you came to change. */
+/* Space tells fields apart, not a rule between every pair. */
 .editor__row { display: flex; flex-direction: column; gap: 8px; padding: 11px 0; }
 .editor__label { color: var(--c-fnt); font-size: 13.5px; }
+/* A field is a bar with different insides: same border, fill and height. The
+   height is set, or a time input and a day cell come out 38 and 31 tall. */
 .editor__input {
-  font: inherit; font-size: 16px; color: var(--c-ink); background: transparent;
-  border: 0; border-bottom: 1px solid var(--slot); border-radius: 0; padding: 6px 1px 8px; min-width: 0; width: 100%;
+  font: inherit; font-size: 15px; color: var(--c-ink);
+  background: var(--cap); border: 1px solid var(--cap-line); border-radius: 0;
+  box-shadow: 0 1px 2px var(--key-dn);
+  height: var(--field); padding: 0 10px; min-width: 0; width: 100%;
 }
-.editor__input:focus { outline: none; border-bottom-color: var(--go); }
+.editor__input:focus { outline: none; border-color: var(--go); }
 .editor__unlock { display: flex; flex-direction: column; gap: 9px; }
 .editor__tracks { display: flex; flex-direction: column; }
 .editor__track { display: flex; align-items: center; gap: 10px; font-size: 15px; color: var(--c-mut); padding: 8px 0; }
 .editor__track-no { color: var(--c-fnt); width: 20px; flex: none; font-variant-numeric: tabular-nums; }
-/* A song's name gets the room that is left, and keeps to one line: a title
-   folded in half reads as two songs. */
+/* One line: a title folded in half reads as two songs. */
 .editor__track-name { flex: 1; min-width: 0; color: var(--c-ink); font-weight: 600;
                       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .editor__track-len { color: var(--c-fnt); font-size: 13px; font-family: var(--mono); flex: none; }
@@ -481,10 +490,8 @@ button { white-space: nowrap; }
 .editor__track-volh { width: 42px; flex: none; text-align: center;
                       /* the three buttons the rows carry, so the name lands over the box */
                       margin-right: 108px; }
-/* The level this song plays at in this order. A bare number in a row of buttons
-   reads as nothing in particular, so it carries its name and sits in a well.
-   The browser's spinner is gone with it: too small to aim at, and it walks the
-   value past the limits it is given. */
+/* The level, in a well under a named column. No spinner: it walks the value
+   past the limits it is given. */
 .vol { display: inline-flex; background: var(--well); border-radius: 7px; padding: 4px 8px; }
 .vol:focus-within { box-shadow: inset 0 0 0 1px var(--go); }
 .editor__track-vol {
@@ -496,13 +503,21 @@ button { white-space: nowrap; }
 .editor__track-vol::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .editor__track-vol:focus { outline: none; }
 .editor__track .textbtn { padding: 5px 8px; font-size: 16.5px; line-height: 1; }
-.editor__adders { display: flex; margin-top: 6px; }
-.editor__adder {
-  font: inherit; font-size: 14.5px; color: var(--c-ink);
-  background: var(--cap); border: 1px solid var(--cap-line); border-radius: 8px;
-  padding: 7px 10px; cursor: pointer;
+.editor__adders { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 4px; }
+/* The library, open only while somebody is choosing from it. */
+.picker {
+  align-self: stretch; display: flex; flex-direction: column;
+  background: var(--cap); border: 1px solid var(--cap-line); border-radius: 8px; overflow: hidden;
 }
-.editor__adder:focus { outline: none; border-color: var(--go); }
+.picker__row {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 8px 12px; background: transparent; border: 0; border-top: 1px solid var(--line);
+  font: inherit; font-size: 14.5px; color: var(--c-ink); text-align: left; cursor: pointer;
+}
+.picker__row:first-child { border-top: 0; }
+.picker__row:hover { background: var(--ink-tint); }
+.picker__n { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.picker__d { color: var(--c-fnt); font-size: 13px; font-family: var(--mono); }
 .editor__summary { display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; color: var(--c-mut);
                    border-top: 1px solid var(--line); padding: 13px 0; }
 .editor__srow { display: flex; gap: 12px; }
