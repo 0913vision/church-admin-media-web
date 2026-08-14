@@ -1,5 +1,7 @@
 import { el } from "../../util/dom.js";
 import type { ConsoleInput } from "../../protocol.js";
+import { levelText, meter } from "./meter.js";
+import { icon } from "../icons.js";
 
 export interface ConsolePanelOptions {
   onEnable: (inputId: string) => void;
@@ -56,7 +58,6 @@ export class ConsolePanel {
       ...this.state.map((input) => {
         const read = input.state;
         const on = read.kind === "read" && read.on;
-        const percent = read.kind === "read" ? `${Math.round(read.fader * 100)}%` : "—";
         const button = el("button", {
           class: "pick",
           type: "button",
@@ -65,17 +66,22 @@ export class ConsolePanel {
         button.disabled = !this.reachable || on;
         button.addEventListener("click", () => this.options.onEnable(input.id));
 
+        // Note(yoochan.kim): the same command as switching on — it drives every
+        // channel to its own level — offered where a moved fader is visible.
+        const reset = el("button", { class: "iconbtn", type: "button" }, [icon("reset", 16)]) as HTMLButtonElement;
+        reset.disabled = !this.reachable;
+        reset.title = `${input.nominalDb.toFixed(1)} dB로 되돌려요`;
+        reset.addEventListener("click", () => this.options.onEnable(input.id));
+
         return el("div", { class: `chrow${on ? " on" : ""}` }, [
           el("span", { class: "chrow__n", textContent: input.label }),
           el("span", { class: "chrow__s" }, [
             el("span", { class: `led ${on ? "led--go" : "led--off"}` }),
             el("span", { textContent: read.kind === "read" ? (read.on ? "ON" : "OFF") : "—" }),
           ]),
-          el("span", { class: "chrow__bar" }, [
-            el("i", { style: `width:${read.kind === "read" ? Math.round(read.fader * 100) : 0}%` }),
-          ]),
-          el("span", { class: "chrow__db", textContent: percent }),
-          el("span", {}),
+          meter(input),
+          el("span", { class: "chrow__db", textContent: levelText(input) }),
+          reset,
           button,
         ]);
       }),

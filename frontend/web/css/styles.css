@@ -10,7 +10,9 @@
 
   --bg: #F1F4F9; --panel: #FFFFFF; --raised: #E8ECF4; --well: #E4E9F1; --slot: #D8DFEA;
   --line: rgba(20, 26, 40, 0.10);
-  --c-ink: #1B2029; --c-mut: #5C6675; --c-fnt: #929BAB;
+  /* Contrast against the surface behind them: 7.5:1 and 4.5:1. The muted greys
+     used to sit at 2.8:1, which is under what a body of text needs to be read. */
+  --c-ink: #1B2029; --c-mut: #4B5566; --c-fnt: #6C7788;
   --go: #16A34A; --go-soft: rgba(22, 163, 74, 0.13); --go-face: #16A34A;
   --hold: #C2740A; --hold-face: #C2740A; --hold-soft: rgba(194, 116, 10, 0.12);
   --bad: #DC2626; --bad-soft: rgba(220, 38, 38, 0.12);
@@ -25,7 +27,7 @@
 :root[data-theme="dark"] {
   --bg: #0F1216; --panel: #161B22; --raised: #1D242D; --well: #10151B; --slot: #232B35;
   --line: rgba(255, 255, 255, 0.08);
-  --c-ink: #E9EDF4; --c-mut: #8B95A7; --c-fnt: #5B6675;
+  --c-ink: #E9EDF4; --c-mut: #9BA5B6; --c-fnt: #7C8798;
   --go: #22C55E; --go-soft: rgba(34, 197, 94, 0.16); --go-face: #15803D;
   --hold: #F5A524; --hold-face: #B45309; --hold-soft: rgba(245, 165, 36, 0.10);
   --bad: #EF4444; --bad-soft: rgba(239, 68, 68, 0.16);
@@ -305,7 +307,9 @@ button { white-space: nowrap; }
 /* ================= timeline: the whole schedule in one picture ================= */
 .tl { background: var(--panel); border-radius: 12px; padding: 14px 18px 18px; }
 .tl__head:only-child { margin-bottom: 0; }
-.tl__head { display: flex; align-items: center; gap: 8px; font-size: 14.5px; color: var(--c-mut); margin-bottom: 12px; }
+/* A lamp needs more room beside a heading than beside a small grey word, so
+   these two rows sit wider than the 8px the plainer ones use. */
+.tl__head { display: flex; align-items: center; gap: 11px; font-size: 14.5px; color: var(--c-mut); margin-bottom: 12px; }
 .tl__head b { color: var(--c-ink); font-size: 16px; font-weight: 700; }
 .tl__facts { display: flex; align-items: center; }
 .tl__facts > span { padding: 0 13px; }
@@ -356,7 +360,7 @@ button { white-space: nowrap; }
 
 /* ================= console: a strip per input ================= */
 .x32 { background: var(--panel); border-radius: 12px; padding: 14px 18px 16px; }
-.x32__h { display: flex; align-items: center; gap: 8px; font-size: 14.5px; color: var(--c-mut); margin-bottom: 9px; }
+.x32__h { display: flex; align-items: center; gap: 11px; font-size: 14.5px; color: var(--c-mut); margin-bottom: 9px; }
 .x32__h b { color: var(--c-ink); font-size: 16px; font-weight: 700; }
 /* The name and the button both hold words the media server chooses — an input
    can be renamed, and the button says either 켜기 or 켜져 있음. Both columns are
@@ -372,7 +376,21 @@ button { white-space: nowrap; }
 .chrow__bar { height: 6px; border-radius: 3px; background: var(--slot); position: relative; }
 .chrow__bar i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: var(--c-fnt); }
 .chrow.on .chrow__bar i { background: var(--go); }
+/* Where the level belongs. It stands taller than the bar so it reads as a mark
+   on the scale rather than as part of the reading. */
+.chrow__mark { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px;
+               border-radius: 1px; background: var(--c-ink); opacity: 0.45; }
+.chrow__bar.is-off i { background: var(--hold); }
 .chrow__db { color: var(--c-mut); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+/* Puts a level back where it belongs. A glyph, since it repeats on every row. */
+.iconbtn {
+  justify-self: end; display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 8px; cursor: pointer;
+  background: var(--cap); color: var(--c-mut); border: 1px solid var(--cap-line);
+}
+.iconbtn:hover:not(:disabled) { color: var(--c-ink); }
+.iconbtn:active:not(:disabled) { transform: translateY(1px); }
+.iconbtn:disabled { background: var(--raised); color: var(--c-fnt); border-color: transparent; cursor: default; }
 .chrow .pick { font-size: 13px; padding: 8px 10px; text-align: center; white-space: nowrap; }
 
 /* ================= dashboard summary: the system tab in miniature ================= */

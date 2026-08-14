@@ -10,6 +10,7 @@ import type { Dashboard, Link } from "../state/store.js";
 import { el } from "../util/dom.js";
 import { throttle } from "../util/rate.js";
 import { ConsolePanel } from "./components/ConsolePanel.js";
+import { levelText, meter } from "./components/meter.js";
 import { Fader } from "./components/Fader.js";
 import { SchedulePanel } from "./components/SchedulePanel.js";
 import { SystemPanel, formatUptime } from "./components/SystemPanel.js";
@@ -259,7 +260,6 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
       ...consoleState.map((input) => {
         const read = input.state;
         const on = read.kind === "read" && read.on;
-        const percent = read.kind === "read" ? `${Math.round(read.fader * 100)}%` : "—";
         const button = el("button", {
           class: "pick",
           type: "button",
@@ -276,10 +276,8 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
             el("span", { class: `led ${on ? "led--go" : "led--off"}` }),
             el("span", { textContent: read.kind === "read" ? (read.on ? "ON" : "OFF") : "—" }),
           ]),
-          el("span", { class: "chrow__bar" }, [
-            el("i", { style: `width:${read.kind === "read" ? Math.round(read.fader * 100) : 0}%` }),
-          ]),
-          el("span", { class: "chrow__db", textContent: percent }),
+          meter(input),
+          el("span", { class: "chrow__db", textContent: levelText(input) }),
           el("span", {}),
           button,
         ]);
