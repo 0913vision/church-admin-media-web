@@ -198,21 +198,24 @@ export class FlowEditor {
       ]);
     });
 
-    const adders = el(
-      "div",
-      { class: "editor__adders" },
-      this.tracks.map((track) => {
-        const add = el("button", { class: "textbtn textbtn--add", type: "button", textContent: `+ ${track.title}` });
-        add.addEventListener("click", () => {
-          // Note(yoochan.kim): a song joins at its own level, which is the one
-          // someone would have picked anyway — and can then be changed here.
-          this.cues.push({ id: track.id, volume: track.volume });
-          this.emit();
-          this.render(true);
-        });
-        return add;
-      }),
-    );
+    // Note(yoochan.kim): one control rather than a button per track. The library
+    // grows by editing a manifest, so a row of buttons is a row that wraps to
+    // three lines the moment somebody adds songs.
+    const adder = el("select", { class: "editor__adder" }) as HTMLSelectElement;
+    adder.append(el("option", { value: "", textContent: "곡 추가" }));
+    for (const track of this.tracks) {
+      adder.append(el("option", { value: track.id, textContent: track.title }));
+    }
+    adder.addEventListener("change", () => {
+      const track = this.tracks.find((candidate) => candidate.id === adder.value);
+      if (track === undefined) return;
+      // Note(yoochan.kim): a song joins at its own level, which is the one
+      // someone would have picked anyway — and can then be changed here.
+      this.cues.push({ id: track.id, volume: track.volume });
+      this.emit();
+      this.render(true);
+    });
+    const adders = el("div", { class: "editor__adders" }, [adder]);
 
     // Note(yoochan.kim): the columns are named once above the list rather than on
     // every row. A level needs saying what it is, and saying it three times costs

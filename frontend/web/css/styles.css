@@ -496,7 +496,13 @@ button { white-space: nowrap; }
 .editor__track-vol::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .editor__track-vol:focus { outline: none; }
 .editor__track .textbtn { padding: 5px 8px; font-size: 16.5px; line-height: 1; }
-.editor__adders { display: flex; gap: 2px; flex-wrap: wrap; margin-top: 4px; }
+.editor__adders { display: flex; margin-top: 6px; }
+.editor__adder {
+  font: inherit; font-size: 14.5px; color: var(--c-ink);
+  background: var(--cap); border: 1px solid var(--cap-line); border-radius: 8px;
+  padding: 7px 10px; cursor: pointer;
+}
+.editor__adder:focus { outline: none; border-color: var(--go); }
 .editor__summary { display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; color: var(--c-mut);
                    border-top: 1px solid var(--line); padding: 13px 0; }
 .editor__srow { display: flex; gap: 12px; }
