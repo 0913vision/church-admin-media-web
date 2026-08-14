@@ -361,12 +361,14 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     system: el("section", { class: "view" }, [systemPanel.el]),
   };
 
-  const pageTitle = el("b", {});
   const navButtons = new Map<ViewKey, HTMLButtonElement>();
+  // Note(yoochan.kim): the tab name is not repeated in a title bar. The sidebar
+  // already says which tab this is, by holding it lit, and a second telling of
+  // the same thing is one more place for the two to disagree.
   const setView = (key: ViewKey): void => {
     navButtons.forEach((button, k) => button.classList.toggle("is-active", k === key));
     (Object.keys(views) as ViewKey[]).forEach((k) => views[k].classList.toggle("is-hidden", k !== key));
-    pageTitle.textContent = NAV.find((entry) => entry.key === key)?.label ?? "";
+    document.title = `${NAV.find((entry) => entry.key === key)?.label ?? ""} · 미디어 관리자`;
   };
 
   const nav = el(
@@ -385,17 +387,12 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
 
   root.replaceChildren(
     el("div", { class: "app" }, [
-      el("aside", { class: "side" }, [
-        el("div", { class: "brand" }, [
-          el("span", { class: "brand__mark" }),
-          el("span", { textContent: "미디어 관리자" }),
-        ]),
-        nav,
-        theme,
-      ]),
+      el("aside", { class: "side" }, [nav, theme]),
       el("div", { class: "main" }, [
+        // Note(yoochan.kim): what is global and pressable, and nothing else.
+        // Naming the page here would only repeat the sidebar; the browser tab
+        // carries the name for anyone who has several windows open.
         el("header", { class: "top" }, [
-          pageTitle,
           el("div", { class: "right" }, [notice, gate, logout]),
         ]),
         el("main", { class: "page" }, [
