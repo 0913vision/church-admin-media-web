@@ -191,10 +191,9 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   // --- topbar ---
   const topDate = el("div", { class: "clock__date num" });
   // Note(yoochan.kim): The gate is toggled here and only here: press the chip, the server answers.
-  const lockValue = el("span", { class: "gate__v" });
+  const lockValue = el("span", { class: "gate__l" });
   const gate = el("button", { class: "gate", type: "button" }, [
     el("span", { class: "led led--off" }),
-    el("span", { class: "gate__l", textContent: "관리자 잠금" }),
     lockValue,
   ]);
   let adminLocked = false;
@@ -456,7 +455,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     mute.set(state.mute === MuteState.MUTED, state.audioLock);
 
     adminLocked = state.adminLock;
-    lockValue.textContent = state.adminLock ? "활성화" : "해제";
+    lockValue.textContent = state.adminLock ? "관리자 잠금 활성화" : "관리자 잠금 해제";
     gate.classList.toggle("on", state.adminLock);
     gate.querySelector(".led")!.className = `led led--${state.adminLock ? "bad" : "off"}`;
     // Note(yoochan.kim): A running flow owns the gate, so the chip goes quiet rather than

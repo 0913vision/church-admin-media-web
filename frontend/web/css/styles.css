@@ -106,8 +106,14 @@ button { font: inherit; }
 }
 .notice.on { transform: translate(-50%, 16px); opacity: 1; }
 
-/* A lamp carries no spacing of its own; the row it sits in decides. */
-.led { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
+/* A lamp carries no spacing of its own; the row it sits in decides.
+
+   `align-items: center` centres boxes, and the glyphs do not sit in the middle
+   of theirs — a font keeps more room above the baseline than below — so a
+   box-centred dot rides above the words. Nudged back down in em, since the gap
+   it closes belongs to the font and grows with it. */
+.led { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none;
+       position: relative; top: 0.09em; }
 .led--go { background: var(--go); box-shadow: 0 0 7px var(--go); }
 .led--hold { background: var(--hold); box-shadow: 0 0 7px var(--hold); }
 .led--bad { background: var(--bad); box-shadow: 0 0 7px var(--bad); }
@@ -217,7 +223,6 @@ button { white-space: nowrap; }
 .gate.arming .arm { width: 100%; }
 .gate.cooling { pointer-events: none; }
 .gate__l { color: inherit; }
-.gate__v { font-weight: 700; }
 .gate.on { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
 .gate.on .led { background: var(--bad); box-shadow: 0 0 7px var(--bad); }
 .gate:disabled { background: var(--raised); color: var(--c-fnt); border-color: transparent;
