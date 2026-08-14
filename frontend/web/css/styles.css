@@ -156,6 +156,8 @@ button { white-space: nowrap; }
   transition: background-color 0.16s ease, color 0.16s ease;
 }
 .segctl > button:first-child { border-left: 0; }
+/* A day is one character; it does not need the height a sentence does. */
+.segctl--days > button { padding: 7px 4px; font-size: 14px; }
 .segctl > button:hover:not(:disabled):not(.on) { background: rgba(22, 163, 74, 0.08); }
 .segctl > button.on { background: var(--go); color: #fff; font-weight: 700; }
 .segctl > button:disabled { opacity: 0.38; cursor: default; }
@@ -453,9 +455,10 @@ button { white-space: nowrap; }
 
 /* ================= flow editor ================= */
 .editor { background: var(--panel); border-radius: 12px; padding: 6px 18px 16px; display: flex; flex-direction: column; }
-.editor__row { display: flex; flex-direction: column; gap: 9px; padding: 14px 0;
-               border-top: 1px solid var(--line); }
-.editor__row:first-child { border-top: 0; }
+/* Note: fields are told apart by the space between them, not by a rule drawn
+   between every pair. Seven rules down a short form is seven things to look at
+   before the first thing you came to change. */
+.editor__row { display: flex; flex-direction: column; gap: 8px; padding: 11px 0; }
 .editor__label { color: var(--c-fnt); font-size: 13.5px; }
 .editor__input {
   font: inherit; font-size: 16px; color: var(--c-ink); background: transparent;

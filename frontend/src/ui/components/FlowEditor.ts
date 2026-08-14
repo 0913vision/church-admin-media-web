@@ -144,7 +144,7 @@ export class FlowEditor {
 
   private text(value: string, onInput: (value: string) => void): HTMLElement {
     const input = el("input", { class: "editor__input", type: "text", value });
-    input.addEventListener("input", () => onInput(input.value));
+    input.addEventListener("input", () => { onInput(input.value); this.refresh(); });
     return input;
   }
 
@@ -157,7 +157,9 @@ export class FlowEditor {
   private weekdayRow(): HTMLElement {
     return el(
       "div",
-      { class: "segctl" },
+      // Note(yoochan.kim): seven cells of one character each. Given the height the
+      // two-choice bars take, they read as seven large buttons rather than as a week.
+      { class: "segctl segctl--days" },
       DAY_CHOICES.map(({ day, label }) => {
         const button = el("button", { type: "button", textContent: label });
         button.classList.toggle("on", this.weekdays.has(day));
@@ -166,6 +168,7 @@ export class FlowEditor {
           else this.weekdays.add(day);
           button.classList.toggle("on", this.weekdays.has(day));
           this.emit();
+          this.refresh();
         });
         return button;
       }),
