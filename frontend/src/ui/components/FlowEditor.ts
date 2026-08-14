@@ -41,6 +41,15 @@ export class FlowEditor {
   private cues: ScheduledTrack[] = [];
   private endsAt = "20:00";
   private tracks: Track[] = [];
+  /**
+   * The one part of the editor that changes as you type.
+   *
+   * Note(yoochan.kim): it is a lasting element rather than something `render`
+   * makes afresh. Typing used to redraw the whole editor, which replaced the
+   * very box being typed into — the field lost focus after each character, and
+   * the second one landed nowhere.
+   */
+  private readonly summaryEl = el("div", { class: "editor__summary num" });
 
   constructor(private readonly options: FlowEditorOptions) {
     this.el = el("div", { class: "editor is-hidden" });
@@ -92,13 +101,19 @@ export class FlowEditor {
       this.field("잠금 시작", this.time(this.lockAt, (value) => { this.lockAt = value; this.emit(); })),
       this.field("곡", this.trackList()),
       ...(this.cues.length > 0
-        ? [this.field("음악 마치는 시각", this.time(this.endsAt, (value) => { this.endsAt = value; this.emit(); this.render(existing); }))]
+        ? [this.field("음악 마치는 시각", this.time(this.endsAt, (value) => { this.endsAt = value; this.emit(); this.refresh(); }))]
         : []),
       this.field("잠금 해제", this.unlockRow()),
       this.field("시작", this.autoRow()),
-      this.summary(),
+      this.summaryEl,
       this.buttons(existing),
     );
+    this.refresh();
+  }
+
+  /** What a keystroke changes: the reading underneath, and nothing else. */
+  private refresh(): void {
+    this.summaryEl.replaceChildren(...this.summaryRows());
   }
 
   // --- fields ---
@@ -196,7 +211,23 @@ export class FlowEditor {
       }),
     );
 
-    return el("div", { class: "editor__tracks" }, [...rows, adders]);
+    // Note(yoochan.kim): the columns are named once above the list rather than on
+    // every row. A level needs saying what it is, and saying it three times costs
+    // the width the song's own name needs.
+    const head =
+      rows.length === 0
+        ? []
+        : [
+            el("div", { class: "editor__track editor__track--head" }, [
+              el("span", { class: "editor__track-no" }),
+              // The field is already called 곡; only the two numbers need naming.
+              el("span", { class: "editor__track-name" }),
+              el("span", { class: "editor__track-len", textContent: "길이" }),
+              el("span", { class: "editor__track-volh", textContent: "볼륨" }),
+            ]),
+          ];
+
+    return el("div", { class: "editor__tracks" }, [...head, ...rows, adders]);
   }
 
   /** How loud this song plays in this order, kept in 0-100 like the panel's. */
@@ -205,15 +236,30 @@ export class FlowEditor {
       class: "editor__track-vol",
       type: "number",
       value: String(cue.volume),
-      title: "이 순서에서의 볼륨",
+      ariaLabel: "이 순서에서의 볼륨",
     }) as HTMLInputElement;
     input.min = "0";
     input.max = "100";
+    input.step = "1";
+    let last = cue.volume;
+
     input.addEventListener("input", () => {
       cue.volume = input.value === "" ? Number.NaN : Number(input.value);
-      this.render(true);
+      this.refresh();
     });
-    return input;
+
+    // Note(yoochan.kim): put right when the box is left, not while it is being
+    // typed in. Rewriting 5 into 50 under someone's fingers is worse than a
+    // moment out of range, and an emptied box gets back the level it had rather
+    // than becoming a song that plays silently.
+    input.addEventListener("blur", () => {
+      cue.volume = Number.isFinite(cue.volume) ? Math.min(100, Math.max(0, Math.round(cue.volume))) : last;
+      last = cue.volume;
+      input.value = String(cue.volume);
+      this.refresh();
+    });
+
+    return el("span", { class: "vol" }, [input]);
   }
 
   /** The gate closes with the music, or at a time of its own — a choice. */
@@ -237,7 +283,7 @@ export class FlowEditor {
       ]),
     ];
     if (!follows) {
-      children.push(this.time(this.lockUntil, (value) => { this.lockUntil = value; this.emit(); this.render(true); }));
+      children.push(this.time(this.lockUntil, (value) => { this.lockUntil = value; this.emit(); this.refresh(); }));
     }
     return el("div", { class: "editor__unlock" }, children);
   }
@@ -249,7 +295,7 @@ export class FlowEditor {
    * will. A flow the server would refuse is better caught here, before someone
    * presses start during a service.
    */
-  private summary(): HTMLElement {
+  private summaryRows(): HTMLElement[] {
     const lines: [string, string][] = [];
     const warnings: string[] = [];
 
@@ -284,7 +330,7 @@ export class FlowEditor {
       warnings.push("잠금 해제가 잠금 시작보다 빨라요");
     }
 
-    return el("div", { class: "editor__summary num" }, [
+    return [
       ...lines.map(([label, value]) =>
         el("div", { class: "editor__srow" }, [
           el("span", { textContent: label }),
@@ -292,7 +338,7 @@ export class FlowEditor {
         ]),
       ),
       ...warnings.map((line) => el("span", { class: "editor__warn", textContent: line })),
-    ]);
+    ];
   }
 
   private buttons(existing: boolean): HTMLElement {
