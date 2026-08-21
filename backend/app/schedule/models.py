@@ -10,7 +10,9 @@ from pathlib import Path
 
 _WEEKDAY_KEYS = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
 WEEKDAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"]
-_CLOCK = re.compile(r"^([01]\d|2[0-3]):([0-5]\d)$")
+# Note(yoochan.kim): seconds are optional. Track lengths are not whole minutes, so
+# a finish that can only be set to the minute cannot say when the music stops.
+_CLOCK = re.compile(r"^([01]\d|2[0-3]):([0-5]\d)(:([0-5]\d))?$")
 
 # Note(yoochan.kim): Field names each kind of flow part carries. Kept in step with the media
 # server's protocol, but checked here so a typo in the schedules file fails at
@@ -117,9 +119,11 @@ def _wire(at: datetime) -> str:
 
 
 def _on_day(now: datetime, clock: str) -> datetime:
-    """Today's occurrence of an HH:MM, keeping the caller's timezone."""
-    hours, minutes = (int(part) for part in clock.split(":"))
-    return now.replace(hour=hours, minute=minutes, second=0, microsecond=0)
+    """Today's occurrence of an HH:MM or HH:MM:SS, keeping the caller's timezone."""
+    parts = [int(part) for part in clock.split(":")]
+    hours, minutes = parts[0], parts[1]
+    seconds = parts[2] if len(parts) > 2 else 0
+    return now.replace(hour=hours, minute=minutes, second=seconds, microsecond=0)
 
 
 def load_flows(path: str) -> dict[str, ScheduledFlow]:
@@ -271,4 +275,4 @@ def _check_part(flow_id: str, part: object) -> str:
 
 def _check_clock(flow_id: str, field: str, value: object) -> None:
     if not isinstance(value, str) or not _CLOCK.match(value):
-        raise ValueError(f"Flow {flow_id}: {field} must be an HH:MM time, got {value!r}")
+        raise ValueError(f"Flow {flow_id}: {field} must be an HH:MM or HH:MM:SS time, got {value!r}")

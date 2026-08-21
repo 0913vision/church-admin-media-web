@@ -14,7 +14,10 @@ export interface SchedulePanelOptions {
 }
 
 function minutesOf(clock: string): number {
-  return Number(clock.slice(0, 2)) * 60 + Number(clock.slice(3));
+  // Minutes since midnight, from HH:MM or HH:MM:SS. Seconds count as a fraction
+  // so a bar drawn from this lands where the music actually starts.
+  const [hours, mins, secs] = clock.split(":").map(Number);
+  return (hours ?? 0) * 60 + (mins ?? 0) + (secs ?? 0) / 60;
 }
 
 function hhmm(minutes: number): string {

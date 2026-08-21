@@ -558,11 +558,16 @@ body.has-modal { overflow: hidden; }
 .editor__track-vol::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .editor__track-vol:focus { outline: none; }
 .editor__track .textbtn { padding: 5px 8px; font-size: 16.5px; line-height: 1; }
-.editor__adders { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 4px; }
-/* The library, open only while somebody is choosing from it. */
+.editor__adders { position: relative; display: flex; align-items: flex-start; margin-top: 4px; }
+/* The library, open only while somebody is choosing from it. It hangs over what
+   is below rather than pushing it down — a menu that moves the rest of the form
+   out of the way takes the thing you were reading with it. */
 .picker {
-  align-self: stretch; display: flex; flex-direction: column;
-  background: var(--cap); border: 1px solid var(--cap-line); border-radius: 8px; overflow: hidden;
+  position: absolute; top: calc(100% + 4px); left: 0; z-index: 10;
+  min-width: 260px; max-height: 300px; overflow-y: auto;
+  display: flex; flex-direction: column;
+  background: var(--cap); border: 1px solid var(--cap-line); border-radius: 8px;
+  box-shadow: 0 10px 26px rgba(20, 26, 40, 0.16);
 }
 .picker__row {
   display: flex; align-items: center; gap: 10px; width: 100%;

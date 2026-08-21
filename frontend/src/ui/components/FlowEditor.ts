@@ -69,8 +69,9 @@ export class FlowEditor {
     this.options.onChange?.({
       id: this.id,
       weekdays: [...this.weekdays],
-      opens: asMinutes(this.lockAt),
-      closes: asMinutes(closes),
+      // The calendar draws in minutes; seconds are below a pixel there.
+      opens: asSeconds(this.lockAt) / 60,
+      closes: asSeconds(closes) / 60,
     });
   }
 
@@ -146,9 +147,15 @@ export class FlowEditor {
     return input;
   }
 
+  /**
+   * A time to the second. The timeline is built by subtracting track lengths
+   * from the finish, and those are not whole minutes — so a finish that can only
+   * be set to a minute cannot express when the music should actually stop.
+   */
   private time(value: string, onInput: (value: string) => void): HTMLElement {
-    const input = el("input", { class: "editor__input", type: "time", value });
-    input.addEventListener("input", () => { if (input.value) onInput(input.value); });
+    const input = el("input", { class: "editor__input", type: "time", value: asClock(asSeconds(value)) });
+    input.step = "1";
+    input.addEventListener("input", () => { if (input.value) onInput(asClock(asSeconds(input.value))); });
     return input;
   }
 
@@ -181,7 +188,7 @@ export class FlowEditor {
       return el("div", { class: "editor__track" }, [
         el("span", { class: "editor__track-no", textContent: `${index + 1}.` }),
         el("span", { class: "editor__track-name", textContent: label }),
-        el("span", { class: "editor__track-len", textContent: track ? minutes(track.durationSec) : "" }),
+        el("span", { class: "editor__track-len", textContent: track ? length(track.durationSec) : "" }),
         this.volumeInput(cue),
         this.smallButton("↑", "위로", () => this.move(index, -1)),
         this.smallButton("↓", "아래로", () => this.move(index, 1)),
@@ -201,7 +208,7 @@ export class FlowEditor {
       this.tracks.map((track) =>
         el("button", { class: "picker__row", type: "button" }, [
           el("span", { class: "picker__n", textContent: track.title }),
-          el("span", { class: "picker__d", textContent: minutes(track.durationSec) }),
+          el("span", { class: "picker__d", textContent: length(track.durationSec) }),
         ]),
       ),
     );
@@ -217,12 +224,24 @@ export class FlowEditor {
     });
 
     const open = el("button", { class: "textbtn textbtn--add", type: "button", textContent: "+ 추가" });
-    open.addEventListener("click", () => {
-      menu.classList.toggle("is-hidden");
-      open.classList.toggle("on", !menu.classList.contains("is-hidden"));
-    });
-
     const adders = el("div", { class: "editor__adders" }, [open, menu]);
+
+    // Note(yoochan.kim): a press anywhere else puts it away, which is what an open
+    // menu means everywhere. The listener only lives while the menu is up, and
+    // the modal takes the whole form down with it when it closes.
+    const shut = (event: MouseEvent): void => {
+      if (adders.contains(event.target as Node)) return;
+      menu.classList.add("is-hidden");
+      open.classList.remove("on");
+      document.removeEventListener("mousedown", shut);
+    };
+    open.addEventListener("click", () => {
+      const opening = menu.classList.contains("is-hidden");
+      menu.classList.toggle("is-hidden", !opening);
+      open.classList.toggle("on", opening);
+      if (opening) document.addEventListener("mousedown", shut);
+      else document.removeEventListener("mousedown", shut);
+    });
 
     // Note(yoochan.kim): named once above the list; a label per row costs the width
     // the song's own name needs.
@@ -314,11 +333,11 @@ export class FlowEditor {
       0,
     );
     const closesAt = this.followsMusic && this.cues.length > 0 ? this.endsAt : this.lockUntil;
-    lines.push(["잠금", `${this.lockAt} → ${closesAt}`]);
+    lines.push(["잠금", `${asClock(asSeconds(this.lockAt))} → ${asClock(asSeconds(closesAt))}`]);
 
     if (this.cues.length > 0) {
-      const startsAt = minusSeconds(this.endsAt, totalSec);
-      const cut = asMinutes(startsAt) < asMinutes(this.lockAt) ? ", 앞 잘림" : "";
+      const startsAt = asClock(asSeconds(this.endsAt) - totalSec);
+      const cut = asSeconds(startsAt) < asSeconds(this.lockAt) ? ", 앞 잘림" : "";
       lines.push(["음악", `${startsAt} → ${this.endsAt} (${this.cues.length}곡${cut})`]);
       // Note(yoochan.kim): the media server refuses a track with no level, so a
       // blank box stops the save here rather than at the moment someone starts it.
@@ -327,16 +346,16 @@ export class FlowEditor {
       }
       // Note(yoochan.kim): Only the finish is bound to the lock window: a timeline that begins
       // earlier just has its front cut, so an early start is not an error.
-      if (asMinutes(this.endsAt) <= asMinutes(this.lockAt)) {
+      if (asSeconds(this.endsAt) <= asSeconds(this.lockAt)) {
         warnings.push("음악이 잠금 시작 전에 끝나요");
       }
-      if (asMinutes(this.endsAt) > asMinutes(closesAt)) {
+      if (asSeconds(this.endsAt) > asSeconds(closesAt)) {
         warnings.push("음악이 잠금 해제보다 늦게 끝나요");
       }
     }
     if (this.weekdays.size === 0) warnings.push("요일이 비어 있어요");
     if (!this.name.trim()) warnings.push("이름이 비어 있어요");
-    if (asMinutes(closesAt) <= asMinutes(this.lockAt)) {
+    if (asSeconds(closesAt) <= asSeconds(this.lockAt)) {
       warnings.push("잠금 해제가 잠금 시작보다 빨라요");
     }
 
@@ -435,18 +454,25 @@ export class FlowEditor {
   }
 }
 
-function minutes(seconds: number): string {
-  return `${Math.round(seconds / 60)}분`;
+/**
+ * A track's length, to the second. Rounding to minutes hid the very thing the
+ * timeline is built from: five songs each rounded down can put the music a
+ * couple of minutes away from where the summary says it starts.
+ */
+function length(seconds: number): string {
+  const whole = Math.round(seconds);
+  return `${Math.floor(whole / 60)}분 ${String(whole % 60).padStart(2, "0")}초`;
 }
 
-function asMinutes(clock: string): number {
-  const [hours, mins] = clock.split(":").map(Number);
-  return (hours ?? 0) * 60 + (mins ?? 0);
+/** Seconds since midnight, from HH:MM or HH:MM:SS. */
+function asSeconds(clock: string): number {
+  const [hours, mins, secs] = clock.split(":").map(Number);
+  return (hours ?? 0) * 3600 + (mins ?? 0) * 60 + (secs ?? 0);
 }
 
-function minusSeconds(clock: string, seconds: number): string {
-  const total = (asMinutes(clock) * 60 - Math.round(seconds) + 24 * 3600) % (24 * 3600);
-  const hours = Math.floor(total / 3600);
-  const mins = Math.floor((total % 3600) / 60);
-  return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+/** HH:MM:SS, the shape the media server takes and the one an editor round-trips. */
+function asClock(totalSec: number): string {
+  const wrapped = ((Math.round(totalSec) % 86400) + 86400) % 86400;
+  const pad = (value: number): string => String(value).padStart(2, "0");
+  return `${pad(Math.floor(wrapped / 3600))}:${pad(Math.floor((wrapped % 3600) / 60))}:${pad(wrapped % 60)}`;
 }

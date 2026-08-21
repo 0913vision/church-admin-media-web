@@ -6,7 +6,10 @@ const DAYS = ["주일", "월", "화", "수", "목", "금", "토"];
 const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0]; // python weekday() (mon=0) → column
 
 function minutesOf(clock: string): number {
-  return Number(clock.slice(0, 2)) * 60 + Number(clock.slice(3));
+  // Minutes since midnight, from HH:MM or HH:MM:SS. Seconds count as a fraction
+  // so a bar drawn from this lands where the music actually starts.
+  const [hours, mins, secs] = clock.split(":").map(Number);
+  return (hours ?? 0) * 60 + (mins ?? 0) + (secs ?? 0) / 60;
 }
 
 /** A flow being edited, drawn as a dashed outline before it exists. */
