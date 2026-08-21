@@ -32,6 +32,8 @@ export interface Rejection {
 /** The media server's heartbeat, carrying the clock this building runs on. */
 export interface Heartbeat {
   at: string;
+  /** The correction in force when this was sent; standard time is `at` minus it. */
+  offsetSec: number;
 }
 
 export interface StreamHandlers {

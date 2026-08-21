@@ -9,31 +9,42 @@
  */
 export class ChurchClock {
   private skewMs = 0;
+  private offsetSec = 0;
   private synced = false;
   private readonly listeners = new Set<(now: Date) => void>();
-  private readonly syncListeners = new Set<() => void>();
   private timer = 0;
 
-  /** Feeds a heartbeat. Anything unparseable is ignored rather than trusted. */
-  sync(at: string): void {
+  /**
+   * Feeds a heartbeat. Anything unparseable is ignored rather than trusted.
+   *
+   * The beat carries church time and the correction it was built from, so the
+   * server's standard time comes back out exactly. What is kept is how this
+   * machine's clock differs from that — the one thing a heartbeat is for.
+   */
+  sync(at: string, offsetSec: number): void {
     const stamp = new Date(at).getTime();
     if (Number.isNaN(stamp)) return;
-    this.skewMs = stamp - Date.now();
+    this.skewMs = stamp - offsetSec * 1000 - Date.now();
     this.synced = true;
-    for (const each of this.syncListeners) each();
   }
 
   /**
-   * Called when a heartbeat lands. A correction takes up to a beat to show here,
-   * so anything drawn against both the clock and the offset needs to know when
-   * the two are back in step.
+   * The correction, as the device reports it. Held here rather than applied by
+   * each caller: it arrives on connect and changes the instant someone nudges
+   * it, while a beat is up to 30s away — a clock that waited for the beat would
+   * show this browser's own time on every reload.
    */
-  onSync(listener: () => void): void {
-    this.syncListeners.add(listener);
+  setOffset(offsetSec: number): void {
+    this.offsetSec = offsetSec;
+  }
+
+  /** Standard time as the server keeps it, which is the same instant everywhere. */
+  standardNow(): Date {
+    return new Date(Date.now() + this.skewMs);
   }
 
   now(): Date {
-    return new Date(Date.now() + this.skewMs);
+    return new Date(Date.now() + this.skewMs + this.offsetSec * 1000);
   }
 
   /** False until the first heartbeat, when there is nothing honest to show. */

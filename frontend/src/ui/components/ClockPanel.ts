@@ -32,12 +32,6 @@ export class ClockPanel {
   ]);
 
   private offsetSec = 0;
-  /**
-   * The offset that was in force when the clock last synced. It lags `offsetSec`
-   * between a correction and the next heartbeat, and taking it out is what turns
-   * the synced reading back into standard time.
-   */
-  private syncedOffsetSec = 0;
   private gated = false;
   private armed = false;
   private readonly onOffset: ClockPanelOptions["onOffset"];
@@ -84,7 +78,6 @@ export class ClockPanel {
     ]);
 
     this.renderTap();
-    this.clock.onSync(() => { this.syncedOffsetSec = this.offsetSec; });
     this.clock.start((now) => this.tick(now));
     document.addEventListener("keydown", (event) => this.onKey(event));
   }
@@ -106,18 +99,11 @@ export class ClockPanel {
     this.renderTap();
   }
 
-  /**
-   * Note(yoochan.kim): standard time is the anchor and church time is derived from
-   * it, not the other way round. The heartbeat that syncs the church clock comes
-   * every 30s, so deriving standard by subtracting the offset from it left the
-   * church reading stale while standard jumped — a correction of +1분 appeared as
-   * standard time going back a minute, which is the one thing it never does.
-   */
+  /** Each clock from its own source, so neither is derived from a stale other. */
   private tick(now: Date): void {
-    const standard = new Date(now.getTime() - this.syncedOffsetSec * 1000);
+    const standard = this.clock.standardNow();
     this.standard.textContent = `${hhmmOf(standard)}:${ssOf(standard)}`;
-    const church = new Date(standard.getTime() + this.offsetSec * 1000);
-    this.church.replaceChildren(hhmmOf(church), el("s", { textContent: `:${ssOf(church)}` }));
+    this.church.replaceChildren(hhmmOf(now), el("s", { textContent: `:${ssOf(now)}` }));
   }
 
   private nudge(stepSec: number): void {

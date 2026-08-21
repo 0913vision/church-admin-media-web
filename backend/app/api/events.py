@@ -35,6 +35,8 @@ async def events(
             # then follows the same patches as everyone else.
             yield _event("link", bridge.link)
             yield _event("state", bridge.state)
+            if bridge.last_ping is not None:
+                yield _event("ping", bridge.last_ping)
             if monitor.last is not None:
                 yield _event("system", monitor.last)
             while True:

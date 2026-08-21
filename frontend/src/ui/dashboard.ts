@@ -469,6 +469,9 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
 
     schedulePanel.setStatus(state.flow);
     flowPanel.setStatus(state.flow);
+    // Note(yoochan.kim): the clock is told before anything drawn against it, so a
+    // correction shows at once rather than at the next heartbeat.
+    church.setOffset(state.clockOffsetSec);
     clockPanel.setOffset(state.clockOffsetSec);
     // Note(yoochan.kim): A run always holds the gate, so this is also "no clock changes while
     // music is playing".
@@ -530,7 +533,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     onState: (patch) => store.mergeState(patch),
     onRejected: showRejection,
     onSystem: renderSystem,
-    onPing: (beat) => church.sync(beat.at),
+    onPing: (beat) => church.sync(beat.at, beat.offsetSec),
   });
   stopStream = () => {
     stopLog();

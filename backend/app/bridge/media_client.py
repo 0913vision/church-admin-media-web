@@ -1,5 +1,7 @@
 import asyncio
 import logging
+from datetime import datetime, timedelta
+from time import monotonic
 
 import socketio
 
@@ -28,6 +30,8 @@ class MediaBridge:
         # Tagged on `connected` rather than left half-filled, matching the
         # protocol's own rule about absence.
         self._link: dict = {"connected": False}
+        self._last_ping: dict | None = None
+        self._last_ping_at = 0.0
         # Note(yoochan.kim): configured, not borrowed from whoever logs in first, so
         # admin standing survives a restart of this process.
         self._admin_secret = settings.admin_password
@@ -40,6 +44,27 @@ class MediaBridge:
     @property
     def link(self) -> dict:
         return self._link
+
+    @property
+    def last_ping(self) -> dict | None:
+        """Church time now, for a subscriber that has just arrived.
+
+        Carried forward by however long ago the beat landed. A heartbeat says
+        what the time was when it was sent, and replaying a 20-second-old one
+        verbatim would set a clock 20 seconds slow — worse than the browser's own,
+        because it looks authoritative.
+        """
+        if self._last_ping is None:
+            return None
+        at = self._last_ping.get("at")
+        if not isinstance(at, str):
+            return self._last_ping
+        try:
+            sent = datetime.fromisoformat(at)
+        except ValueError:
+            return self._last_ping
+        aged = sent + timedelta(seconds=monotonic() - self._last_ping_at)
+        return {**self._last_ping, "at": aged.isoformat(timespec="milliseconds")}
 
     async def start(self) -> None:
         """Connect, retrying until the media server is reachable. Once connected,
@@ -116,7 +141,12 @@ class MediaBridge:
         @sio.on(S2C.PING)
         async def on_ping(payload) -> None:
             # Note(yoochan.kim): Church time, straight through. The dashboard draws its clock from
-            # this rather than from the browser's, which is the whole point.
+            # this rather than from the browser's, which is the whole point. The
+            # last beat is kept so a page that has just opened has an answer
+            # before the next one — a beat is 30s away, and a clock with nothing
+            # to go on falls back to the browser's, which is what it must not do.
+            self._last_ping = payload
+            self._last_ping_at = monotonic()
             self._broadcaster.publish("ping", payload)
 
         @sio.on(S2C.REJECTED)
