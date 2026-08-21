@@ -11,6 +11,7 @@ export class ChurchClock {
   private skewMs = 0;
   private synced = false;
   private readonly listeners = new Set<(now: Date) => void>();
+  private readonly syncListeners = new Set<() => void>();
   private timer = 0;
 
   /** Feeds a heartbeat. Anything unparseable is ignored rather than trusted. */
@@ -19,6 +20,16 @@ export class ChurchClock {
     if (Number.isNaN(stamp)) return;
     this.skewMs = stamp - Date.now();
     this.synced = true;
+    for (const each of this.syncListeners) each();
+  }
+
+  /**
+   * Called when a heartbeat lands. A correction takes up to a beat to show here,
+   * so anything drawn against both the clock and the offset needs to know when
+   * the two are back in step.
+   */
+  onSync(listener: () => void): void {
+    this.syncListeners.add(listener);
   }
 
   now(): Date {
