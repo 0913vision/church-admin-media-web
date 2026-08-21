@@ -387,7 +387,6 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
       // bar across the top had nothing left in it once these moved, so it is gone.
       el("aside", { class: "side" }, [gate, nav, el("div", { class: "side__gap" }), theme, logout]),
       el("div", { class: "main" }, [
-        notice,
         el("main", { class: "page" }, [
           views.overview,
           views.schedule,
@@ -397,6 +396,11 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
         ]),
       ]),
     ]),
+    // Note(yoochan.kim): last, and outside the shell. A dialog opens deeper in the
+    // tree than this sat, and later siblings win however high a z-index the
+    // earlier one is given — a refusal hidden behind the dialog that caused it
+    // is a refusal nobody reads.
+    notice,
   );
 
   setView("overview");

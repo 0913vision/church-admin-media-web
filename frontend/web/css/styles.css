@@ -97,8 +97,10 @@ button { font: inherit; }
 .side > .nav { margin-top: 14px; }
 .clock__date { text-align: center; font-size: 14.5px; color: var(--c-mut); margin-bottom: 4px; }
 /* Drops in from above and leaves, rather than holding a bar open all day. */
+/* Above the dialog: what a refusal most often answers is a press made inside
+   one, and a message hidden behind the thing that caused it says nothing. */
 .notice {
-  position: absolute; top: 0; left: 50%; z-index: 20;
+  position: fixed; top: 0; left: 50%; z-index: 60;
   transform: translate(-50%, -150%);
   opacity: 0; pointer-events: none;
   transition: transform 0.22s ease, opacity 0.22s ease;

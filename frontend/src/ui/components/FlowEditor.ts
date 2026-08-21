@@ -426,13 +426,20 @@ export class FlowEditor {
       name: this.name.trim(),
       weekdays: [...this.weekdays].sort().map((day) => WEEKDAY_KEYS[day]!),
       autoStart: this.autoStart,
+      // Note(yoochan.kim): one shape on the way out. A default that was never
+      // touched is still HH:MM, and a file holding both spellings invites the
+      // next reader to handle only one.
       lock: {
-        at: this.lockAt,
-        until: follows ? { kind: "music" } : { kind: "clock", at: this.lockUntil },
+        at: asClock(asSeconds(this.lockAt)),
+        until: follows ? { kind: "music" } : { kind: "clock", at: asClock(asSeconds(this.lockUntil)) },
       },
       parts:
         this.cues.length > 0
-          ? [{ kind: "music", tracks: this.cues.map((cue) => ({ ...cue })), endsAt: this.endsAt }]
+          ? [{
+              kind: "music",
+              tracks: this.cues.map((cue) => ({ ...cue })),
+              endsAt: asClock(asSeconds(this.endsAt)),
+            }]
           : [],
     };
   }

@@ -82,9 +82,9 @@ def _check_covered(flow: ScheduledFlow) -> None:
     if music is None:
         return
 
-    ends_at = _minutes(music["endsAt"])
-    opens_at = _minutes(flow.lock["at"])
-    closes_at = ends_at if flow.lock["until"]["kind"] == "music" else _minutes(flow.lock["until"]["at"])
+    ends_at = _seconds(music["endsAt"])
+    opens_at = _seconds(flow.lock["at"])
+    closes_at = ends_at if flow.lock["until"]["kind"] == "music" else _seconds(flow.lock["until"]["at"])
 
     if ends_at <= opens_at:
         raise HTTPException(
@@ -98,9 +98,10 @@ def _check_covered(flow: ScheduledFlow) -> None:
         )
 
 
-def _minutes(clock: str) -> int:
-    hours, mins = (int(part) for part in clock.split(":"))
-    return hours * 60 + mins
+def _seconds(clock: str) -> int:
+    """Seconds since midnight, from HH:MM or HH:MM:SS."""
+    parts = [int(part) for part in clock.split(":")]
+    return parts[0] * 3600 + parts[1] * 60 + (parts[2] if len(parts) > 2 else 0)
 
 
 @router.put("/{flow_id}")
