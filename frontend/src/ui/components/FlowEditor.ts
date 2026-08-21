@@ -46,6 +46,8 @@ export class FlowEditor {
    * redrawing the editor replaced the box being typed into and lost its focus.
    */
   private readonly summaryEl = el("div", { class: "editor__summary num" });
+  /** Lives in the dialog's head, so it is held rather than redrawn with the form. */
+  private saveButton: HTMLButtonElement | null = null;
 
   constructor(private readonly options: FlowEditorOptions) {
     this.el = el("div", { class: "editor is-hidden" });
@@ -338,6 +340,11 @@ export class FlowEditor {
       warnings.push("잠금 해제가 잠금 시작보다 빨라요");
     }
 
+    // Note(yoochan.kim): every one of these is something the server refuses, so a
+    // draft carrying any of them cannot be saved — the button says so rather
+    // than sending a request that comes back 400 and shows nothing.
+    if (this.saveButton) this.saveButton.disabled = warnings.length > 0;
+
     return [
       ...lines.map(([label, value]) =>
         el("div", { class: "editor__srow" }, [
@@ -349,20 +356,49 @@ export class FlowEditor {
     ];
   }
 
-  private buttons(existing: boolean): HTMLElement {
-    const save = el("button", { class: "btn btn--go", type: "button", textContent: "저장" });
-    save.addEventListener("click", () => this.options.onSave(this.id, this.entry()));
-
+  /**
+   * What this dialog is for, for its head to carry. They read the draft when
+   * pressed, so they can be made once while the form below is redrawn.
+   */
+  actions(): HTMLElement[] {
     const cancel = el("button", { class: "btn", type: "button", textContent: "취소" });
     cancel.addEventListener("click", () => this.options.onCancel());
 
-    const children = [save, cancel];
-    if (existing) {
-      const remove = el("button", { class: "btn btn--stop", type: "button", textContent: "삭제" });
-      remove.addEventListener("click", () => this.options.onDelete(this.id));
-      children.push(remove);
-    }
-    return el("div", { class: "editor__buttons" }, children);
+    const save = el("button", { class: "btn btn--go", type: "button", textContent: "저장" }) as HTMLButtonElement;
+    save.addEventListener("click", () => this.options.onSave(this.id, this.entry()));
+    this.saveButton = save;
+    this.refresh();
+
+    return [cancel, save];
+  }
+
+  /**
+   * Note(yoochan.kim): deleting is nowhere near saving. They are one press apart
+   * on a keypad and one of them cannot be taken back.
+   */
+  private buttons(existing: boolean): HTMLElement {
+    if (!existing) return el("div", {});
+    const row = el("div", { class: "editor__buttons" });
+
+    const offer = (): void => {
+      const remove = el("button", { class: "textbtn textbtn--bad", type: "button", textContent: "이 자동 진행 삭제" });
+      remove.addEventListener("click", ask);
+      row.replaceChildren(remove);
+    };
+
+    // Note(yoochan.kim): asked in place rather than in a second dialog over this
+    // one. The question takes the button's spot, so the press that deletes is
+    // never the press that was already on its way.
+    const ask = (): void => {
+      const keep = el("button", { class: "btn btn--small", type: "button", textContent: "그대로 두기" });
+      keep.addEventListener("click", offer);
+      const yes = el("button", { class: "btn btn--stop btn--small", type: "button", textContent: "삭제" });
+      yes.addEventListener("click", () => this.options.onDelete(this.id));
+      row.replaceChildren(el("span", { class: "editor__warn", textContent: "삭제하면 되돌릴 수 없어요" }), keep, yes);
+    };
+
+    offer();
+    return row;
   }
 
   private entry(): FlowEntry {

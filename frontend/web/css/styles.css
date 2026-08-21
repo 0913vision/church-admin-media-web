@@ -488,11 +488,39 @@ button { white-space: nowrap; }
 .sched-msg { margin: 0; font-size: 15px; color: var(--c-mut); }
 .sched-msg:empty { display: none; }
 
+/* ================= modal ================= */
+body.has-modal { overflow: hidden; }
+.modal {
+  position: fixed; inset: 0; z-index: 40; display: grid; place-items: center;
+  padding: 24px; background: rgba(15, 18, 22, 0.45);
+}
+.modal__box {
+  width: min(760px, 100%); max-height: calc(100vh - 48px);
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--panel); border-radius: 14px; box-shadow: 0 24px 60px rgba(15, 18, 22, 0.28);
+}
+.modal__box:focus { outline: none; }
+.modal__h {
+  flex: none; display: flex; align-items: center; gap: 12px;
+  padding: 16px 20px; border-bottom: 1px solid var(--line);
+}
+.modal__t { flex: 1; min-width: 0; font-size: 16.5px; font-weight: 700; }
+.modal__a { display: flex; gap: 8px; }
+.modal__a .btn { padding: 8px 16px; }
+.modal__x {
+  flex: none; width: 32px; height: 32px; border-radius: 8px; cursor: pointer;
+  background: none; border: 0; color: var(--c-mut); font-size: 15px;
+}
+.modal__x:hover { background: var(--raised); color: var(--c-ink); }
+.modal__b { flex: 1; min-height: 0; overflow: auto; padding: 6px 20px 20px; }
+
 /* ================= flow editor ================= */
-.editor { background: var(--panel); border-radius: 12px; padding: 6px 18px 16px; display: flex; flex-direction: column; }
-/* Space tells fields apart, not a rule between every pair. */
-.editor__row { display: flex; flex-direction: column; gap: 8px; padding: 11px 0; }
-.editor__label { color: var(--c-fnt); font-size: 13.5px; }
+.editor { display: flex; flex-direction: column; }
+/* Wide enough here for the name to stand beside what it names, which is what
+   the column next to the calendar never had room for. */
+.editor__row { display: flex; align-items: center; gap: 18px; padding: 10px 0; }
+.editor__label { width: 108px; flex: none; color: var(--c-fnt); font-size: 13.5px; }
+.editor__row > :not(.editor__label) { flex: 1; min-width: 0; }
 /* A field is a bar with different insides: same border, fill and height. The
    height is set, or a time input and a day cell come out 38 and 31 tall. */
 .editor__input {
@@ -550,8 +578,12 @@ button { white-space: nowrap; }
 .editor__srow { display: flex; gap: 12px; }
 .editor__srow > span:first-child { width: 34px; color: var(--c-fnt); flex: none; }
 .editor__warn { color: var(--bad); font-weight: 600; }
-.editor__buttons { display: flex; gap: 10px; align-items: center; padding-top: 3px; }
-.editor__buttons .btn--stop { margin-left: auto; }
+/* Only the one that cannot be taken back lives down here, quietly, away from
+   the head where saving is. */
+.editor__buttons { display: flex; align-items: center; gap: 10px;
+                   padding-top: 14px; margin-top: 10px; border-top: 1px solid var(--line); }
+.editor__buttons .btn { margin-left: auto; }
+.editor__buttons .btn + .btn { margin-left: 0; }
 
 /* ================= login ================= */
 .login { height: 100%; display: grid; place-items: center; background: var(--bg); }

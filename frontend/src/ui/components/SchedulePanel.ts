@@ -3,6 +3,7 @@ import type { FlowStatus } from "../../protocol.js";
 import type { FlowEntry, ScheduledFlow } from "../../api/device.js";
 import type { Track } from "../../protocol.js";
 import { FlowEditor } from "./FlowEditor.js";
+import { Modal } from "./Modal.js";
 import { WeekView } from "./WeekView.js";
 
 export interface SchedulePanelOptions {
@@ -35,6 +36,7 @@ export class SchedulePanel {
   private readonly editor: FlowEditor;
   private readonly week: WeekView;
   private readonly detail: HTMLElement;
+  private readonly modal: Modal;
   private tracks = new Map<string, Track>();
   private running = false;
 
@@ -50,9 +52,11 @@ export class SchedulePanel {
     });
     this.week = new WeekView({ onPick: () => this.renderDetail() });
     this.detail = el("div", { class: "detail" });
+    this.modal = new Modal();
     this.el = el("div", { class: "week" }, [
       this.week.el,
-      el("div", { class: "detail-col" }, [this.detail, this.editor.el]),
+      el("div", { class: "detail-col" }, [this.detail]),
+      this.modal.el,
     ]);
   }
 
@@ -61,11 +65,12 @@ export class SchedulePanel {
     return [this.runBox, this.message];
   }
 
-  /** Editing happens where the detail was: same column, more room. */
+  /** Editing happens over the page; the column beside the week stays a reading of it. */
   private openEditor(flow: Parameters<FlowEditor["open"]>[0]): void {
-    this.detail.classList.add("is-hidden");
-    this.el.classList.add("is-editing");
     this.editor.open(flow);
+    // Note(yoochan.kim): whichever way it is dismissed — the ✕, the backdrop, Escape
+    // — the draft has to come off the calendar, so that is the modal's own close.
+    this.modal.open(flow ? flow.name : "새 자동 진행", this.editor.el, () => this.editor.close(), this.editor.actions());
   }
 
   /** Church time, so today and the now-line follow the same clock as the rest. */
@@ -80,9 +85,7 @@ export class SchedulePanel {
   }
 
   closeEditor(): void {
-    this.editor.close();
-    this.detail.classList.remove("is-hidden");
-    this.el.classList.remove("is-editing");
+    this.modal.close();
   }
 
   showMessage(text: string): void {

@@ -124,6 +124,25 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   };
   const sendVolume = throttle((value: number) => write("volume", value), 60);
 
+  /**
+   * A write to the calendar, and what it did. A refusal used to be swallowed by
+   * `guard`, so a save the backend rejected left the dialog open saying nothing.
+   */
+  const written = (call: Promise<unknown>, done: string, failed: string): void => {
+    call
+      .then(() => scheduleApi.list())
+      .then(({ flows }) => {
+        schedulePanel.setFlows(flows);
+        flowPanel.setFlows(flows);
+        schedulePanel.closeEditor();
+        schedulePanel.showMessage(done);
+      })
+      .catch((err) => {
+        if (err instanceof UnauthorizedError) leave();
+        else showNotice(err instanceof Error && err.message ? err.message : failed);
+      });
+  };
+
   // --- controls ---
   const transport = new TransportControls({ onToggle: (next) => write("playback", next) });
   const fader = new Fader({ onInput: sendVolume });
@@ -137,30 +156,10 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     },
     onStop: () => guard(scheduleApi.stop()),
     onSave: (id, entry) => {
-      guard(
-        scheduleApi
-          .save(id, entry)
-          .then(() => scheduleApi.list())
-          .then(({ flows }) => {
-            schedulePanel.setFlows(flows);
-            flowPanel.setFlows(flows);
-            schedulePanel.closeEditor();
-            schedulePanel.showMessage("저장했어요");
-          }),
-      );
+      written(scheduleApi.save(id, entry), "저장했어요", "저장하지 못했어요");
     },
     onDelete: (id) => {
-      guard(
-        scheduleApi
-          .remove(id)
-          .then(() => scheduleApi.list())
-          .then(({ flows }) => {
-            schedulePanel.setFlows(flows);
-            flowPanel.setFlows(flows);
-            schedulePanel.closeEditor();
-            schedulePanel.showMessage("삭제했어요");
-          }),
-      );
+      written(scheduleApi.remove(id), "삭제했어요", "삭제하지 못했어요");
     },
   });
   const consolePanel = new ConsolePanel({
@@ -408,11 +407,15 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   });
 
   /** Shows why something did nothing, rather than leaving it looking broken. */
-  const showRejection = (rejection: Rejection): void => {
-    notice.textContent = REJECT_LABEL[rejection.reason] ?? `거부됐어요: ${rejection.reason}`;
+  const showNotice = (text: string): void => {
+    notice.textContent = text;
     notice.classList.add("on");
     window.clearTimeout(noticeTimer);
     noticeTimer = window.setTimeout(() => notice.classList.remove("on"), 4000);
+  };
+
+  const showRejection = (rejection: Rejection): void => {
+    showNotice(REJECT_LABEL[rejection.reason] ?? `거부됐어요: ${rejection.reason}`);
   };
 
   const renderLink = (link: Link): void => {
