@@ -25,7 +25,11 @@ export class ChurchClock {
     const stamp = new Date(at).getTime();
     if (Number.isNaN(stamp)) return;
     this.skewMs = stamp - offsetSec * 1000 - Date.now();
+    const first = !this.synced;
     this.synced = true;
+    // Note(yoochan.kim): drawn at once on the first beat rather than at the next
+    // tick, so the placeholder is on screen for as briefly as it can be.
+    if (first) this.announce();
   }
 
   /**
@@ -52,16 +56,18 @@ export class ChurchClock {
     return this.synced;
   }
 
-  /** Calls back once a second with church time. Returns a stop function. */
+  /**
+   * Calls back once a second with church time, and not at all before the first
+   * beat. Until then the only answer available is this browser's own clock, and
+   * showing it for a moment is worse than showing nothing: it is wrong, it looks
+   * right, and it is the exact reading this class exists to avoid.
+   */
   start(listener: (now: Date) => void): () => void {
     this.listeners.add(listener);
     if (!this.timer) {
-      this.timer = window.setInterval(() => {
-        const now = this.now();
-        for (const each of this.listeners) each(now);
-      }, 1000);
+      this.timer = window.setInterval(() => this.announce(), 1000);
     }
-    listener(this.now());
+    if (this.synced) listener(this.now());
     return () => {
       this.listeners.delete(listener);
       if (this.listeners.size === 0) {
@@ -69,6 +75,12 @@ export class ChurchClock {
         this.timer = 0;
       }
     };
+  }
+
+  private announce(): void {
+    if (!this.synced) return;
+    const now = this.now();
+    for (const each of this.listeners) each(now);
   }
 }
 

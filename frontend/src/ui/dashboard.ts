@@ -185,7 +185,9 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   // --- deck readouts ---
   const deckSong = el("div", { class: "deck__song", textContent: "—" });
   const meta = deckMeta();
-  const clockVal = el("div", { class: "clock__v" });
+  // Note(yoochan.kim): a placeholder until the first beat, never a time — the
+  // browser's own clock is the one reading that must not appear here.
+  const clockVal = el("div", { class: "clock__v", textContent: "--:--" });
   const clockDrift = el("div", { class: "clock__d" });
 
   // --- topbar ---

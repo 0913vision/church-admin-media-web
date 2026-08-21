@@ -19,8 +19,9 @@ const STEPS = [-60, -10, -1, 1, 10, 60];
 export class ClockPanel {
   readonly el: HTMLElement;
 
-  private readonly church = el("div", { class: "ck__big" });
-  private readonly standard = el("div", { class: "ck__ref" });
+  // Placeholders until the first beat: see the note on the dashboard's clock.
+  private readonly church = el("div", { class: "ck__big", textContent: "--:--" });
+  private readonly standard = el("div", { class: "ck__ref", textContent: "--:--:--" });
   private readonly drift = el("div", { class: "ck__off" });
   private readonly value = el("span", { class: "ckset__v" });
   private readonly last = el("span", { class: "tap__last" });
