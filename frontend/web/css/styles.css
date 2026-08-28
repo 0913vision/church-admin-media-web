@@ -412,8 +412,8 @@ button { white-space: nowrap; }
    and the spare width sat unused at the far end instead. */
 /* Note: the lamp sits with the name it belongs to, the meter takes a share
    rather than everything left, and the keys hold the right edge. */
-.chrow { display: grid; grid-template-columns: max-content minmax(110px, max-content) minmax(120px, 0.6fr) max-content 1fr max-content max-content;
-         gap: 12px; align-items: center;
+.chrow { display: grid; grid-template-columns: minmax(110px, max-content) minmax(120px, 0.6fr) max-content 1fr max-content max-content;
+         gap: 14px; align-items: center;
          padding: 11px 0; border-top: 1px solid var(--line); font-size: 15px; }
 .chrow__n { color: var(--c-mut); font-weight: 600; }
 .chrow.on .chrow__n { color: var(--c-ink); }
@@ -431,9 +431,13 @@ button { white-space: nowrap; }
 .chrow__mark { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px;
                border-radius: 1px; background: var(--c-ink); opacity: 0.45; }
 .chrow__bar.is-off i { background: var(--hold); }
-.chrow__db { display: flex; align-items: baseline; gap: 6px; color: var(--c-mut); font-size: 12.5px;
+/* The reading turns red when the input is muted: the number and the meter say
+   it together, which is why the row needs no lamp of its own. */
+.chrow__db { display: flex; align-items: center; gap: 6px; color: var(--c-mut); font-size: 12.5px;
              font-variant-numeric: tabular-nums; white-space: nowrap; }
-.chrow__muted { color: var(--bad); font-weight: 700; }
+.chrow__db.is-muted { color: var(--bad); }
+.chrow__muted { font-weight: 700; }
+.chrow__bar.is-muted i { background: var(--bad); }
 /* Puts a level back where it belongs. A glyph, since it repeats on every row. */
 .iconbtn {
   justify-self: end; display: inline-flex; align-items: center; justify-content: center;

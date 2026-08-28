@@ -90,7 +90,6 @@ export class FlowPanel {
       this.el.className = "tl";
       this.el.replaceChildren(
         el("div", { class: "tl__head" }, [
-          el("span", { class: `led ${running ? "led--hold" : "led--off"}` }),
           el("b", {
             textContent: running
               ? ((this.status as { name?: string }).name ?? "자동 진행 중")
@@ -109,7 +108,6 @@ export class FlowPanel {
     this.el.className = `tl${running ? "" : flow.autoStart ? " is-auto" : " is-ask"}`;
     this.el.replaceChildren(
       el("div", { class: "tl__head" }, [
-        el("span", { class: "led led--hold" }),
         el("b", { textContent: flow.name }),
         el("span", { class: "tl__facts" }, this.facts(flow, span, running, opensInSec)),
         gotoRight(this.goto()),

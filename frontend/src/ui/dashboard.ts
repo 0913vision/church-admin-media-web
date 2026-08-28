@@ -10,7 +10,7 @@ import type { Dashboard, Link } from "../state/store.js";
 import { BLANK, el } from "../util/dom.js";
 import { throttle } from "../util/rate.js";
 import { ConsolePanel } from "./components/ConsolePanel.js";
-import { levelText, meter, statusOf, unmuteButton } from "./components/meter.js";
+import { levelText, meter, unmuteButton } from "./components/meter.js";
 import { Fader } from "./components/Fader.js";
 import { SchedulePanel } from "./components/SchedulePanel.js";
 import { SystemPanel, formatUptime } from "./components/SystemPanel.js";
@@ -270,7 +270,6 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
         );
 
         return el("div", { class: `chrow${on ? " on" : ""}` }, [
-          statusOf(input),
           el("span", { class: "chrow__n", textContent: input.label }),
           meter(input),
           levelText(input),
@@ -334,7 +333,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
       el("div", { class: "x32" }, [
         el("div", { class: "x32__h" }, [
           el("b", { textContent: "X32 콘솔" }),
-          el("span", { class: "x32__link" }, [x32Led, x32Conn]),
+          el("span", { class: "x32__link" }, [x32Conn, x32Led]),
           goto("console", true),
         ]),
         consoleStrip,

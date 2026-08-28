@@ -23,6 +23,9 @@ export function meter(input: ConsoleInput): HTMLElement {
     el("u", { class: "chrow__mark", style: `left:${percent(input.nominalDb)}%` }),
   ]);
   if (read.kind === "read" && Math.abs(read.db - input.nominalDb) > 0.05) bar.classList.add("is-off");
+  // Silence is red on the meter too, so the row says it twice over and needs no
+  // separate lamp to carry the same one fact.
+  if (read.kind === "read" && !read.on) bar.classList.add("is-muted");
   return bar;
 }
 
@@ -36,20 +39,13 @@ export function meter(input: ConsoleInput): HTMLElement {
 export function levelText(input: ConsoleInput): HTMLElement {
   const read = input.state;
   if (read.kind !== "read") return el("span", { class: "chrow__db", textContent: BLANK });
-  return el("span", { class: "chrow__db" }, [
+  // Note(yoochan.kim): the reading itself turns red when the input is muted, so the
+  // state needs no lamp of its own — the number and the meter are already the
+  // two things being looked at.
+  return el("span", { class: `chrow__db${read.on ? "" : " is-muted"}` }, [
     el("span", { textContent: `${read.db.toFixed(1)} dB` }),
     ...(read.on ? [] : [el("span", { class: "chrow__muted", textContent: "(음소거)" })]),
   ]);
-}
-
-/** The lamp: red while an input is held silent, and nothing to report otherwise. */
-export function statusOf(input: ConsoleInput): HTMLElement {
-  const read = input.state;
-  // Note(yoochan.kim): only silence is coloured. Green on every sounding input
-  // paints the whole row green in the ordinary case and leaves nothing for the
-  // one state anybody needs to catch.
-  const lamp = read.kind !== "read" ? "led--off" : read.on ? "led--quiet" : "led--bad";
-  return el("span", { class: "chrow__s" }, [el("span", { class: `led ${lamp}` })]);
 }
 
 /**

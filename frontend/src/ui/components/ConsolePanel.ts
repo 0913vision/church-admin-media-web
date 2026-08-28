@@ -1,6 +1,6 @@
 import { el } from "../../util/dom.js";
 import type { ConsoleInput } from "../../protocol.js";
-import { levelText, meter, statusOf, unmuteButton } from "./meter.js";
+import { levelText, meter, unmuteButton } from "./meter.js";
 import { icon } from "../icons.js";
 
 export interface ConsolePanelOptions {
@@ -32,7 +32,7 @@ export class ConsolePanel {
       // reports — it reports whether we are hearing from it.
       el("div", { class: "x32__h" }, [
         el("b", { textContent: "X32 콘솔" }),
-        el("span", { class: "x32__link" }, [this.led, this.conn]),
+        el("span", { class: "x32__link" }, [this.conn, this.led]),
       ]),
       this.strip,
     ]);
@@ -69,7 +69,6 @@ export class ConsolePanel {
         reset.addEventListener("click", () => this.options.onEnable(input.id));
 
         return el("div", { class: `chrow${on ? " on" : ""}` }, [
-          statusOf(input),
           el("span", { class: "chrow__n", textContent: input.label }),
           meter(input),
           levelText(input),
