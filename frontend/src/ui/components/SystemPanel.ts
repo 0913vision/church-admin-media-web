@@ -252,9 +252,9 @@ export class SystemPanel {
       el("div", { class: "htop__load" }, [
         el("span", { class: "htop__l", textContent: "Load" }),
         el("span", { textContent: load || BLANK }),
-        el("span", { class: "htop__l", style: "margin-left:14px", textContent: "temp" }),
+        el("span", { class: "htop__l", style: "margin-left:14px", textContent: "Temp" }),
         el("span", { textContent: stats.tempC === null ? BLANK : `${stats.tempC.toFixed(1)}°C` }),
-        el("span", { class: "htop__l", style: "margin-left:14px", textContent: "uptime" }),
+        el("span", { class: "htop__l", style: "margin-left:14px", textContent: "Uptime" }),
         el("span", { textContent: formatUptime(stats.uptimeSeconds) }),
       ]),
     );

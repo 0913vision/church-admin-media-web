@@ -109,7 +109,9 @@ button { font: inherit; }
 }
 .side > button:not(.gate):not(.nav__tab):hover { background: var(--raised); color: var(--c-ink); }
 .side > .nav { margin-top: 14px; }
-.clock__date { text-align: center; font-size: 14.5px; color: var(--c-mut); margin-bottom: 4px; }
+/* The date under the clock. It reads as part of the time, so it is written in
+   ink — in grey it was the one line on the card nobody could make out. */
+.clock__date { text-align: center; font-size: 14.5px; color: var(--c-ink); margin-bottom: 4px; }
 /* Drops in from above and leaves, rather than holding a bar open all day. */
 /* Above the dialog: what a refusal most often answers is a press made inside
    one, and a message hidden behind the thing that caused it says nothing. */
@@ -329,16 +331,19 @@ button { white-space: nowrap; }
 /* A 26px number ends hard against whatever follows it, so the key stands off
    further than the row's own gap — at 13px the two read as one control. */
 .volrow > .mute { margin-left: 14px; }
-.volrow__l { font-size: 14.5px; color: var(--c-fnt); }
+/* The speaker that stands in for the word "볼륨". Centred in its own cell rather
+   than left to sit on a text baseline — an icon has no baseline, so it rode high
+   and to the left of the column it names. */
+.volrow__l { display: flex; align-items: center; justify-content: center; color: var(--c-mut); }
 .volrow__n { font-size: 26px; font-weight: 700; text-align: right; letter-spacing: -0.02em; line-height: 1; }
 .slider { position: relative; height: 10px; border-radius: 3px; background: var(--track); cursor: pointer; touch-action: none; }
 .slider i { position: absolute; inset: 0 auto 0 0; border-radius: 3px 0 0 3px; background: var(--go); }
 /* A ruler under the slider, every tenth of the way. Below rather than through:
-   see the note on the console meter. */
+   see the note on the console meter. In ink at full strength — at 45% of the
+   faint grey it was a texture rather than a scale. */
 .slider::after {
-  content: ""; position: absolute; left: 0; right: 0; top: calc(100% + 5px); height: 4px;
-  background: repeating-linear-gradient(90deg, var(--c-fnt) 0 2px, transparent 2px 10%);
-  opacity: 0.45;
+  content: ""; position: absolute; left: 0; right: 0; top: calc(100% + 5px); height: 6px;
+  background: repeating-linear-gradient(90deg, var(--c-mut) 0 2px, transparent 2px 10%);
 }
 .slider u { position: absolute; top: 50%; width: 16px; height: 16px; border-radius: 50%; z-index: 1;
             background: var(--cap); border: 1px solid var(--cap-line);
@@ -510,9 +515,8 @@ button { white-space: nowrap; }
    is not 1px. Below it they are marks on a ruler, and the bar stays one length.
    Seven steps of 10 dB across -60..+10 land one exactly on 0 dB. */
 .chrow__bar::after {
-  content: ""; position: absolute; left: 0; right: 0; top: calc(100% + 4px); height: 4px;
-  background: repeating-linear-gradient(90deg, var(--c-fnt) 0 2px, transparent 2px calc(100% / 7));
-  opacity: 0.45;
+  content: ""; position: absolute; left: 0; right: 0; top: calc(100% + 4px); height: 6px;
+  background: repeating-linear-gradient(90deg, var(--c-mut) 0 2px, transparent 2px calc(100% / 7));
 }
 .chrow.on .chrow__bar i { background: var(--go); }
 /* Where the level belongs. Solid and past both edges, so it reads as a mark on
@@ -564,13 +568,9 @@ button { white-space: nowrap; }
 .sys { flex: 1; min-height: 0; display: grid; gap: 14px;
        grid-template-columns: minmax(340px, 1fr) minmax(0, 1fr); align-content: start; }
 /* A page of nothing but log, which is the height it wanted all along. */
-.logs { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
-.logs > .sys__p { flex: 1; min-width: 0; min-height: 0; }
-/* Standing over the page they choose, so they read as its two halves. On the
-   left, where a page begins — the `auto` that pins them right belongs to the
-   version that shares a heading with something else. */
-.logtabs--page { margin: 0 auto 0 0; gap: 20px; padding: 0 2px; }
-.logtabs--page > button { font-size: 15px; padding-bottom: 6px; }
+.logs { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+/* Square where the tabs meet it, so the chosen tab runs into the sheet. */
+.logs > .sys__p { flex: 1; min-width: 0; min-height: 0; border-radius: 0 12px 12px 12px; }
 .sys__p { background: var(--panel); border-radius: 12px; padding: 13px 15px; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
 /* Note: this tab is read from a chair, not glanced at. Its type was sized for
    the dashboard's miniature of it and came out too small to read here — the
@@ -589,6 +589,18 @@ button { white-space: nowrap; }
 }
 .logtabs > button:hover { color: var(--c-mut); }
 .logtabs > button.on { color: var(--c-ink); font-weight: 700; border-bottom-color: var(--c-ink); }
+/* Note(yoochan.kim): over a page of their own these are folder tabs, not a label with
+   a line under it — the chosen one takes the colour of the panel beneath and
+   joins it, so the two read as one sheet with a tab on its corner. They sit at
+   the left, where a page begins; the version above shares a heading and is
+   pushed right by it, which is why this has to come after. */
+.logtabs--page { margin: 0 auto 0 0; gap: 3px; padding: 0; }
+.logtabs--page > button {
+  padding: 9px 20px; font-size: 15px; border: 0; border-radius: 10px 10px 0 0;
+  background: transparent; color: var(--c-fnt);
+}
+.logtabs--page > button:hover { background: var(--ink-tint); color: var(--c-mut); }
+.logtabs--page > button.on { background: var(--panel); color: var(--c-ink); font-weight: 700; }
 /* What the machine does on its own: when, then what. Each row opens its script. */
 .cron { font-size: 13.5px; line-height: 1.9; }
 .cron__r {

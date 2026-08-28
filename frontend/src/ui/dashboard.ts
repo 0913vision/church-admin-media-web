@@ -341,7 +341,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
       // Note(yoochan.kim): a speaker rather than the word. The row already reads as
       // a level — a slider, a number, a mute key — so the label was only telling
       // the reader something the shape of the row had said already.
-      el("span", { class: "volrow__l", title: "볼륨" }, [icon("volume", 19)]),
+      el("span", { class: "volrow__l", title: "볼륨" }, [icon("volume", 22)]),
       fader.el,
       fader.valueEl,
       mute.el,
@@ -370,7 +370,10 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
         consoleStrip,
       ]),
       el("div", { class: "sum" }, [
-        el("div", {}, [el("div", { class: "sum__t" }, [el("span", { textContent: "시스템" })]), sysBars]),
+        el("div", {}, [
+          el("div", { class: "sum__t" }, [el("span", { textContent: "시스템" }), goto("system")]),
+          sysBars,
+        ]),
         el("div", {}, [
           el("div", { class: "sum__t" }, [el("span", { textContent: "미디어 서버 로그" }), goto("logs")]),
           sysLog,
@@ -529,7 +532,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
       ["Mem", stats.memPercent, `${Math.round(stats.memPercent)}%`],
       ["Disk", stats.diskPercent, `${Math.round(stats.diskPercent)}%`],
     ];
-    if (stats.tempC !== null) rows.push(["temp", Math.min(100, stats.tempC), `${Math.round(stats.tempC)}°C`]);
+    if (stats.tempC !== null) rows.push(["Temp", Math.min(100, stats.tempC), `${Math.round(stats.tempC)}°C`]);
     sysBars.replaceChildren(
       ...rows.map(([label, percent, text]) =>
         el("div", { class: "sum__row" }, [
@@ -544,7 +547,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
         ]),
       ),
       el("div", { class: "sum__row" }, [
-        el("span", { textContent: "uptime" }),
+        el("span", { textContent: "Uptime" }),
         el("span", { class: "sum__plain", textContent: formatUptime(stats.uptimeSeconds) }),
         el("span", {}),
       ]),
