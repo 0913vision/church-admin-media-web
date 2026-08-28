@@ -170,17 +170,26 @@ export class FlowPanel {
     // Note(yoochan.kim): The bar shows the lock window, so a timeline that begins earlier is cut
     // at the gate — the part before it never sounds.
     children.push(el("div", { class: "seg seg--gap", style: `width:${pct(Math.max(span.opens, span.musicFrom))}%` }));
+    // Note(yoochan.kim): half an hour of music inside a two-hour window leaves each
+    // song a sliver, and a title crammed into one comes out a character wide —
+    // "주⋮" is not a name. A segment writes only what it has the room for, and
+    // carries the rest in its tooltip; the one that is playing keeps its title
+    // longest, since that is the one worth reading.
+    const minutesPerPercent = width / 100;
     for (const segment of span.segments) {
       if (segment.to <= span.opens) continue;
       const from = Math.max(segment.from, span.opens);
+      const share = pct(segment.to) - pct(from);
       const live =
         this.status.phase === "playing" && this.status.track.title === segment.title ? " is-now" : "";
-      children.push(
-        el("div", { class: `seg${live}`, style: `width:${pct(segment.to) - pct(from)}%` }, [
-          el("time", { textContent: hhmm(from) }),
-          segment.title,
-        ]),
-      );
+      const seg = el("div", { class: `seg${live}`, style: `width:${share}%` });
+      seg.title = `${hhmm(from)} ${segment.title}`;
+      // Rough room, in the bar's own units: a title needs about twelve minutes
+      // of window to sit in, a time about five.
+      const minutes = share * minutesPerPercent;
+      if (minutes >= 12 || live) seg.append(el("time", { textContent: hhmm(from) }), segment.title);
+      else if (minutes >= 5) seg.append(el("time", { textContent: hhmm(from) }));
+      children.push(seg);
     }
     if (nowMinutes >= span.opens && nowMinutes <= span.closes) {
       children.push(el("div", { class: "now", style: `left:${pct(nowMinutes)}%` }));

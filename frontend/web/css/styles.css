@@ -323,10 +323,14 @@ button { white-space: nowrap; }
 .tl__act { flex: none; margin-top: 8px; height: 38px; display: flex; align-items: center; }
 .tl__bar { position: relative; height: 38px; margin-top: 8px; border-radius: 6px; background: var(--well); overflow: hidden; display: flex; }
 .tl__lock { position: absolute; inset: 0; background: repeating-linear-gradient(45deg, var(--hold-soft) 0 7px, transparent 7px 14px); }
+/* A segment is as wide as its song is long, so it may be a sliver. What it
+   holds is chosen in FlowPanel; here it only has to not spill, and the one that
+   is playing may lean past its neighbours to keep its title readable. */
 .seg { position: relative; height: 100%; display: flex; align-items: center; padding-left: 10px; overflow: hidden;
-       font-size: 13px; font-weight: 600; white-space: nowrap;
+       min-width: 0; font-size: 13px; font-weight: 600; white-space: nowrap;
        background: var(--seg-idle); color: var(--c-ink); box-shadow: inset -2px 0 0 var(--well); gap: 7px; }
-.seg time { color: var(--c-mut); font-weight: 500; font-variant-numeric: tabular-nums; }
+.seg.is-now { z-index: 1; overflow: visible; padding-right: 10px; border-radius: 4px; }
+.seg time { flex: none; color: var(--c-mut); font-weight: 500; font-variant-numeric: tabular-nums; }
 .seg.is-now time { color: rgba(255, 255, 255, 0.75); }
 .seg:last-of-type { box-shadow: none; }
 .seg.is-now { background: var(--go); color: #fff; }
