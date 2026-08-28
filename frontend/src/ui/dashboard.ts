@@ -32,7 +32,7 @@ const NAV: { key: ViewKey; label: string; icon: string }[] = [
   { key: "schedule", label: "자동 진행", icon: "music" },
   { key: "clock", label: "시계", icon: "clock" },
   { key: "console", label: "X32", icon: "sliders" },
-  { key: "system", label: "라즈베리파이", icon: "cpu" },
+  { key: "system", label: "시스템", icon: "cpu" },
   { key: "logs", label: "로그", icon: "logs" },
 ];
 
