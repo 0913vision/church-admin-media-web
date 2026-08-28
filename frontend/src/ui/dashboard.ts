@@ -22,14 +22,18 @@ import { ChurchClock, driftOf, hhmmOf, ssOf } from "../util/churchClock.js";
 import { TransportControls } from "./components/TransportControls.js";
 import { icon } from "./icons.js";
 
-type ViewKey = "overview" | "schedule" | "console" | "clock" | "system";
+type ViewKey = "overview" | "schedule" | "console" | "clock" | "system" | "logs";
 
+// Note(yoochan.kim): the machine and its logs are two tabs, not one. A log line is
+// long and there are hundreds of them, and sharing a page with the host's own
+// readings left it a few rows deep — the one panel nobody can use in a strip.
 const NAV: { key: ViewKey; label: string; icon: string }[] = [
   { key: "overview", label: "대시보드", icon: "grid" },
   { key: "schedule", label: "자동 진행", icon: "music" },
   { key: "clock", label: "시계", icon: "clock" },
   { key: "console", label: "X32", icon: "sliders" },
   { key: "system", label: "라즈베리파이", icon: "cpu" },
+  { key: "logs", label: "로그", icon: "logs" },
 ];
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -368,7 +372,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
       el("div", { class: "sum" }, [
         el("div", {}, [el("div", { class: "sum__t" }, [el("span", { textContent: "시스템" })]), sysBars]),
         el("div", {}, [
-          el("div", { class: "sum__t" }, [el("span", { textContent: "미디어 서버 로그" }), goto("system")]),
+          el("div", { class: "sum__t" }, [el("span", { textContent: "미디어 서버 로그" }), goto("logs")]),
           sysLog,
         ]),
       ]),
@@ -377,6 +381,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     console: el("section", { class: "view" }, [consolePanel.el]),
     clock: el("section", { class: "view" }, [clockPanel.el]),
     system: el("section", { class: "view" }, [systemPanel.el]),
+    logs: el("section", { class: "view" }, [systemPanel.logEl]),
   };
 
   const navButtons = new Map<ViewKey, HTMLButtonElement>();
@@ -415,6 +420,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
           views.console,
           views.clock,
           views.system,
+          views.logs,
         ]),
       ]),
       confirm.el,
@@ -519,8 +525,9 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     systemPanel.update(stats);
     const rows: [string, number, string][] = [
       ["CPU", stats.cpuPercent, `${Math.round(stats.cpuPercent)}%`],
-      ["메모리", stats.memPercent, `${Math.round(stats.memPercent)}%`],
-      ["디스크", stats.diskPercent, `${Math.round(stats.diskPercent)}%`],
+      // The machine's own words, matching the tab this summarises.
+      ["Mem", stats.memPercent, `${Math.round(stats.memPercent)}%`],
+      ["Disk", stats.diskPercent, `${Math.round(stats.diskPercent)}%`],
     ];
     if (stats.tempC !== null) rows.push(["temp", Math.min(100, stats.tempC), `${Math.round(stats.tempC)}°C`]);
     sysBars.replaceChildren(

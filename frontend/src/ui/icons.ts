@@ -19,6 +19,7 @@ const PATHS: Record<string, string> = {
   arrow: '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
   reset: '<path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 9 8 9"/>',
   logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
+  logs: '<path d="M4 4h16v16H4z"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/>',
 };
 
 export function icon(name: string, size = 20): HTMLElement {

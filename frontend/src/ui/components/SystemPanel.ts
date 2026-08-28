@@ -89,7 +89,10 @@ function whenInWords(when: string): string {
  * a second telling of the same events is one more thing that can be wrong.
  */
 export class SystemPanel {
+  /** The machine: what it is, what it runs on its own, what it is busy with. */
   readonly el: HTMLElement;
+  /** Its logs, which are their own tab. */
+  readonly logEl: HTMLElement;
 
   private readonly host = el("span", { textContent: BLANK });
   private readonly htop = el("div", { class: "htop" });
@@ -118,9 +121,7 @@ export class SystemPanel {
     };
     this.tabs = { media: tab("media", "미디어 서버"), kernel: tab("kernel", "커널") };
 
-    // Note(yoochan.kim): what the machine is on the left, what it is running on the
-    // right, and the log across the foot. A log line is long — squeezed into a
-    // half-width column it was read three words at a time.
+    // What the machine is on the left, what it is running on the right.
     this.el = el("div", { class: "sys" }, [
       el("div", { class: "sys__p" }, [
         el("div", { class: "sys__t" }, [el("span", { textContent: "호스트" }), this.host]),
@@ -135,13 +136,18 @@ export class SystemPanel {
         el("div", { class: "sys__t" }, [el("span", { textContent: "프로세스" })]),
         this.proc,
       ]),
-      el("div", { class: "sys__p sys__p--wide" }, [
-        el("div", { class: "sys__t" }, [
-          el("span", { textContent: "로그" }),
-          el("div", { class: "logtabs" }, [this.tabs.media, this.tabs.kernel]),
-        ]),
-        this.log,
-      ]),
+    ]);
+
+    /**
+     * The logs, on a page of their own — hundreds of long lines want the height.
+     *
+     * Note(yoochan.kim): the choice sits above the panel rather than inside it, and
+     * nothing here says "로그". The sidebar has already said so, and a page that
+     * names itself twice spends a row on it.
+     */
+    this.logEl = el("div", { class: "logs" }, [
+      el("div", { class: "logtabs logtabs--page" }, [this.tabs.media, this.tabs.kernel]),
+      el("div", { class: "sys__p" }, [this.log]),
     ]);
   }
 
@@ -192,7 +198,11 @@ export class SystemPanel {
     (stats.cores ?? []).forEach((percent, index) => {
       rows.push(
         el("div", { class: "htop__r" }, [
-          el("span", { class: "htop__l", textContent: String(index + 1) }),
+          // Note(yoochan.kim): numbered from zero, the way the kernel numbers them —
+          // cpu0 in /proc/stat is core 0 to taskset and to every other tool on the
+          // machine. htop counts from one, and matching htop would mean a reading
+          // here that names a different core than the shell does.
+          el("span", { class: "htop__l", textContent: `Core ${index}` }),
           bar(percent),
           el("span", { class: "htop__v", textContent: `${percent.toFixed(1)}%` }),
         ]),
@@ -231,7 +241,7 @@ export class SystemPanel {
         }),
       ]),
       el("div", { class: "htop__r" }, [
-        el("span", { class: "htop__l", textContent: "디스크" }),
+        el("span", { class: "htop__l", textContent: "Disk" }),
         bar(stats.diskPercent),
         el("span", { class: "htop__v", textContent: `${Math.round(stats.diskPercent)}%` }),
       ]),
