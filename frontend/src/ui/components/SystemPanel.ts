@@ -36,6 +36,7 @@ interface LogPayload {
 }
 
 type LogSource = "media" | "kernel";
+type SortKey = "pid" | "command" | "cpuPercent" | "memPercent";
 
 export interface SystemPanelOptions {
   /** Shows a file this panel fetched. The dialog belongs to the page, not to a panel. */
@@ -50,6 +51,18 @@ interface CronPayload {
 }
 
 const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/**
+ * A stamp as MM-DD HH:MM:SS.
+ *
+ * Note(yoochan.kim): the day is kept. A log tail can reach back past midnight, and a
+ * column of times alone says a run happened at 21:57 without saying which 21:57 —
+ * which is exactly the question being asked after something went wrong overnight.
+ */
+function stamp(date: string, time: string): string {
+  return date ? `${date} ${time}` : time;
+}
 
 /**
  * A crontab's five fields in words. Only the shapes this building actually uses
@@ -79,6 +92,10 @@ export class SystemPanel {
 
   private readonly host = el("span", { textContent: BLANK });
   private readonly htop = el("div", { class: "htop" });
+  private readonly proc = el("div", { class: "htop" });
+  private processes: NonNullable<SystemStats["processes"]> = [];
+  /** Busiest first, which is the reason anybody opens a process table. */
+  private sort: { key: SortKey; desc: boolean } = { key: "cpuPercent", desc: true };
   private readonly log = el("div", { class: "log" });
   private readonly cron = el("div", { class: "cron" });
   /**
@@ -100,17 +117,24 @@ export class SystemPanel {
     };
     this.tabs = { media: tab("media", "미디어 서버"), kernel: tab("kernel", "커널") };
 
+    // Note(yoochan.kim): what the machine is on the left, what it is running on the
+    // right, and the log across the foot. A log line is long — squeezed into a
+    // half-width column it was read three words at a time.
     this.el = el("div", { class: "sys" }, [
       el("div", { class: "sys__p" }, [
         el("div", { class: "sys__t" }, [el("span", { textContent: "호스트" }), this.host]),
         this.htop,
-        // Note(yoochan.kim): what this machine does on its own. The checks that run
-        // before a service are root's jobs and belong to no login, so they are
-        // invisible from here unless the panel goes and reads them.
+        // What this machine does on its own. The checks that run before a service
+        // are root's jobs and belong to no login, so they are invisible from here
+        // unless the panel goes and reads them.
         el("div", { class: "sys__t sys__t--sub" }, [el("span", { textContent: "cron" })]),
         this.cron,
       ]),
       el("div", { class: "sys__p" }, [
+        el("div", { class: "sys__t" }, [el("span", { textContent: "프로세스" })]),
+        this.proc,
+      ]),
+      el("div", { class: "sys__p sys__p--wide" }, [
         el("div", { class: "sys__t" }, [
           el("span", { textContent: "로그" }),
           el("div", { class: "logtabs" }, [this.tabs.media, this.tabs.kernel]),
@@ -123,7 +147,9 @@ export class SystemPanel {
   private pick(source: LogSource): void {
     this.source = source;
     for (const [key, button] of Object.entries(this.tabs)) button.classList.toggle("on", key === source);
-    this.log.replaceChildren(el("div", { class: "log__none", textContent: "읽는 중이에요" }));
+    // Note(yoochan.kim): a turning mark, not a sentence. Waiting has no news in it,
+    // and words here are read as if they were the log's first line.
+    this.log.replaceChildren(el("div", { class: "log__wait" }, [el("i", { class: "spin" })]));
     this.pull?.();
   }
 
@@ -222,29 +248,66 @@ export class SystemPanel {
       ]),
     );
 
-    const processes = stats.processes ?? [];
-    if (processes.length > 0) {
-      rows.push(
-        el("div", { class: "htop__proc" }, [
-          el("div", { class: "h" }, [
-            el("span", { textContent: "PID" }),
-            el("span", { textContent: "COMMAND" }),
-            el("span", { textContent: "CPU%" }),
-            el("span", { textContent: "MEM%" }),
-          ]),
-          ...processes.map((row) =>
-            el("div", {}, [
-              el("span", { textContent: String(row.pid) }),
-              el("span", { textContent: row.command }),
-              el("span", { textContent: row.cpuPercent.toFixed(1) }),
-              el("span", { textContent: row.memPercent.toFixed(1) }),
-            ]),
-          ),
-        ]),
-      );
-    }
-
     this.htop.replaceChildren(...rows);
+
+    // Note(yoochan.kim): its own panel, because it is a different question. The left
+    // asks what this machine is; this asks what it is busy with.
+    this.processes = stats.processes ?? [];
+    this.paintProcesses();
+  }
+
+  /**
+   * The process table, in whatever order the header was last asked for.
+   *
+   * Note(yoochan.kim): sorted here rather than by the server. The list arrives every
+   * two seconds and re-sorting it costs nothing, whereas a column that had to ask
+   * the Pi would change order a beat after the press.
+   */
+  private paintProcesses(): void {
+    const { key, desc } = this.sort;
+    // Note(yoochan.kim): ties fall through the same chain every time — busiest, then
+    // hungriest, then oldest, then by name — with whichever column was pressed
+    // lifted to the front. Two idle processes then keep a stable order instead of
+    // swapping places every two seconds.
+    const chain: SortKey[] = [key, ...(["cpuPercent", "memPercent", "pid", "command"] as SortKey[]).filter((k) => k !== key)];
+    const rows = [...this.processes].sort((a, b) => {
+      for (const column of chain) {
+        // Ascending first, so one rule can turn it round: the pressed column
+        // follows the arrow, the rest keep their natural way — numbers largest
+        // first, a name from A.
+        const up = column === "command" ? a.command.localeCompare(b.command) : Number(a[column]) - Number(b[column]);
+        const natural = column === "command" ? up : -up;
+        const order = column === key ? (desc ? -up : up) : natural;
+        if (order !== 0) return order;
+      }
+      return 0;
+    });
+
+    const head = (label: string, column: SortKey): HTMLElement => {
+      const button = el("span", { class: `htop__h${key === column ? " on" : ""}`, textContent: label });
+      if (key === column) button.append(el("i", { textContent: desc ? "▾" : "▴" }));
+      button.addEventListener("click", () => {
+        // A new column starts the way that column is usually wanted: names from A,
+        // numbers from the largest — nobody opens this looking for the idlest process.
+        this.sort = key === column ? { key, desc: !desc } : { key: column, desc: column !== "command" };
+        this.paintProcesses();
+      });
+      return button;
+    };
+
+    this.proc.replaceChildren(
+      el("div", { class: "htop__proc" }, [
+        el("div", { class: "h" }, [head("PID", "pid"), head("COMMAND", "command"), head("CPU%", "cpuPercent"), head("MEM%", "memPercent")]),
+        ...rows.map((row) =>
+          el("div", {}, [
+            el("span", { textContent: String(row.pid) }),
+            el("span", { textContent: row.command, title: row.command }),
+            el("span", { textContent: row.cpuPercent.toFixed(1) }),
+            el("span", { textContent: row.memPercent.toFixed(1) }),
+          ]),
+        ),
+      ]),
+    );
   }
 
   /** The kernel's tail. Its lines are the machine's own, so they are shown as they came. */
@@ -260,13 +323,17 @@ export class SystemPanel {
         .slice(-120)
         .reverse()
         .map((line) => {
-          // "Aug 28 14:26:36 raspberrypi kernel: ..." — the stamp, then the rest.
-          const match = /^(\w{3}\s+\d+\s[\d:]{8})\s+\S+\s+([^:]+):\s*(.*)$/.exec(line);
-          const text = match?.[3] ?? line;
+          // "Aug 28 14:26:36 raspberrypi kernel: ..." — a month name, so it is
+          // turned into the same MM-DD the media server's log already writes.
+          const match = /^(\w{3})\s+(\d+)\s+([\d:]{8})\s+\S+\s+[^:]+:\s*(.*)$/.exec(line);
+          const month = MONTHS.indexOf(match?.[1] ?? "");
+          const day =
+            match && month >= 0 ? `${String(month + 1).padStart(2, "0")}-${(match[2] ?? "").padStart(2, "0")}` : "";
+          const text = match?.[4] ?? line;
           const bad = /error|fail|corrupt|read-only|panic|oops/i.test(text);
           const warn = /warn|throttl|voltage|temperature/i.test(text);
           return el("div", {}, [
-            el("time", { textContent: match?.[1]?.slice(7) ?? "" }),
+            el("time", { textContent: stamp(day, match?.[3] ?? "") }),
             // Note(yoochan.kim): the severity, not the word "kernel" — every line in a
             // kernel log comes from the kernel, so printing it down the column
             // says nothing and takes the width the message needs.
@@ -286,9 +353,12 @@ export class SystemPanel {
     }
     this.cron.replaceChildren(
       ...payload.jobs.map((job) => {
-        const row = el("button", { class: "cron__r", type: "button", title: job.command }, [
+        // Note(yoochan.kim): when, then what — never the note beside it. These lines
+        // carry a hand-written "매일 오전 8시 50분" that says the schedule over
+        // again, so printing both put two times on one row.
+        const row = el("button", { class: "cron__r", type: "button", title: job.note || job.command }, [
           el("span", { class: "cron__w", textContent: whenInWords(job.when) }),
-          el("span", { class: "cron__c", textContent: job.note || job.command }),
+          el("span", { class: "cron__c", textContent: job.command }),
         ]) as HTMLButtonElement;
         row.addEventListener("click", () => this.openScript(job.command));
         return row;
@@ -341,10 +411,11 @@ export class SystemPanel {
       .reverse()
       .map((line) => {
         const level = LEVEL.exec(line)?.[1] ?? "";
-        const stamp = line.slice(1, 20).split(" ")[1] ?? "";
+        // "[2026-08-28 21:57:49] [INFO] ..." — the year is the one part nobody reads.
+        const [day = "", clock = ""] = line.slice(1, 20).split(" ");
         const text = line.replace(/^\[[^\]]*\]/, "").replace(/^\[(INFO|WARN|ERROR|DEBUG)\]\s*/, "");
         return el("div", {}, [
-          el("time", { textContent: stamp }),
+          el("time", { textContent: stamp(day.slice(5), clock) }),
           el("b", { class: level.toLowerCase(), textContent: level }),
           el("span", { textContent: text.trim() }),
         ]);
