@@ -117,10 +117,7 @@ export class FlowPanel {
       el("div", { class: "tl__row" }, [
         el("div", { class: `tl__col${running ? "" : " is-preview"}` }, [
           this.bar(span, minutesNow),
-          el("div", { class: "tl__ticks" }, [
-            el("span", { textContent: `${hhmm(span.opens)} 잠금` }),
-            el("span", { textContent: `${hhmm(span.closes)} 해제` }),
-          ]),
+          this.ticks(span),
         ]),
         el("div", { class: "tl__act" }, [this.action(flow, running, minutesNow > span.opens + GRACE_SECONDS / 60)]),
       ]),
@@ -136,7 +133,12 @@ export class FlowPanel {
       if (flow.autoStart) facts.push(el("span", { class: "tag tag--auto", textContent: "자동 시작" }));
       facts.push(opensInSec > 0 ? `${durationOf(opensInSec)} 뒤 시작해요` : "시작할 시각이에요");
       if (span.segments.length > 0) {
-        facts.push(`${span.segments.length}곡 ${Math.round(span.musicTo - span.musicFrom)}분`);
+        // Note(yoochan.kim): written out here rather than left to the scale, where a
+        // music time falling within a few minutes of the lock would land on top
+        // of it. In words it is always readable and never collides.
+        const from = Math.max(span.musicFrom, span.opens);
+        facts.push(`음악 ${hhmm(from)} → ${hhmm(span.musicTo)}`);
+        facts.push(`${span.segments.length}곡`);
       }
     }
     return facts.map((fact) =>
@@ -161,6 +163,30 @@ export class FlowPanel {
     return start;
   }
 
+  /**
+   * The scale under the bar. Times belong here rather than inside the blocks:
+   * a block is as wide as its song is long, and a clock written into a sliver
+   * lands on top of its neighbour's.
+   */
+  private ticks(span: Span): HTMLElement {
+    const width = Math.max(1, span.closes - span.opens);
+    const at = (minutes: number): number => ((minutes - span.opens) / width) * 100;
+    const marks: HTMLElement[] = [el("span", { class: "tick is-edge", textContent: `${hhmm(span.opens)} 잠금` })];
+
+    if (span.segments.length > 0) {
+      // Note(yoochan.kim): only where the music ends, and only when it is clear of
+      // the two fixed labels. Where the music begins is in the head, which is a
+      // line of text and cannot collide with anything.
+      const end = at(span.musicTo);
+      if (end > 14 && end < 86) {
+        marks.push(el("span", { class: "tick is-music", style: `left:${end}%`, textContent: hhmm(span.musicTo) }));
+      }
+    }
+
+    marks.push(el("span", { class: "tick is-edge is-end", textContent: `${hhmm(span.closes)} 해제` }));
+    return el("div", { class: "tl__ticks" }, marks);
+  }
+
   /** The bar: hatched lock window, the music inside it, and where we are. */
   private bar(span: Span, nowMinutes: number): HTMLElement {
     const width = Math.max(1, span.closes - span.opens);
@@ -171,10 +197,9 @@ export class FlowPanel {
     // at the gate — the part before it never sounds.
     children.push(el("div", { class: "seg seg--gap", style: `width:${pct(Math.max(span.opens, span.musicFrom))}%` }));
     // Note(yoochan.kim): half an hour of music inside a two-hour window leaves each
-    // song a sliver, and a title crammed into one comes out a character wide —
-    // "주⋮" is not a name. A segment writes only what it has the room for and
-    // carries the rest in its tooltip. None of them reaches past its own width:
-    // the bar's job is the shape of the run.
+    // song a sliver, so a block carries no writing of its own — it is told apart
+    // by its edge and, when it is the one playing, by its colour. What it is and
+    // when it starts is in the tooltip and on the scale below.
     const minutesPerPercent = width / 100;
     for (const segment of span.segments) {
       if (segment.to <= span.opens) continue;
@@ -184,11 +209,8 @@ export class FlowPanel {
         this.status.phase === "playing" && this.status.track.title === segment.title ? " is-now" : "";
       const seg = el("div", { class: `seg${live}`, style: `width:${share}%` });
       seg.title = `${hhmm(from)} ${segment.title}`;
-      // Rough room, in the bar's own units: a title needs about twelve minutes
-      // of window to sit in, a time about five.
-      const minutes = share * minutesPerPercent;
-      if (minutes >= 12) seg.append(el("time", { textContent: hhmm(from) }), segment.title);
-      else if (minutes >= 5) seg.append(el("time", { textContent: hhmm(from) }));
+      // Room for a name is rare on this bar; when there is, it is worth having.
+      if (share * minutesPerPercent >= 14) seg.append(segment.title);
       children.push(seg);
     }
     if (nowMinutes >= span.opens && nowMinutes <= span.closes) {

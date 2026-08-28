@@ -323,25 +323,29 @@ button { white-space: nowrap; }
 .tl__act { flex: none; margin-top: 8px; height: 38px; display: flex; align-items: center; }
 .tl__bar { position: relative; height: 38px; margin-top: 8px; border-radius: 6px; background: var(--well); overflow: hidden; display: flex; }
 .tl__lock { position: absolute; inset: 0; background: repeating-linear-gradient(45deg, var(--hold-soft) 0 7px, transparent 7px 14px); }
-/* A segment is as wide as its song is long, so it may be a sliver. What it
-   holds is chosen in FlowPanel; here it only has to not spill, and the one that
-   is playing may lean past its neighbours to keep its title readable. */
-.seg { position: relative; height: 100%; display: flex; align-items: center; padding-left: 10px; overflow: hidden;
-       min-width: 0; font-size: 13px; font-weight: 600; white-space: nowrap;
-       background: var(--seg-idle); color: var(--c-ink); box-shadow: inset -2px 0 0 var(--well); gap: 7px; }
-/* The playing one keeps its own width: leaning over its neighbours buys a few
-   characters and costs the reader the shape of the run. */
-.seg.is-now { min-width: 0; }
-.seg time { flex: none; color: var(--c-mut); font-weight: 500; font-variant-numeric: tabular-nums; }
-.seg.is-now time { color: rgba(255, 255, 255, 0.75); }
+/* A block is as wide as its song is long, so it is usually a sliver. It carries
+   no writing it cannot fit; one song is told from the next by the gap between
+   them, and the one playing by its colour. */
+.seg { position: relative; height: 100%; display: flex; align-items: center; overflow: hidden;
+       min-width: 0; padding: 0 8px; font-size: 13px; font-weight: 600; white-space: nowrap;
+       background: var(--seg-idle); color: var(--c-ink);
+       box-shadow: inset -1px 0 0 var(--panel); border-radius: 3px; }
+.seg.is-now { background: var(--go); color: #fff; box-shadow: none; }
 .seg:last-of-type { box-shadow: none; }
-.seg.is-now { background: var(--go); color: #fff; }
 .seg--gap { background: transparent; box-shadow: none; }
 .now { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--c-ink); opacity: 0.9; z-index: 2; }
 .now::before { content: ""; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
                border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 7px solid var(--c-ink); }
-.tl__ticks { display: flex; justify-content: space-between; margin-top: 7px; font-size: 12.5px;
+/* The scale under the bar. The two ends are the lock window and sit at the
+   edges; a music time is placed where it falls, centred on its own instant. */
+.tl__ticks { position: relative; height: 17px; margin-top: 7px; font-size: 12.5px;
              color: var(--c-mut); font-variant-numeric: tabular-nums; }
+.tick { position: absolute; top: 0; white-space: nowrap; }
+.tick.is-edge { left: 0; }
+.tick.is-edge.is-end { left: auto; right: 0; }
+.tick.is-music { transform: translateX(-50%); color: var(--c-ink); font-weight: 600; }
+.tick.is-music::before { content: ""; position: absolute; left: 50%; top: -7px; width: 1px; height: 5px;
+                         background: currentColor; opacity: 0.5; }
 
 /* ---- prompt: the panel is painted whole — green asks, amber will act alone ---- */
 .tl.is-ask { background: var(--go-face); }
@@ -357,8 +361,11 @@ button { white-space: nowrap; }
 .tl.is-ask .tl__bar, .tl.is-auto .tl__bar { background: rgba(0, 0, 0, 0.25); }
 .tl.is-ask .tl__lock, .tl.is-auto .tl__lock {
   background: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.16) 0 7px, transparent 7px 14px); }
-.tl.is-ask .seg, .tl.is-auto .seg { background: rgba(255, 255, 255, 0.94); color: #1B2029; box-shadow: none; }
-.tl.is-ask .seg time, .tl.is-auto .seg time { color: #5C6675; }
+/* On a painted card the blocks are white; the rule between them is the card. */
+.tl.is-ask .seg, .tl.is-auto .seg { background: rgba(255, 255, 255, 0.94); color: #1B2029;
+                                    box-shadow: inset -1px 0 0 var(--go-face); }
+.tl.is-auto .seg { box-shadow: inset -1px 0 0 var(--hold-face); }
+.tl.is-ask .tick.is-music, .tl.is-auto .tick.is-music { color: #fff; }
 .tl.is-ask .tl__ticks, .tl.is-auto .tl__ticks { color: rgba(255, 255, 255, 0.85); }
 .tl.is-ask .now, .tl.is-auto .now { background: #fff; }
 .tl.is-ask .now::before, .tl.is-auto .now::before { border-top-color: #fff; }
