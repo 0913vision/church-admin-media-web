@@ -149,7 +149,7 @@ export class SystemPanel {
       .then((payload) => this.paintCron(payload))
       .catch(() => this.paintCron({ available: false, jobs: [] }));
     this.pull();
-    this.timer = window.setInterval(() => this.pull?.(), 5000);
+    this.timer = window.setInterval(() => this.pull?.(), 2000);
     return () => window.clearInterval(this.timer);
   }
 

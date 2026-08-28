@@ -5,7 +5,7 @@ import psutil
 
 from app.bridge.broadcaster import Broadcaster
 
-_SAMPLE_INTERVAL_SECONDS = 5.0
+_SAMPLE_INTERVAL_SECONDS = 2.0
 
 
 class SystemMonitor:
