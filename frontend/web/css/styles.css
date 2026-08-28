@@ -39,7 +39,11 @@
   --seg-idle: #38465C;
   --ink-tint: rgba(233, 237, 244, 0.06);
   --key-dn: rgba(0, 0, 0, 0.25);
-  --cap: #EDF0F5; --cap-ink: #1B2029; --cap-line: rgba(0, 0, 0, 0.4);
+  /* Note(yoochan.kim): a key here is a raised dark surface, not a white keycap. The
+     light cap reads well on a light page, but on a dark one a row of them is the
+     brightest thing on screen — the clock and X32 tabs glared while the system
+     tab, which has no keys, sat calm. Same panel colour, one step up. */
+  --cap: #262E3A; --cap-ink: #E9EDF4; --cap-line: rgba(255, 255, 255, 0.13);
 }
 
 * { box-sizing: border-box; }
