@@ -522,7 +522,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
       ["메모리", stats.memPercent, `${Math.round(stats.memPercent)}%`],
       ["디스크", stats.diskPercent, `${Math.round(stats.diskPercent)}%`],
     ];
-    if (stats.tempC !== null) rows.push(["온도", Math.min(100, stats.tempC), `${Math.round(stats.tempC)}°C`]);
+    if (stats.tempC !== null) rows.push(["temp", Math.min(100, stats.tempC), `${Math.round(stats.tempC)}°C`]);
     sysBars.replaceChildren(
       ...rows.map(([label, percent, text]) =>
         el("div", { class: "sum__row" }, [
@@ -537,7 +537,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
         ]),
       ),
       el("div", { class: "sum__row" }, [
-        el("span", { textContent: "가동" }),
+        el("span", { textContent: "uptime" }),
         el("span", { class: "sum__plain", textContent: formatUptime(stats.uptimeSeconds) }),
         el("span", {}),
       ]),

@@ -2,13 +2,14 @@ import { BLANK, el } from "../../util/dom.js";
 import type { SystemStats } from "../../api/events.js";
 import { http } from "../../api/http.js";
 
+/** How long it has been up, in the units the rest of this panel is written in. */
 export function formatUptime(seconds: number): string {
   const days = Math.floor(seconds / 86400);
   const hours = Math.floor((seconds % 86400) / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
-  if (days > 0) return `${days}일 ${hours}시간`;
-  if (hours > 0) return `${hours}시간 ${minutes}분`;
-  return `${minutes}분`;
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
 }
 
 function gigabytes(bytes: number): string {
@@ -241,9 +242,9 @@ export class SystemPanel {
       el("div", { class: "htop__load" }, [
         el("span", { class: "htop__l", textContent: "Load" }),
         el("span", { textContent: load || BLANK }),
-        el("span", { class: "htop__l", style: "margin-left:14px", textContent: "온도" }),
+        el("span", { class: "htop__l", style: "margin-left:14px", textContent: "temp" }),
         el("span", { textContent: stats.tempC === null ? BLANK : `${stats.tempC.toFixed(1)}°C` }),
-        el("span", { class: "htop__l", style: "margin-left:14px", textContent: "가동" }),
+        el("span", { class: "htop__l", style: "margin-left:14px", textContent: "uptime" }),
         el("span", { textContent: formatUptime(stats.uptimeSeconds) }),
       ]),
     );
