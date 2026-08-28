@@ -20,9 +20,12 @@ function minutesOf(clock: string): number {
   return (hours ?? 0) * 60 + (mins ?? 0) + (secs ?? 0) / 60;
 }
 
-function hhmm(minutes: number): string {
-  const wrapped = ((Math.round(minutes) % 1440) + 1440) % 1440;
-  return `${String(Math.floor(wrapped / 60)).padStart(2, "0")}:${String(wrapped % 60).padStart(2, "0")}`;
+/** HH:MM:SS from seconds since midnight. The seconds show even at :00 — a time
+    written two ways in one panel reads as two kinds of time. */
+function hhmmss(totalSec: number): string {
+  const wrapped = ((Math.round(totalSec) % 86400) + 86400) % 86400;
+  const pad = (value: number): string => String(value).padStart(2, "0");
+  return `${pad(Math.floor(wrapped / 3600))}:${pad(Math.floor((wrapped % 3600) / 60))}:${pad(wrapped % 60)}`;
 }
 
 /**
@@ -152,7 +155,7 @@ export class SchedulePanel {
           textContent: flow.autoStart ? "자동 시작" : "승인 필요",
         }),
       ])),
-      row("잠금", el("span", { class: "num", textContent: `${flow.lock.at} → ${this.closesOf(flow)}` })),
+      row("잠금", el("span", { class: "num", textContent: `${hhmmss(minutesOf(flow.lock.at) * 60)} → ${this.closesOf(flow)}` })),
     ];
 
     // Note(yoochan.kim): The music line and the per-track list carry computed start times: the
@@ -161,17 +164,24 @@ export class SchedulePanel {
     const songs = el("div", { class: "detail__songs" });
     if (!music) rows.push(row("음악", el("span", { textContent: "없음" })));
     if (music) {
-      const lengths = music.tracks.map((cue) => (this.tracks.get(cue.id)?.durationSec ?? 0) / 60);
-      const total = lengths.reduce((sum, minutes) => sum + minutes, 0);
-      const startsAt = minutesOf(music.endsAt) - total;
-      rows.push(row("음악", el("span", { class: "num", textContent: `${hhmm(startsAt)} → ${music.endsAt}` })));
+      // Note(yoochan.kim): in seconds, since track lengths are not whole minutes and
+      // rounding each one walks the later songs away from where they really begin.
+      const lengths = music.tracks.map((cue) => this.tracks.get(cue.id)?.durationSec ?? 0);
+      const total = lengths.reduce((sum, seconds) => sum + seconds, 0);
+      const startsAt = minutesOf(music.endsAt) * 60 - total;
+      rows.push(row("음악", el("span", { class: "num", textContent: `${hhmmss(startsAt)} → ${hhmmss(minutesOf(music.endsAt) * 60)}` })));
 
       let cursor = startsAt;
       music.tracks.forEach((cue, index) => {
         songs.append(
           el("div", {}, [
             el("span", { textContent: `${index + 1}. ${this.tracks.get(cue.id)?.title ?? cue.id}` }),
-            el("span", { class: "num", textContent: `${hhmm(cursor)} · ${cue.volume}` }),
+            // A time and a level are different kinds of thing, so they are told
+            // apart by a rule rather than by a character in the middle of a string.
+            el("span", { class: "detail__cue num" }, [
+              el("span", { textContent: hhmmss(cursor) }),
+              el("span", { class: "detail__vol", textContent: `볼륨 ${cue.volume}` }),
+            ]),
           ]),
         );
         cursor += lengths[index]!;
@@ -202,9 +212,9 @@ export class SchedulePanel {
   }
 
   private closesOf(flow: ScheduledFlow): string {
-    if (flow.lock.until.kind === "clock") return flow.lock.until.at;
+    if (flow.lock.until.kind === "clock") return hhmmss(minutesOf(flow.lock.until.at) * 60);
     const music = flow.parts.find((part) => part.kind === "music");
-    return music ? music.endsAt : "음악이 끝나면";
+    return music ? hhmmss(minutesOf(music.endsAt) * 60) : "음악이 끝나면";
   }
 }
 

@@ -475,7 +475,10 @@ button { white-space: nowrap; }
 .detail__r { display: flex; align-items: center; gap: 10px; font-size: 15px; }
 .detail__r span:first-child { width: 68px; color: var(--c-fnt); flex: none; }
 .detail__songs { display: flex; flex-direction: column; gap: 5px; font-size: 15px; }
-.detail__songs div { display: flex; justify-content: space-between; color: var(--c-mut); }
+.detail__songs > div { display: flex; justify-content: space-between; color: var(--c-mut); }
+/* When it starts and how loud it plays are two readings, kept apart by a rule. */
+.detail__cue { display: flex; align-items: center; gap: 9px; }
+.detail__vol { padding-left: 9px; border-left: 1px solid var(--line); color: var(--c-fnt); font-size: 13px; }
 .detail__b { display: flex; gap: 7px; align-items: center; margin-top: auto; }
 
 /* ================= the run box (unknown phase fault only) ================= */

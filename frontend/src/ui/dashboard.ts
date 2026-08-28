@@ -364,7 +364,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   const setView = (key: ViewKey): void => {
     navButtons.forEach((button, k) => button.classList.toggle("is-active", k === key));
     (Object.keys(views) as ViewKey[]).forEach((k) => views[k].classList.toggle("is-hidden", k !== key));
-    document.title = `${NAV.find((entry) => entry.key === key)?.label ?? ""} · 미디어 관리자`;
+    document.title = `${NAV.find((entry) => entry.key === key)?.label ?? ""} — 미디어 관리자`;
   };
 
   const nav = el(
