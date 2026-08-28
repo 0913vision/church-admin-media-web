@@ -95,9 +95,9 @@ function muteChip(onChange: (next: boolean) => void): { el: HTMLButtonElement; s
   return {
     el: button,
     set(on, disabled) {
+      // Note(yoochan.kim): the label stays put; the colour says which way it is.
       muted = on;
       button.classList.toggle("on", on);
-      button.textContent = on ? "음소거 중" : "음소거";
       button.disabled = disabled;
     },
   };
@@ -231,7 +231,12 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   theme.addEventListener("click", () =>
     applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"),
   );
-  const logout = el("button", { type: "button", textContent: "로그아웃" });
+  // Note(yoochan.kim): shaped like a tab, because it stands in the same column as
+  // them — an icon and a word on the same left margin as everything above.
+  const logout = el("button", { class: "nav__tab", type: "button" }, [
+    icon("logout", 15),
+    el("span", { textContent: "로그아웃" }),
+  ]);
   logout.addEventListener("click", () => authApi.logout().finally(leave));
 
   /** A link naming the tab that owns the block it sits in. */
@@ -268,7 +273,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
           el("span", { class: "chrow__n", textContent: input.label }),
           statusOf(input),
           meter(input),
-          el("span", { class: "chrow__db", textContent: levelText(input) }),
+          levelText(input),
           el("span", {}),
           button,
         ]);
@@ -328,9 +333,8 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
       flowPanel.el,
       el("div", { class: "x32" }, [
         el("div", { class: "x32__h" }, [
-          x32Led,
           el("b", { textContent: "X32 콘솔" }),
-          x32Conn,
+          el("span", { class: "x32__link" }, [x32Led, x32Conn]),
           goto("console", true),
         ]),
         consoleStrip,
@@ -454,7 +458,9 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     mute.set(state.mute === MuteState.MUTED, state.audioLock);
 
     adminLocked = state.adminLock;
-    lockValue.textContent = state.adminLock ? "관리자 잠금 활성화" : "관리자 잠금 해제";
+    // A state, not an instruction: this chip says what the gate is, and pressing
+    // it changes that. "해제" alone reads as the button's own name.
+    lockValue.textContent = state.adminLock ? "관리자 잠금 활성화됨" : "관리자 잠금 해제됨";
     gate.classList.toggle("on", state.adminLock);
     gate.querySelector(".led")!.className = `led led--${state.adminLock ? "bad" : "off"}`;
     // Note(yoochan.kim): A running flow owns the gate, so the chip goes quiet rather than

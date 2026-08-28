@@ -71,7 +71,9 @@ button { font: inherit; }
   border-right: 1px solid var(--line);
 }
 .side > * { margin: 0 10px; }
-.nav { display: flex; flex-direction: column; gap: 2px; margin: 0; }
+/* Anything shaped like a tab sits on the tabs' own margin, or its text starts
+   further in than theirs and the column reads crooked. */
+.side > .nav, .side > .nav__tab { margin: 0; }
 .nav__tab {
   display: flex;
   align-items: center;
@@ -91,7 +93,6 @@ button { font: inherit; }
 /* The gate stands over the tabs; below the rule are the two that are neither
    navigation nor the device. */
 .side__gap { flex: 1; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
-.side > .gate { margin-bottom: 4px; }
 .side > button:not(.gate):not(.nav__tab) {
   background: none; border: 0; padding: 8px 11px; border-radius: 7px;
   color: var(--c-mut); font-size: 14px; text-align: left; cursor: pointer;
@@ -217,12 +218,23 @@ button { white-space: nowrap; }
   font-weight: 600; box-shadow: inset 0 -2px 0 var(--line); margin: 0 3px 0 9px;
 }
 
-/* ---- lock: a pressable chip in the topbar, the only place it is toggled ---- */
-.gate { display: flex; align-items: center; gap: 8px; font-size: 14.5px; font-weight: 600; padding: 8px 14px;
-        border-radius: 999px; background: var(--cap); color: var(--cap-ink);
-        border: 1px solid var(--cap-line); box-shadow: 0 1px 2px var(--key-dn); cursor: pointer;
-        transition: background-color 0.16s ease, color 0.16s ease, border-color 0.16s ease; }
-.gate:active:not(:disabled) { transform: translateY(1px); box-shadow: none; }
+/* ---- lock: the one place the gate is toggled. It sits over the tabs and is
+   shaped like them — a pill among flat rows read as a stray control. The hold
+   to arm it is unchanged; only its outline is. ---- */
+.gate { display: flex; align-items: center; gap: 9px; font-size: 14.5px; font-weight: 600; padding: 8px 21px;
+        border-radius: 0; background: var(--raised); color: var(--c-ink);
+        border: 0; box-shadow: none; cursor: pointer; text-align: left;
+        transition: background-color 0.16s ease, color 0.16s ease; }
+/* On the tabs' own margin and left edge, so every word in the column starts
+   at the same place. The lamp takes an icon's slot to get there: it is 8px
+   where a tab's glyph is 15, and the words would sit 7px apart. */
+.side > .gate { margin: 0 0 4px; }
+.side > .gate .led { width: 15px; background: none; display: grid; place-items: center; }
+.side > .gate .led::after { content: ""; width: 8px; height: 8px; border-radius: 50%;
+                            background: var(--slot); }
+.side > .gate.on .led { box-shadow: none; }
+.side > .gate.on .led::after { background: var(--bad); box-shadow: 0 0 7px var(--bad); }
+.gate:hover:not(:disabled):not(.on) { background: var(--slot); }
 .gate { position: relative; overflow: hidden; }
 .gate > * { position: relative; }
 .gate .arm { position: absolute; inset: 0; width: 0; background: var(--bad-soft); transition: width 0.9s linear; }
@@ -271,7 +283,9 @@ button { white-space: nowrap; }
         transition: background-color 0.16s ease, color 0.16s ease; }
 .mute:hover:not(:disabled):not(.on) { filter: brightness(1.06); }
 .mute:active:not(:disabled) { transform: translateY(1px); box-shadow: none; }
-.mute.on { background: var(--hold); border-color: var(--hold); color: #fff; font-weight: 700; }
+/* Silence is red wherever it appears, the same as a muted console input. Amber
+   is for the gate, which holds rather than silences. */
+.mute.on { background: var(--bad); border-color: var(--bad); color: #fff; font-weight: 700; }
 .mute.dis, .mute:disabled { background: var(--raised); color: var(--c-fnt); border-color: transparent;
                             box-shadow: none; cursor: default; }
 .volrow__l { font-size: 14.5px; color: var(--c-fnt); }

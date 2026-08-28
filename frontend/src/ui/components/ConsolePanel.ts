@@ -27,10 +27,12 @@ export class ConsolePanel {
     this.led = el("span", { class: "led led--go" });
     this.conn = el("span", { textContent: "연결됨" });
     this.el = el("div", { class: "x32" }, [
+      // Note(yoochan.kim): the lamp sits with the word it is about. Beside the
+      // title it looked like a lamp for the desk itself, which is not what it
+      // reports — it reports whether we are hearing from it.
       el("div", { class: "x32__h" }, [
-        this.led,
         el("b", { textContent: "X32 콘솔" }),
-        this.conn,
+        el("span", { class: "x32__link" }, [this.led, this.conn]),
       ]),
       this.strip,
     ]);
@@ -70,7 +72,7 @@ export class ConsolePanel {
           el("span", { class: "chrow__n", textContent: input.label }),
           statusOf(input),
           meter(input),
-          el("span", { class: "chrow__db", textContent: levelText(input) }),
+          levelText(input),
           reset,
           button,
         ]);

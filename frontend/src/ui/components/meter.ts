@@ -26,27 +26,30 @@ export function meter(input: ConsoleInput): HTMLElement {
   return bar;
 }
 
-/** What the desk reports, in the unit the desk itself shows. */
-export function levelText(input: ConsoleInput): string {
-  return input.state.kind === "read" ? `${input.state.db.toFixed(1)} dB` : BLANK;
+/**
+ * The level, and beside it the one thing that changes what the level means.
+ *
+ * Note(yoochan.kim): a muted channel is still at a level; it is simply not being
+ * heard. So the two are read together, and only the state worth acting on is
+ * written — an input that sounds is the ordinary case and says nothing.
+ */
+export function levelText(input: ConsoleInput): HTMLElement {
+  const read = input.state;
+  if (read.kind !== "read") return el("span", { class: "chrow__db", textContent: BLANK });
+  return el("span", { class: "chrow__db" }, [
+    el("span", { textContent: `${read.db.toFixed(1)} dB` }),
+    ...(read.on ? [] : [el("span", { class: "chrow__muted", textContent: "(음소거)" })]),
+  ]);
 }
 
-/**
- * The lamp and the word beside it.
- *
- * Note(yoochan.kim): muted, not off. The desk mutes a channel and unmutes it; it
- * is never switched off, and ON/OFF reads as power — a different claim.
- */
+/** The lamp: red while an input is held silent, and nothing to report otherwise. */
 export function statusOf(input: ConsoleInput): HTMLElement {
   const read = input.state;
-  // Note(yoochan.kim): muted is red, not grey. A grey lamp reads as "nothing to
-  // report", and an input held silent when it should be sounding is the fault
-  // this row exists to show. Grey is kept for the desk saying nothing at all.
-  const lamp = read.kind !== "read" ? "led--off" : read.on ? "led--go" : "led--bad";
-  return el("span", { class: "chrow__s" }, [
-    el("span", { class: `led ${lamp}` }),
-    el("span", { textContent: read.kind === "read" ? (read.on ? "UNMUTED" : "MUTED") : BLANK }),
-  ]);
+  // Note(yoochan.kim): only silence is coloured. Green on every sounding input
+  // paints the whole row green in the ordinary case and leaves nothing for the
+  // one state anybody needs to catch.
+  const lamp = read.kind !== "read" ? "led--off" : read.on ? "led--quiet" : "led--bad";
+  return el("span", { class: "chrow__s" }, [el("span", { class: `led ${lamp}` })]);
 }
 
 /**
@@ -55,10 +58,12 @@ export function statusOf(input: ConsoleInput): HTMLElement {
  */
 export function unmuteButton(input: ConsoleInput, reachable: boolean, onEnable: () => void): HTMLButtonElement {
   const on = input.state.kind === "read" && input.state.on;
+  // Note(yoochan.kim): one label, so the key does not change width as the desk
+  // answers — a button that resizes under the pointer is a button that moves.
   const button = el("button", {
-    class: `pick${on ? "" : " btn--stop"}`,
+    class: `pick pick--mute${on ? "" : " btn--stop"}`,
     type: "button",
-    textContent: on ? "음소거 해제됨" : "음소거 해제",
+    textContent: "음소거 해제",
   }) as HTMLButtonElement;
   button.disabled = !reachable || on;
   button.addEventListener("click", onEnable);
