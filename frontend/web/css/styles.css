@@ -309,6 +309,12 @@ button { white-space: nowrap; }
 .clock__d { font-size: 14.5px; color: var(--c-mut); text-align: center; }
 .clock__d.is-off { color: var(--hold); }
 
+/* The deck is one element that moves between the pages showing it, so each page
+   gives it a slot rather than styling it differently. On its own page it keeps
+   to a readable width instead of running the length of the screen. */
+.deck-slot { display: flex; min-width: 0; }
+.deck-slot > .deck { flex: 1; min-width: 0; }
+.deck-slot--wide { max-width: 760px; }
 .deck { background: var(--panel); border-radius: 12px; padding: 16px 18px; position: relative; }
 .deck__top { display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: center; }
 .deck > .goto { position: absolute; top: 14px; right: 18px; }

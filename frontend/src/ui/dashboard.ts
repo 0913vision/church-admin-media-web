@@ -22,15 +22,16 @@ import { ChurchClock, driftOf, hhmmOf, ssOf } from "../util/churchClock.js";
 import { TransportControls } from "./components/TransportControls.js";
 import { icon } from "./icons.js";
 
-type ViewKey = "overview" | "schedule" | "console" | "clock" | "system" | "logs";
+type ViewKey = "overview" | "player" | "schedule" | "console" | "clock" | "system" | "logs";
 
 // Note(yoochan.kim): the machine and its logs are two tabs, not one. A log line is
 // long and there are hundreds of them, and sharing a page with the host's own
 // readings left it a few rows deep — the one panel nobody can use in a strip.
 const NAV: { key: ViewKey; label: string; icon: string }[] = [
   { key: "overview", label: "대시보드", icon: "grid" },
-  { key: "schedule", label: "자동 진행", icon: "music" },
+  { key: "player", label: "재생기", icon: "audio" },
   { key: "clock", label: "시계", icon: "clock" },
+  { key: "schedule", label: "자동 진행", icon: "music" },
   { key: "console", label: "X32", icon: "sliders" },
   { key: "system", label: "시스템", icon: "cpu" },
   { key: "logs", label: "로그", icon: "logs" },
@@ -349,10 +350,22 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     el("div", { class: "deck__songs" }, [songRadios]),
   ]);
 
+  /**
+   * Where the deck sits on each page that shows it.
+   *
+   * Note(yoochan.kim): one deck, not two. Its transport, fader, mute and song list
+   * are single controls wired to one stream of state — built twice they would be
+   * two things to keep in step, and the moment they disagreed the panel would be
+   * lying about what is playing. Only one view is ever on screen, so the deck is
+   * moved into whichever that is.
+   */
+  const deckOnOverview = el("div", { class: "deck-slot" }, [dashDeck]);
+  const deckOnPlayer = el("div", { class: "deck-slot deck-slot--wide" });
+
   const views: Record<ViewKey, HTMLElement> = {
     overview: el("section", { class: "view" }, [
       el("div", { class: "head" }, [
-        dashDeck,
+        deckOnOverview,
         el("div", { class: "clock" }, [
           el("div", { class: "clock__t" }, [el("span", { textContent: "교회 시각" }), goto("clock")]),
           el("div", { class: "clock__b" }, [clockVal]),
@@ -383,6 +396,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     schedule: el("section", { class: "view" }, [schedulePanel.el, ...schedulePanel.below()]),
     console: el("section", { class: "view" }, [consolePanel.el]),
     clock: el("section", { class: "view" }, [clockPanel.el]),
+    player: el("section", { class: "view" }, [deckOnPlayer]),
     system: el("section", { class: "view" }, [systemPanel.el]),
     logs: el("section", { class: "view" }, [systemPanel.logEl]),
   };
@@ -392,6 +406,8 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   const setView = (key: ViewKey): void => {
     navButtons.forEach((button, k) => button.classList.toggle("is-active", k === key));
     (Object.keys(views) as ViewKey[]).forEach((k) => views[k].classList.toggle("is-hidden", k !== key));
+    // The one deck goes to the page being opened; see the note where the slots are made.
+    (key === "player" ? deckOnPlayer : deckOnOverview).append(dashDeck);
     // A tab title takes a string and nothing else, so this one separator is a
     // character. A plain hyphen: no dashes anywhere a reader sees.
     document.title = `${NAV.find((entry) => entry.key === key)?.label ?? ""} - 미디어 관리자`;
