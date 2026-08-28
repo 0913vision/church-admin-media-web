@@ -318,6 +318,9 @@ button { white-space: nowrap; }
 .mute.on { background: var(--bad); border-color: var(--bad); color: #fff; font-weight: 700; }
 .mute.dis, .mute:disabled { background: var(--raised); color: var(--c-fnt); border-color: transparent;
                             box-shadow: none; cursor: default; }
+/* A 26px number ends hard against whatever follows it, so the key stands off
+   further than the row's own gap — at 13px the two read as one control. */
+.volrow > .mute { margin-left: 14px; }
 .volrow__l { font-size: 14.5px; color: var(--c-fnt); }
 .volrow__n { font-size: 26px; font-weight: 700; text-align: right; letter-spacing: -0.02em; line-height: 1; }
 .slider { position: relative; height: 6px; border-radius: 3px; background: var(--slot); cursor: pointer; touch-action: none; }
@@ -423,14 +426,17 @@ button { white-space: nowrap; }
 .tl.is-ask .seg--gap, .tl.is-auto .seg--gap { background: transparent; box-shadow: none; }
 .tl.is-ask .tick.is-music, .tl.is-auto .tick.is-music { color: #fff; }
 .tl.is-ask .tl__ticks, .tl.is-auto .tl__ticks { color: rgba(255, 255, 255, 0.85); }
-.tl.is-ask .now, .tl.is-auto .now { background: #fff; }
-.tl.is-ask .now::before, .tl.is-auto .now::before { border-top-color: #fff; }
+/* The line stays dark on a painted card too. It was white here, which is the
+   colour of the blocks it crosses — over a song it disappeared entirely. */
 .tl.is-ask .btn--go { background: #fff; border-color: #fff; color: #0E6B34; }
 .tl.is-auto .btn { background: #fff; border-color: #fff; color: #7A4A06; }
 .tl__ask { margin-left: auto; display: flex; gap: 7px; }
 
 /* ================= console: a strip per input ================= */
-.x32 { background: var(--panel); border-radius: 12px; padding: 14px 18px 16px; }
+/* The last row already carries 11px of its own, so the card adds little. At 16
+   the space under the bottom row was wider than the space between rows, and the
+   card read as having something missing from the end of it. */
+.x32 { background: var(--panel); border-radius: 12px; padding: 14px 18px 7px; }
 .x32__h { display: flex; align-items: center; gap: 11px; font-size: 14.5px; color: var(--c-mut); margin-bottom: 9px; }
 /* The lamp belongs to the word beside it, not to the title. */
 .x32__link { display: flex; align-items: center; gap: 8px; }
@@ -453,7 +459,10 @@ button { white-space: nowrap; }
    it ever holds. Sized to its content it grew when "(음소거)" appeared, and the
    meter beside it shrank — so a muted row's bar came out shorter than its
    neighbour's, which reads as a level that moved. */
-.chrow { display: grid; grid-template-columns: minmax(110px, max-content) minmax(120px, 0.6fr) 128px 1fr max-content max-content;
+/* Five columns for five things — the sixth was left behind when the per-row
+   reset key went, and the meter was squeezed into 0.6 of the free width while
+   an empty column took the rest. */
+.chrow { display: grid; grid-template-columns: minmax(110px, max-content) minmax(220px, 1fr) 128px minmax(0, 0.5fr) max-content;
          gap: 14px; align-items: center;
          padding: 11px 0; border-top: 1px solid var(--line); font-size: 15px; }
 /* A name does not change with the state of the thing it names; the level and
@@ -465,13 +474,18 @@ button { white-space: nowrap; }
             letter-spacing: 0.04em; color: var(--bad); }
 .chrow__s:has(.led--off) { color: var(--c-fnt); }
 .chrow.on .chrow__s { color: var(--go); }
-.chrow__bar { height: 6px; border-radius: 3px; background: var(--slot); position: relative; }
-.chrow__bar i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: var(--c-fnt); }
+/* A meter, not a hairline. At 6px it was a thread the eye slid off; the track is
+   outlined so the empty part is as readable as the filled part, which is what
+   makes a level look like a level rather than a coloured smear. */
+.chrow__bar { height: 11px; border-radius: 3px; background: var(--well); position: relative;
+              box-shadow: inset 0 0 0 1px var(--line); }
+.chrow__bar i { position: absolute; inset: 0 auto 0 0; border-radius: 3px 0 0 3px; background: var(--c-fnt); }
 .chrow.on .chrow__bar i { background: var(--go); }
-/* Where the level belongs. It stands taller than the bar so it reads as a mark
-   on the scale rather than as part of the reading. */
+/* Where the level belongs. Solid and past both edges, so it reads as a mark on
+   the scale — at 45% it faded into whatever it was sitting on. */
 .chrow__mark { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px;
-               border-radius: 1px; background: var(--c-ink); opacity: 0.45; }
+               border-radius: 1px; background: var(--c-ink);
+               box-shadow: 0 0 0 1px var(--panel); }
 .chrow__bar.is-off i { background: var(--hold); }
 /* The reading turns red when the input is muted: the number and the meter say
    it together, which is why the row needs no lamp of its own. */

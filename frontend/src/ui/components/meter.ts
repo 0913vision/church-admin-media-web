@@ -14,6 +14,16 @@ function percent(db: number): number {
   return Math.min(100, Math.max(0, ((db - FLOOR_DB) / (CEIL_DB - FLOOR_DB)) * 100));
 }
 
+/**
+ * A level with its sign, the way a desk writes one. Zero counts as positive: it
+ * is not below anything, and "0.0 dB" beside "-2.5 dB" reads as a missing sign.
+ * Rounded before the sign is chosen, or -0.04 comes out "-0.0".
+ */
+export function decibels(value: number): string {
+  const rounded = Math.round(value * 10) / 10;
+  return `${rounded < 0 ? "" : "+"}${rounded.toFixed(1)} dB`;
+}
+
 /** One input's level, with a mark where the level is meant to be. */
 export function meter(input: ConsoleInput): HTMLElement {
   const read = input.state;
@@ -44,7 +54,7 @@ export function levelText(input: ConsoleInput): HTMLElement {
   // state needs no lamp of its own — the number and the meter are already the
   // two things being looked at.
   return el("span", { class: `chrow__db${read.on ? "" : " is-muted"}` }, [
-    el("span", { textContent: `${read.db.toFixed(1)} dB` }),
+    el("span", { textContent: decibels(read.db) }),
     ...(read.on ? [] : [el("span", { class: "chrow__muted", textContent: "(음소거)" })]),
   ]);
 }
@@ -71,7 +81,7 @@ export function unmuteButton(
   }) as HTMLButtonElement;
   button.disabled = !reachable;
   if (on) {
-    button.title = `${input.nominalDb.toFixed(1)} dB로 다시 보내려면 길게 누르세요`;
+    button.title = `${decibels(input.nominalDb)}로 다시 보내려면 길게 누르세요`;
     holdToFire(button, () => onEnable(true));
   } else {
     button.addEventListener("click", () => onEnable(false));
