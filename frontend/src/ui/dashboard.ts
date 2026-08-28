@@ -270,8 +270,8 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
         );
 
         return el("div", { class: `chrow${on ? " on" : ""}` }, [
-          el("span", { class: "chrow__n", textContent: input.label }),
           statusOf(input),
+          el("span", { class: "chrow__n", textContent: input.label }),
           meter(input),
           levelText(input),
           el("span", {}),
