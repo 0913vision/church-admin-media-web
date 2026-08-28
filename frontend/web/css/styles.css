@@ -32,22 +32,28 @@
   --field: 36px;
 }
 :root[data-theme="dark"] {
-  --bg: #0F1216; --panel: #161B22; --raised: #1D242D; --well: #10151B; --slot: #232B35;
-  --track: #3B4657;
+  /* Note(yoochan.kim): the steps between surfaces are wider here than the hex values
+     would suggest they need to be. Measured as perceptual lightness, the old dark
+     ladder put every surface within ΔL* 3-4 of its neighbour — half of what the
+     light theme uses — so a card, the page behind it and a chosen row were one
+     flat field. Contrast ratio is no guide down here: it is built for text and
+     its constant swamps differences near black. */
+  --bg: #0B0E13; --panel: #1A212B; --raised: #2B3543; --well: #11161D; --slot: #374252;
+  --track: #4A5768;
   --knob: #E9EDF4;
-  --line: rgba(255, 255, 255, 0.08);
-  --c-ink: #E9EDF4; --c-mut: #9BA5B6; --c-fnt: #7C8798;
+  --line: rgba(255, 255, 255, 0.14);
+  --c-ink: #EDF1F7; --c-mut: #A6B0C0; --c-fnt: #8894A5;
   --go: #22C55E; --go-soft: rgba(34, 197, 94, 0.16); --go-face: #15803D;
   --hold: #F5A524; --hold-face: #B45309; --hold-soft: rgba(245, 165, 36, 0.10);
   --bad: #EF4444; --bad-soft: rgba(239, 68, 68, 0.16);
-  --seg-idle: #38465C;
-  --ink-tint: rgba(233, 237, 244, 0.06);
+  --seg-idle: #46556E;
+  --ink-tint: rgba(233, 237, 244, 0.09);
   --key-dn: rgba(0, 0, 0, 0.25);
   /* Note(yoochan.kim): a key here is a raised dark surface, not a white keycap. The
      light cap reads well on a light page, but on a dark one a row of them is the
      brightest thing on screen — the clock and X32 tabs glared while the system
      tab, which has no keys, sat calm. Same panel colour, one step up. */
-  --cap: #262E3A; --cap-ink: #E9EDF4; --cap-line: rgba(255, 255, 255, 0.13);
+  --cap: #2E3846; --cap-ink: #EDF1F7; --cap-line: rgba(255, 255, 255, 0.16);
 }
 
 * { box-sizing: border-box; }
