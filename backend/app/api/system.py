@@ -67,6 +67,39 @@ async def kernel() -> dict:
     return {"available": ok, "lines": lines, "reason": reason}
 
 
+def _script_of(command: str) -> str:
+    """The file a job runs, if it names one. Arguments and shell words are not it."""
+    for token in command.split():
+        if token.startswith("/"):
+            return token
+    return ""
+
+
+@router.get("/cron/file")
+async def cron_file(path: str) -> dict:
+    """The contents of a script one of root's jobs runs.
+
+    Note(yoochan.kim): the path is checked against the crontab rather than sanitised.
+    A request can only name a file this machine has already decided to run, so
+    there is no path to traverse to — an allow-list the machine writes itself.
+    """
+    ok, lines, reason = await _run("sudo", "-n", "crontab", "-l")
+    if not ok:
+        return {"available": False, "lines": [], "path": path, "reason": reason}
+    allowed = {
+        _script_of(line.split(None, 5)[5])
+        for line in lines
+        if not line.lstrip().startswith("#") and len(line.split(None, 5)) >= 6
+    }
+    if path not in allowed or not path:
+        return {"available": False, "lines": [], "path": path, "reason": "cron이 실행하는 파일이 아니에요"}
+    try:
+        text = Path(path).read_text(encoding="utf-8", errors="replace")
+    except OSError as error:
+        return {"available": False, "lines": [], "path": path, "reason": error.strerror or "읽을 수 없어요"}
+    return {"available": True, "lines": text.splitlines(), "path": path, "reason": ""}
+
+
 @router.get("/cron")
 async def cron() -> dict:
     """Root's scheduled jobs, as the machine has them.

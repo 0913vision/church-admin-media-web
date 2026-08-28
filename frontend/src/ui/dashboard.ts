@@ -205,7 +205,9 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   // Note(yoochan.kim): one dialog for the whole page's questions, so a second one
   // can never open behind the first.
   const confirm = new Modal();
-  const systemPanel = new SystemPanel();
+  const systemPanel = new SystemPanel({
+    onOpenFile: (title, body) => confirm.open(title, body, () => {}),
+  });
   const church = new ChurchClock();
   const clockPanel = new ClockPanel({
     clock: church,

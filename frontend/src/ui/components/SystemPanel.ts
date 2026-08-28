@@ -37,6 +37,11 @@ interface LogPayload {
 
 type LogSource = "media" | "kernel";
 
+export interface SystemPanelOptions {
+  /** Shows a file this panel fetched. The dialog belongs to the page, not to a panel. */
+  onOpenFile?: (title: string, body: HTMLElement) => void;
+}
+
 /** One scheduled job as the machine holds it, plus whatever note was written beside it. */
 interface CronPayload {
   available: boolean;
@@ -86,7 +91,7 @@ export class SystemPanel {
   private pull: (() => void) | null = null;
   private timer = 0;
 
-  constructor() {
+  constructor(private readonly options: SystemPanelOptions = {}) {
     const tab = (key: LogSource, label: string): HTMLButtonElement => {
       const button = el("button", { type: "button", textContent: label }) as HTMLButtonElement;
       button.classList.toggle("on", this.source === key);
@@ -102,13 +107,13 @@ export class SystemPanel {
         // Note(yoochan.kim): what this machine does on its own. The checks that run
         // before a service are root's jobs and belong to no login, so they are
         // invisible from here unless the panel goes and reads them.
-        el("div", { class: "sys__t sys__t--sub" }, [el("span", { textContent: "예약 작업" })]),
+        el("div", { class: "sys__t sys__t--sub" }, [el("span", { textContent: "cron" })]),
         this.cron,
       ]),
       el("div", { class: "sys__p" }, [
         el("div", { class: "sys__t" }, [
           el("span", { textContent: "로그" }),
-          el("div", { class: "segctl segctl--logs" }, [this.tabs.media, this.tabs.kernel]),
+          el("div", { class: "logtabs" }, [this.tabs.media, this.tabs.kernel]),
         ]),
         this.log,
       ]),
@@ -262,7 +267,10 @@ export class SystemPanel {
           const warn = /warn|throttl|voltage|temperature/i.test(text);
           return el("div", {}, [
             el("time", { textContent: match?.[1]?.slice(7) ?? "" }),
-            el("b", { class: bad ? "error" : warn ? "warn" : "debug", textContent: match?.[2] ?? "" }),
+            // Note(yoochan.kim): the severity, not the word "kernel" — every line in a
+            // kernel log comes from the kernel, so printing it down the column
+            // says nothing and takes the width the message needs.
+            el("b", { class: bad ? "error" : warn ? "warn" : "", textContent: bad ? "ERROR" : warn ? "WARN" : "" }),
             el("span", { textContent: text }),
           ]);
         }),
@@ -277,13 +285,32 @@ export class SystemPanel {
       return;
     }
     this.cron.replaceChildren(
-      ...payload.jobs.map((job) =>
-        el("div", { class: "cron__r" }, [
+      ...payload.jobs.map((job) => {
+        const row = el("button", { class: "cron__r", type: "button", title: job.command }, [
           el("span", { class: "cron__w", textContent: whenInWords(job.when) }),
-          el("span", { class: "cron__c", textContent: job.note || job.command, title: job.command }),
-        ]),
-      ),
+          el("span", { class: "cron__c", textContent: job.note || job.command }),
+        ]) as HTMLButtonElement;
+        row.addEventListener("click", () => this.openScript(job.command));
+        return row;
+      }),
     );
+  }
+
+  /** Shows what a job actually runs, so the schedule is not the only thing knowable. */
+  private openScript(command: string): void {
+    const path = command.split(/\s+/).find((token) => token.startsWith("/")) ?? "";
+    if (!path || !this.options.onOpenFile) return;
+    const show = (body: HTMLElement): void => this.options.onOpenFile?.(path, body);
+    http
+      .get<LogPayload>(`/api/system/cron/file?path=${encodeURIComponent(path)}`)
+      .then((payload) =>
+        show(
+          payload.available
+            ? el("pre", { class: "file", textContent: payload.lines.join("\n") })
+            : el("div", { class: "log__none", textContent: payload.reason ?? "읽을 수 없어요" }),
+        ),
+      )
+      .catch(() => show(el("div", { class: "log__none", textContent: "읽을 수 없어요" })));
   }
 
   /**

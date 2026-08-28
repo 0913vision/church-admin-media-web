@@ -333,11 +333,12 @@ button { white-space: nowrap; }
 .volrow__n { font-size: 26px; font-weight: 700; text-align: right; letter-spacing: -0.02em; line-height: 1; }
 .slider { position: relative; height: 10px; border-radius: 3px; background: var(--track); cursor: pointer; touch-action: none; }
 .slider i { position: absolute; inset: 0 auto 0 0; border-radius: 3px 0 0 3px; background: var(--go); }
-/* Every tenth of the way, cut through the whole bar in the card's colour. Without
-   it the deck's level was a coloured length with nothing to measure it against. */
+/* A ruler under the slider, every tenth of the way. Below rather than through:
+   see the note on the console meter. */
 .slider::after {
-  content: ""; position: absolute; inset: 0;
-  background: repeating-linear-gradient(90deg, var(--panel) 0 1.5px, transparent 1.5px 10%);
+  content: ""; position: absolute; left: 0; right: 0; top: calc(100% + 5px); height: 4px;
+  background: repeating-linear-gradient(90deg, var(--c-fnt) 0 2px, transparent 2px 10%);
+  opacity: 0.45;
 }
 .slider u { position: absolute; top: 50%; width: 16px; height: 16px; border-radius: 50%; z-index: 1;
             background: var(--cap); border: 1px solid var(--cap-line);
@@ -504,13 +505,14 @@ button { white-space: nowrap; }
 .chrow__bar { height: 11px; border-radius: 3px; background: var(--track); position: relative;
               box-shadow: inset 0 0 0 1px var(--line); }
 .chrow__bar i { position: absolute; inset: 0 auto 0 0; border-radius: 3px 0 0 3px; background: var(--c-fnt); }
-/* Every 10 dB across the meter's -60..+10, cut through the whole height in the
-   colour of the card behind it. A notch at the foot of the bar was a scratch the
-   eye slid over; a full cut divides the bar into steps you can count.
-   Seven steps land one exactly on 0 dB, which is the one anybody looks for. */
+/* The scale sits under the bar, not through it. Cutting the fill chopped a level
+   into segments and the cuts came out uneven — a 1px line at a fractional offset
+   is not 1px. Below it they are marks on a ruler, and the bar stays one length.
+   Seven steps of 10 dB across -60..+10 land one exactly on 0 dB. */
 .chrow__bar::after {
-  content: ""; position: absolute; inset: 0;
-  background: repeating-linear-gradient(90deg, var(--panel) 0 1.5px, transparent 1.5px calc(100% / 7));
+  content: ""; position: absolute; left: 0; right: 0; top: calc(100% + 4px); height: 4px;
+  background: repeating-linear-gradient(90deg, var(--c-fnt) 0 2px, transparent 2px calc(100% / 7));
+  opacity: 0.45;
 }
 .chrow.on .chrow__bar i { background: var(--go); }
 /* Where the level belongs. Solid and past both edges, so it reads as a mark on
@@ -567,15 +569,29 @@ button { white-space: nowrap; }
           color: var(--c-mut); margin-bottom: 10px; }
 /* A second heading inside a panel, standing off what came before it. */
 .sys__t--sub { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
-/* Which log the panel is showing. Small, because it names a view rather than
-   doing anything to the building. */
-.segctl--logs { height: 26px; margin-left: auto; }
-.segctl--logs > button { padding: 0 11px; font-size: 12.5px; font-weight: 600; }
-/* What the machine does on its own: when, then what. */
+/* Which log is on screen. Not a segmented bar: a filled green cell says a thing
+   in this building is on, and choosing what to read is not that. Plain words,
+   with the one being read underlined. */
+.logtabs { display: flex; gap: 16px; margin-left: auto; }
+.logtabs > button {
+  background: none; border: 0; padding: 0 0 3px; cursor: pointer;
+  font: inherit; font-size: 13px; color: var(--c-fnt); border-bottom: 2px solid transparent;
+}
+.logtabs > button:hover { color: var(--c-mut); }
+.logtabs > button.on { color: var(--c-ink); font-weight: 700; border-bottom-color: var(--c-ink); }
+/* What the machine does on its own: when, then what. Each row opens its script. */
 .cron { font-size: 13.5px; line-height: 1.9; }
-.cron__r { display: grid; grid-template-columns: 96px 1fr; gap: 10px; color: var(--c-mut); }
+.cron__r {
+  display: grid; grid-template-columns: 96px 1fr; gap: 10px; align-items: baseline;
+  width: 100%; padding: 2px 6px; margin-left: -6px; border: 0; border-radius: 6px;
+  background: none; font: inherit; font-size: 13.5px; color: var(--c-mut); text-align: left; cursor: pointer;
+}
+.cron__r:hover { background: var(--raised); }
 .cron__w { color: var(--c-ink); font-weight: 600; }
 .cron__c { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--mono); font-size: 12.5px; }
+/* A file shown as it is on disk. */
+.file { margin: 0; font-family: var(--mono); font-size: 13px; line-height: 1.75; color: var(--c-ink);
+        white-space: pre; overflow-x: auto; background: var(--well); border-radius: 8px; padding: 12px 14px; }
 .htop { font-family: var(--mono); font-size: 14px; line-height: 1.8; }
 .htop__r { display: grid; grid-template-columns: 52px 1fr 86px; gap: 9px; align-items: center; }
 .htop__l { color: var(--c-fnt); }
