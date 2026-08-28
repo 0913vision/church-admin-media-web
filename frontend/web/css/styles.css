@@ -60,21 +60,24 @@ button { font: inherit; }
   background: var(--bg);
   color: var(--c-ink);
 }
+/* Note: no side padding. The chosen tab's bar runs the sidebar's full width, so
+   the padding that would have inset it lives on the items instead. */
 .side {
   background: var(--bg);
-  padding: 16px 10px;
+  padding: 16px 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
   border-right: 1px solid var(--line);
 }
-.nav { display: flex; flex-direction: column; gap: 2px; }
+.side > * { margin: 0 10px; }
+.nav { display: flex; flex-direction: column; gap: 2px; margin: 0; }
 .nav__tab {
   display: flex;
   align-items: center;
   gap: 9px;
-  padding: 8px 11px;
-  border-radius: 7px;
+  padding: 8px 21px;
+  border-radius: 0;
   color: var(--c-mut);
   font-size: 15px;
   background: none;
@@ -387,7 +390,12 @@ button { white-space: nowrap; }
    can be renamed, and the button says either 켜기 or 켜져 있음. Both columns are
    sized for the longest of those rather than the shortest, so a row never
    reflows when the desk answers. */
-.chrow { display: grid; grid-template-columns: 132px 56px 210px 62px 1fr 92px; gap: 13px; align-items: center;
+/* Note: every column is sized from what it holds — a name, a word, a meter, a
+   level, the two keys — rather than from numbers guessed once. The fixed 56px
+   for the status was narrower than "UNMUTED", so the word ran into the meter,
+   and the spare width sat unused at the far end instead. */
+.chrow { display: grid; grid-template-columns: minmax(110px, max-content) max-content minmax(120px, 1fr) max-content max-content max-content;
+         gap: 16px; align-items: center;
          padding: 11px 0; border-top: 1px solid var(--line); font-size: 15px; }
 .chrow__n { color: var(--c-mut); font-weight: 600; }
 .chrow.on .chrow__n { color: var(--c-ink); }

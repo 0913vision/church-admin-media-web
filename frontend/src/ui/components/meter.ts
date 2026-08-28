@@ -58,7 +58,7 @@ export function unmuteButton(input: ConsoleInput, reachable: boolean, onEnable: 
   const button = el("button", {
     class: `pick${on ? "" : " btn--stop"}`,
     type: "button",
-    textContent: on ? "소리 나는 중" : "소리 켜기",
+    textContent: on ? "음소거 해제됨" : "음소거 해제",
   }) as HTMLButtonElement;
   button.disabled = !reachable || on;
   button.addEventListener("click", onEnable);
