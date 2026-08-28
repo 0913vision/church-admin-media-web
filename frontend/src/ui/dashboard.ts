@@ -7,7 +7,7 @@ import { MuteState } from "../protocol.js";
 import type { State, StatePatch } from "../protocol.js";
 import { Store } from "../state/store.js";
 import type { Dashboard, Link } from "../state/store.js";
-import { el } from "../util/dom.js";
+import { BLANK, el } from "../util/dom.js";
 import { throttle } from "../util/rate.js";
 import { ConsolePanel } from "./components/ConsolePanel.js";
 import { levelText, meter } from "./components/meter.js";
@@ -183,7 +183,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   });
 
   // --- deck readouts ---
-  const deckSong = el("div", { class: "deck__song", textContent: "—" });
+  const deckSong = el("div", { class: "deck__song", textContent: BLANK });
   const meta = deckMeta();
   // Note(yoochan.kim): a placeholder until the first beat, never a time — the
   // browser's own clock is the one reading that must not appear here.
@@ -275,7 +275,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
           el("span", { class: "chrow__n", textContent: input.label }),
           el("span", { class: "chrow__s" }, [
             el("span", { class: `led ${on ? "led--go" : "led--off"}` }),
-            el("span", { textContent: read.kind === "read" ? (read.on ? "ON" : "OFF") : "—" }),
+            el("span", { textContent: read.kind === "read" ? (read.on ? "ON" : "OFF") : BLANK }),
           ]),
           meter(input),
           el("span", { class: "chrow__db", textContent: levelText(input) }),
@@ -286,7 +286,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     );
   };
   const x32Led = el("span", { class: "led led--go" });
-  const x32Conn = el("span", { textContent: "—" });
+  const x32Conn = el("span", { textContent: BLANK });
   const sysBars = el("div", {});
   const sysLog = el("div", { class: "log log--sum" });
   const songRadios = el("div", { class: "radios" });
@@ -364,7 +364,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   const setView = (key: ViewKey): void => {
     navButtons.forEach((button, k) => button.classList.toggle("is-active", k === key));
     (Object.keys(views) as ViewKey[]).forEach((k) => views[k].classList.toggle("is-hidden", k !== key));
-    document.title = `${NAV.find((entry) => entry.key === key)?.label ?? ""} — 미디어 관리자`;
+    document.title = `${NAV.find((entry) => entry.key === key)?.label ?? ""} | 미디어 관리자`;
   };
 
   const nav = el(

@@ -1,4 +1,4 @@
-import { el } from "../../util/dom.js";
+import { BLANK, el } from "../../util/dom.js";
 import type { SystemStats } from "../../api/events.js";
 import { http } from "../../api/http.js";
 
@@ -45,7 +45,7 @@ interface LogPayload {
 export class SystemPanel {
   readonly el: HTMLElement;
 
-  private readonly host = el("span", { textContent: "—" });
+  private readonly host = el("span", { textContent: BLANK });
   private readonly htop = el("div", { class: "htop" });
   private readonly log = el("div", { class: "log" });
   private timer = 0;
@@ -82,7 +82,7 @@ export class SystemPanel {
   }
 
   update(stats: SystemStats): void {
-    this.host.textContent = stats.host ?? "—";
+    this.host.textContent = stats.host ?? BLANK;
 
     const rows: HTMLElement[] = [];
     (stats.cores ?? []).forEach((percent, index) => {
@@ -123,7 +123,7 @@ export class SystemPanel {
           class: "htop__v",
           textContent: stats.swapTotalBytes
             ? `${gigabytes(stats.swapUsedBytes ?? 0)}/${gigabytes(stats.swapTotalBytes)}`
-            : "—",
+            : BLANK,
         }),
       ]),
       el("div", { class: "htop__r" }, [
@@ -137,9 +137,9 @@ export class SystemPanel {
     rows.push(
       el("div", { class: "htop__load" }, [
         el("span", { class: "htop__l", textContent: "Load" }),
-        el("span", { textContent: load || "—" }),
+        el("span", { textContent: load || BLANK }),
         el("span", { class: "htop__l", style: "margin-left:14px", textContent: "온도" }),
-        el("span", { textContent: stats.tempC === null ? "—" : `${stats.tempC.toFixed(1)}°C` }),
+        el("span", { textContent: stats.tempC === null ? BLANK : `${stats.tempC.toFixed(1)}°C` }),
         el("span", { class: "htop__l", style: "margin-left:14px", textContent: "가동" }),
         el("span", { textContent: formatUptime(stats.uptimeSeconds) }),
       ]),
@@ -176,7 +176,7 @@ export class SystemPanel {
       // the reader to SSH, which is the one thing this panel is here to avoid.
       const none = [
         el("div", { class: "log__none" }, [
-          el("span", { textContent: `로그 파일을 읽을 수 없어요 — ${payload.reason ?? "확인해 주세요"}` }),
+          el("span", { textContent: `로그 파일을 읽을 수 없어요: ${payload.reason ?? "확인해 주세요"}` }),
           ...(payload.path === undefined ? [] : [el("code", { textContent: payload.path })]),
         ]),
       ];

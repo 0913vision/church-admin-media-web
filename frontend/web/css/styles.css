@@ -333,7 +333,10 @@ button { white-space: nowrap; }
 .seg.is-now { background: var(--go); color: #fff; box-shadow: none; }
 .seg:last-of-type { box-shadow: none; }
 .seg--gap { background: transparent; box-shadow: none; }
-.now { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--c-ink); opacity: 0.9; z-index: 2; }
+/* Where we are now. It crosses both the pale blocks and the card behind them,
+   so it is dark with a light halo — one colour cannot be seen on both. */
+.now { position: absolute; top: 0; bottom: 0; width: 2px; z-index: 3;
+       background: var(--c-ink); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.65); }
 .now::before { content: ""; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
                border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 7px solid var(--c-ink); }
 /* The scale under the bar. The two ends are the lock window and sit at the

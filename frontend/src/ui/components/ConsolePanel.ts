@@ -1,4 +1,4 @@
-import { el } from "../../util/dom.js";
+import { BLANK, el } from "../../util/dom.js";
 import type { ConsoleInput } from "../../protocol.js";
 import { levelText, meter } from "./meter.js";
 import { icon } from "../icons.js";
@@ -77,7 +77,7 @@ export class ConsolePanel {
           el("span", { class: "chrow__n", textContent: input.label }),
           el("span", { class: "chrow__s" }, [
             el("span", { class: `led ${on ? "led--go" : "led--off"}` }),
-            el("span", { textContent: read.kind === "read" ? (read.on ? "ON" : "OFF") : "—" }),
+            el("span", { textContent: read.kind === "read" ? (read.on ? "ON" : "OFF") : BLANK }),
           ]),
           meter(input),
           el("span", { class: "chrow__db", textContent: levelText(input) }),

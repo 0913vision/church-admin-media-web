@@ -1,4 +1,4 @@
-import { el } from "../../util/dom.js";
+import { BLANK, el } from "../../util/dom.js";
 import type { ConsoleInput } from "../../protocol.js";
 
 /**
@@ -28,5 +28,5 @@ export function meter(input: ConsoleInput): HTMLElement {
 
 /** What the desk reports, in the unit the desk itself shows. */
 export function levelText(input: ConsoleInput): string {
-  return input.state.kind === "read" ? `${input.state.db.toFixed(1)} dB` : "—";
+  return input.state.kind === "read" ? `${input.state.db.toFixed(1)} dB` : BLANK;
 }

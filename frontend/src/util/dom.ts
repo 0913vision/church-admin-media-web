@@ -20,6 +20,9 @@ export function el<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
+/** Stands where a value has not arrived. Hyphens, never a dash. */
+export const BLANK = "--";
+
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
