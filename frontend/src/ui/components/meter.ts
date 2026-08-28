@@ -39,9 +39,12 @@ export function levelText(input: ConsoleInput): string {
  */
 export function statusOf(input: ConsoleInput): HTMLElement {
   const read = input.state;
-  const on = read.kind === "read" && read.on;
+  // Note(yoochan.kim): muted is red, not grey. A grey lamp reads as "nothing to
+  // report", and an input held silent when it should be sounding is the fault
+  // this row exists to show. Grey is kept for the desk saying nothing at all.
+  const lamp = read.kind !== "read" ? "led--off" : read.on ? "led--go" : "led--bad";
   return el("span", { class: "chrow__s" }, [
-    el("span", { class: `led ${on ? "led--go" : "led--off"}` }),
+    el("span", { class: `led ${lamp}` }),
     el("span", { textContent: read.kind === "read" ? (read.on ? "UNMUTED" : "MUTED") : BLANK }),
   ]);
 }

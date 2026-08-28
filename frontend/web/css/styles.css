@@ -391,8 +391,11 @@ button { white-space: nowrap; }
          padding: 11px 0; border-top: 1px solid var(--line); font-size: 15px; }
 .chrow__n { color: var(--c-mut); font-weight: 600; }
 .chrow.on .chrow__n { color: var(--c-ink); }
+/* The word follows its lamp: red while the input is held silent, green while it
+   sounds, grey only when the desk has said nothing. */
 .chrow__s { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700;
-            letter-spacing: 0.04em; color: var(--c-fnt); }
+            letter-spacing: 0.04em; color: var(--bad); }
+.chrow__s:has(.led--off) { color: var(--c-fnt); }
 .chrow.on .chrow__s { color: var(--go); }
 .chrow__bar { height: 6px; border-radius: 3px; background: var(--slot); position: relative; }
 .chrow__bar i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: var(--c-fnt); }
