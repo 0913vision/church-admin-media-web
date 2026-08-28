@@ -172,9 +172,9 @@ export class FlowPanel {
     children.push(el("div", { class: "seg seg--gap", style: `width:${pct(Math.max(span.opens, span.musicFrom))}%` }));
     // Note(yoochan.kim): half an hour of music inside a two-hour window leaves each
     // song a sliver, and a title crammed into one comes out a character wide —
-    // "주⋮" is not a name. A segment writes only what it has the room for, and
-    // carries the rest in its tooltip; the one that is playing keeps its title
-    // longest, since that is the one worth reading.
+    // "주⋮" is not a name. A segment writes only what it has the room for and
+    // carries the rest in its tooltip. None of them reaches past its own width:
+    // the bar's job is the shape of the run.
     const minutesPerPercent = width / 100;
     for (const segment of span.segments) {
       if (segment.to <= span.opens) continue;
@@ -187,7 +187,7 @@ export class FlowPanel {
       // Rough room, in the bar's own units: a title needs about twelve minutes
       // of window to sit in, a time about five.
       const minutes = share * minutesPerPercent;
-      if (minutes >= 12 || live) seg.append(el("time", { textContent: hhmm(from) }), segment.title);
+      if (minutes >= 12) seg.append(el("time", { textContent: hhmm(from) }), segment.title);
       else if (minutes >= 5) seg.append(el("time", { textContent: hhmm(from) }));
       children.push(seg);
     }
