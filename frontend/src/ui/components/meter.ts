@@ -56,7 +56,7 @@ export function levelText(input: ConsoleInput): HTMLElement {
 export function unmuteButton(input: ConsoleInput, reachable: boolean, onEnable: () => void): HTMLButtonElement {
   const on = input.state.kind === "read" && input.state.on;
   const button = el("button", {
-    class: `pick pick--mute${on ? "" : " btn--stop"}`,
+    class: `pick pick--mute${on ? " pick--hold" : " btn--stop"}`,
     type: "button",
     // Note(yoochan.kim): once the input is sounding there is nothing to ask for, so
     // the key stops asking. It keeps its place and its width — the row must not

@@ -159,6 +159,13 @@ button { white-space: nowrap; }
 }
 .pick:hover:not(:disabled), .btn:hover:not(:disabled) { filter: brightness(1.06); }
 .pick:active:not(:disabled), .btn:active:not(:disabled) { transform: translateY(1px); box-shadow: none; }
+/* A key that must be held does not travel under the finger. Its gauge is the
+   feedback; a dip and a return would read as a press that had already landed.
+   It wears the sunken face too: there is nothing here to ask for, and only
+   someone who already knows about the hold has any business pressing it. */
+.pick--hold:active:not(:disabled), .gate:active:not(:disabled) { transform: none; box-shadow: none; }
+.pick--hold { background: var(--raised); color: var(--c-fnt); border-color: transparent; box-shadow: none; }
+.pick--hold:hover:not(:disabled) { filter: none; color: var(--c-mut); }
 .pick.on { background: var(--go); border-color: var(--go); color: #fff; font-weight: 700; }
 .btn--go, .btn--primary, .btn--main { background: var(--go); border-color: var(--go); color: #fff; font-weight: 700; }
 .btn--stop, .btn--danger { background: var(--bad); border-color: var(--bad); color: #fff; font-weight: 700; }
@@ -286,7 +293,10 @@ button { white-space: nowrap; }
 
 .volrow { display: grid; grid-template-columns: 42px 1fr 52px auto; gap: 13px; align-items: center;
           margin-top: 14px; padding-top: 13px; border-top: 1px solid var(--line); }
-.mute { display: flex; align-items: center; gap: 7px; font-size: 15px; font-weight: 600; padding: 10px 18px;
+/* One width whichever way it reads: the deck's fader sits beside it, and a key
+   that grows by two characters shortens the fader every time it is pressed. */
+.mute { display: flex; align-items: center; justify-content: center; gap: 7px; min-width: 118px;
+        font-size: 15px; font-weight: 600; padding: 10px 18px;
         border-radius: 8px; background: var(--cap); color: var(--cap-ink);
         border: 1px solid var(--cap-line); box-shadow: 0 1px 2px var(--key-dn); cursor: pointer;
         transition: background-color 0.16s ease, color 0.16s ease; }

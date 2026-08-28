@@ -129,7 +129,7 @@ export class FlowPanel {
       facts.push(`${hhmm(span.closes)}에 잠금 해제`);
     } else {
       if (flow.autoStart) facts.push(el("span", { class: "tag tag--auto", textContent: "자동 시작" }));
-      facts.push(opensInSec > 0 ? `${durationOf(opensInSec)} 뒤 시작해요` : "시작할 시각이에요");
+      facts.push(opensInSec > 0 ? `${durationOf(opensInSec)} 뒤 시작해요` : "자동 진행을 시작할 수 있어요");
       if (span.segments.length > 0) {
         // Note(yoochan.kim): written out here rather than left to the scale, where a
         // music time falling within a few minutes of the lock would land on top
