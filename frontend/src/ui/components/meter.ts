@@ -1,5 +1,6 @@
 import { BLANK, el } from "../../util/dom.js";
 import type { ConsoleInput } from "../../protocol.js";
+import { holdToFire } from "./hold.js";
 
 /**
  * The stretch of the desk's range worth drawing. Its faders run to -90 dB, but
@@ -54,14 +55,21 @@ export function levelText(input: ConsoleInput): HTMLElement {
  */
 export function unmuteButton(input: ConsoleInput, reachable: boolean, onEnable: () => void): HTMLButtonElement {
   const on = input.state.kind === "read" && input.state.on;
-  // Note(yoochan.kim): one label, so the key does not change width as the desk
-  // answers — a button that resizes under the pointer is a button that moves.
   const button = el("button", {
     class: `pick pick--mute${on ? "" : " btn--stop"}`,
     type: "button",
-    textContent: "음소거 해제",
+    // Note(yoochan.kim): once the input is sounding there is nothing to ask for, so
+    // the key stops asking. It keeps its place and its width — the row must not
+    // reflow when the desk answers — and holding it re-sends the level anyway,
+    // for a fader someone has moved by hand.
+    textContent: on ? BLANK : "음소거 해제",
   }) as HTMLButtonElement;
-  button.disabled = !reachable || on;
-  button.addEventListener("click", onEnable);
+  button.disabled = !reachable;
+  if (on) {
+    button.title = `${input.nominalDb.toFixed(1)} dB로 다시 보내려면 길게 누르세요`;
+    holdToFire(button, onEnable);
+  } else {
+    button.addEventListener("click", onEnable);
+  }
   return button;
 }

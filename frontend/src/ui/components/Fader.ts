@@ -98,6 +98,12 @@ export class Fader {
     this.options.onInput(this.value);
   }
 
+  /** Colours the track and the number red while the deck is held silent. */
+  setMuted(muted: boolean): void {
+    this.el.classList.toggle("is-muted", muted);
+    this.valueEl.classList.toggle("is-muted", muted);
+  }
+
   private render(): void {
     const percent = `${((this.value - this.min) / (this.max - this.min)) * 100}%`;
     this.fill.style.width = percent;

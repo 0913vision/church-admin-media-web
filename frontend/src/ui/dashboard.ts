@@ -11,6 +11,7 @@ import { BLANK, el } from "../util/dom.js";
 import { throttle } from "../util/rate.js";
 import { ConsolePanel } from "./components/ConsolePanel.js";
 import { levelText, meter, unmuteButton } from "./components/meter.js";
+import { holdToFire } from "./components/hold.js";
 import { Fader } from "./components/Fader.js";
 import { SchedulePanel } from "./components/SchedulePanel.js";
 import { SystemPanel, formatUptime } from "./components/SystemPanel.js";
@@ -87,7 +88,10 @@ function deckMeta(): DeckMeta {
   };
 }
 
-/** The mockup's mute chip: a small pill that goes amber while muted. */
+/**
+ * The deck's mute, read the same way a console input is: the key says what
+ * pressing it does, and while the deck is silent its level is red.
+ */
 function muteChip(onChange: (next: boolean) => void): { el: HTMLButtonElement; set(on: boolean, disabled: boolean): void } {
   let muted = false;
   const button = el("button", { class: "mute", type: "button", textContent: "음소거" });
@@ -95,9 +99,9 @@ function muteChip(onChange: (next: boolean) => void): { el: HTMLButtonElement; s
   return {
     el: button,
     set(on, disabled) {
-      // Note(yoochan.kim): the label stays put; the colour says which way it is.
       muted = on;
       button.classList.toggle("on", on);
+      button.textContent = on ? "음소거 해제" : "음소거";
       button.disabled = disabled;
     },
   };
@@ -200,23 +204,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   ]);
   let adminLocked = false;
   // Note(yoochan.kim): The gate only moves if you mean it: hold until the chip fills.
-  const gateArm = el("i", { class: "arm" });
-  gate.prepend(gateArm);
-  gateArm.addEventListener("transitionend", () => {
-    if (gate.classList.contains("arming")) {
-      // Note(yoochan.kim): Fired: ignore further presses until the gauge has drained back.
-      gate.classList.remove("arming");
-      gate.classList.add("cooling");
-      write("adminLock", !adminLocked);
-    } else {
-      gate.classList.remove("cooling");
-    }
-  });
-  gate.addEventListener("pointerdown", () => {
-    if (!gate.classList.contains("cooling")) gate.classList.add("arming");
-  });
-  for (const ev of ["pointerup", "pointerleave", "pointercancel"])
-    gate.addEventListener(ev, () => gate.classList.remove("arming"));
+  holdToFire(gate, () => write("adminLock", !adminLocked));
   const notice = el("span", { class: "notice" });
   // Note(yoochan.kim): Light while setting up, dark during a service. Remembered per browser.
   const SUN = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
@@ -451,6 +439,9 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     meta.set(state, songTitles);
 
     fader.setValue(state.volume);
+    // Note(yoochan.kim): a silent deck reads red, the same as a muted console
+    // input — one colour for one meaning, wherever sound is being held back.
+    fader.setMuted(state.mute === MuteState.MUTED);
     fader.setDisabled(state.audioLock);
     transport.update(state);
     renderSongRadios(state);

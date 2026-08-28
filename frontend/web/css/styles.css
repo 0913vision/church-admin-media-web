@@ -221,14 +221,14 @@ button { white-space: nowrap; }
 /* ---- lock: the one place the gate is toggled. It sits over the tabs and is
    shaped like them — a pill among flat rows read as a stray control. The hold
    to arm it is unchanged; only its outline is. ---- */
-.gate { display: flex; align-items: center; gap: 9px; font-size: 14.5px; font-weight: 600; padding: 8px 21px;
+.gate { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 600; padding: 8px 21px;
         border-radius: 0; background: var(--raised); color: var(--c-ink);
         border: 0; box-shadow: none; cursor: pointer; text-align: left;
         transition: background-color 0.16s ease, color 0.16s ease; }
 /* On the tabs' own margin and left edge, so every word in the column starts
    at the same place. The lamp takes an icon's slot to get there: it is 8px
    where a tab's glyph is 15, and the words would sit 7px apart. */
-.side > .gate { margin: 0 0 4px; }
+.side > .gate { margin: 0; }
 .side > .gate .led { width: 15px; background: none; display: grid; place-items: center; }
 .side > .gate .led::after { content: ""; width: 8px; height: 8px; border-radius: 50%;
                             background: var(--slot); }
@@ -237,9 +237,18 @@ button { white-space: nowrap; }
 .gate:hover:not(:disabled):not(.on) { background: var(--slot); }
 .gate { position: relative; overflow: hidden; }
 .gate > * { position: relative; }
-.gate .arm { position: absolute; inset: 0; width: 0; background: var(--bad-soft); transition: width 0.9s linear; }
-.gate.on .arm { background: rgba(255, 255, 255, 0.35); }
-.gate.arming .arm { width: 100%; }
+/* The gauge is what makes a hold visible, so it is a solid wash rather than a
+   tint: on a chip that is already raised, a soft one could not be seen at all. */
+.gate .arm, .pick .arm { position: absolute; inset: 0; width: 0; background: var(--bad-soft);
+                         transition: width 0.9s linear; }
+.gate .arm { background: rgba(220, 38, 38, 0.35); }
+.gate.on .arm { background: rgba(255, 255, 255, 0.45); }
+.gate.arming .arm, .pick.arming .arm { width: 100%; }
+.gate.cooling .arm, .pick.cooling .arm { width: 0; }
+/* A key that can be held needs the gauge behind its label, and a place to draw it. */
+.pick { position: relative; overflow: hidden; }
+.pick > * { position: relative; }
+.pick .arm { background: rgba(27, 32, 41, 0.16); }
 .gate.cooling { pointer-events: none; }
 .gate__l { color: inherit; }
 .gate.on { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
@@ -298,6 +307,9 @@ button { white-space: nowrap; }
 .slider.is-disabled { opacity: 0.5; cursor: default; }
 .volrow.dis .slider i { background: var(--slot); }
 .volrow.dis .volrow__n { color: var(--c-fnt); }
+/* Held silent: the same red a muted console input wears. */
+.slider.is-muted i { background: var(--bad); }
+.volrow__n.is-muted { color: var(--bad); }
 
 /* ================= clock tab ================= */
 .clockpanel { display: contents; }
@@ -419,8 +431,9 @@ button { white-space: nowrap; }
 .chrow { display: grid; grid-template-columns: minmax(110px, max-content) minmax(120px, 0.6fr) 128px 1fr max-content max-content;
          gap: 14px; align-items: center;
          padding: 11px 0; border-top: 1px solid var(--line); font-size: 15px; }
-.chrow__n { color: var(--c-mut); font-weight: 600; }
-.chrow.on .chrow__n { color: var(--c-ink); }
+/* A name does not change with the state of the thing it names; the level and
+   the key say what is happening. */
+.chrow__n { color: var(--c-ink); font-weight: 600; }
 /* The word follows its lamp: red while the input is held silent, green while it
    sounds, grey only when the desk has said nothing. */
 .chrow__s { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700;
@@ -442,6 +455,10 @@ button { white-space: nowrap; }
 .chrow__db.is-muted { color: var(--bad); }
 .chrow__muted { font-size: 13px; font-weight: 700; }
 .chrow__bar.is-muted i { background: var(--bad); }
+/* The key keeps one width whichever way it reads: a row that reflows when the
+   desk answers moves the meter beside it. */
+.pick--mute { min-width: 96px; justify-content: center; }
+
 /* Puts a level back where it belongs. A glyph, since it repeats on every row. */
 .iconbtn {
   justify-self: end; display: inline-flex; align-items: center; justify-content: center;
