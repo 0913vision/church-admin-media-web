@@ -332,7 +332,10 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
       el("div", {}, [deckSong, meta.el]),
     ]),
     el("div", { class: "volrow" }, [
-      el("span", { class: "volrow__l", textContent: "볼륨" }),
+      // Note(yoochan.kim): a speaker rather than the word. The row already reads as
+      // a level — a slider, a number, a mute key — so the label was only telling
+      // the reader something the shape of the row had said already.
+      el("span", { class: "volrow__l", title: "볼륨" }, [icon("volume", 19)]),
       fader.el,
       fader.valueEl,
       mute.el,

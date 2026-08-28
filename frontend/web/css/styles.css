@@ -9,6 +9,10 @@
   --mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
 
   --bg: #F1F4F9; --panel: #FFFFFF; --raised: #E8ECF4; --well: #E4E9F1; --slot: #D8DFEA;
+  /* The unfilled part of a meter. It has to stand off the card it sits on in
+     both themes — in dark it was darker than the card, so a bar at half looked
+     like a bar that simply stopped. */
+  --track: #D3DBE7;
   --line: rgba(20, 26, 40, 0.10);
   /* Contrast against the surface behind them: 7.5:1 and 4.5:1. The muted greys
      used to sit at 2.8:1, which is under what a body of text needs to be read. */
@@ -26,6 +30,7 @@
 }
 :root[data-theme="dark"] {
   --bg: #0F1216; --panel: #161B22; --raised: #1D242D; --well: #10151B; --slot: #232B35;
+  --track: #3B4657;
   --line: rgba(255, 255, 255, 0.08);
   --c-ink: #E9EDF4; --c-mut: #9BA5B6; --c-fnt: #7C8798;
   --go: #22C55E; --go-soft: rgba(34, 197, 94, 0.16); --go-face: #15803D;
@@ -145,8 +150,11 @@ button { font: inherit; }
 .view:not(.is-hidden) { display: flex; flex-direction: column; gap: 14px; flex: 1; min-height: 0; }
 
 /* ================= atoms ================= */
-.goto { font-size: 14px; color: var(--c-fnt); white-space: nowrap; background: none; border: 0; padding: 0; cursor: pointer; }
-.goto::after { content: " ›"; }
+/* The chevron is centred by the row rather than by the font. Left to sit in the
+   text it rode above the words — a glyph's own box is not its ink. */
+.goto { display: inline-flex; align-items: center; gap: 5px; font-size: 14px; color: var(--c-fnt);
+        white-space: nowrap; background: none; border: 0; padding: 0; cursor: pointer; }
+.goto::after { content: "›"; font-size: 17px; line-height: 1; }
 .goto:hover { color: var(--c-mut); }
 .tag { font-size: 14px; font-weight: 600; padding: 3px 11px; border-radius: 999px; background: var(--raised); color: var(--c-ink); }
 .tag--auto { background: var(--hold-soft); color: var(--hold); font-weight: 700; }
@@ -323,9 +331,16 @@ button { white-space: nowrap; }
 .volrow > .mute { margin-left: 14px; }
 .volrow__l { font-size: 14.5px; color: var(--c-fnt); }
 .volrow__n { font-size: 26px; font-weight: 700; text-align: right; letter-spacing: -0.02em; line-height: 1; }
-.slider { position: relative; height: 6px; border-radius: 3px; background: var(--slot); cursor: pointer; touch-action: none; }
-.slider i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: var(--go); }
-.slider u { position: absolute; top: 50%; width: 16px; height: 16px; border-radius: 50%;
+.slider { position: relative; height: 10px; border-radius: 3px; background: var(--track); cursor: pointer; touch-action: none; }
+.slider i { position: absolute; inset: 0 auto 0 0; border-radius: 3px 0 0 3px; background: var(--go); }
+/* Every tenth of the way, cut in the card's colour so a notch shows on the
+   filled side as well as the empty one. Without them the deck's level was a
+   coloured length with nothing to measure it against. */
+.slider::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 4px;
+  background: repeating-linear-gradient(90deg, var(--panel) 0 1px, transparent 1px 10%);
+}
+.slider u { position: absolute; top: 50%; width: 16px; height: 16px; border-radius: 50%; z-index: 1;
             background: var(--cap); border: 1px solid var(--cap-line);
             transform: translate(-50%, -50%); box-shadow: 0 1px 2px var(--key-dn); }
 .slider.is-disabled { opacity: 0.5; cursor: default; }
@@ -369,7 +384,14 @@ button { white-space: nowrap; }
 .tl__facts { display: flex; align-items: center; }
 .tl__facts > span { padding: 0 13px; }
 .tl__facts > span:first-child { padding-left: 0; }
-.tl__facts > span + span { border-left: 1px solid var(--line); }
+/* One rule of one height, centred on the row. As a border it took each span's
+   own line box, so a 16px name and a 13px tag drew rules of different lengths
+   sitting at different heights. */
+.tl__facts > span + span { position: relative; }
+.tl__facts > span + span::before {
+  content: ""; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 1px; height: 13px; background: var(--line);
+}
 .tl__row { display: flex; align-items: flex-start; gap: 14px; }
 .tl__col { flex: 1; min-width: 0; }
 .tl__col.is-preview { opacity: 0.7; }
@@ -411,7 +433,7 @@ button { white-space: nowrap; }
 .tl.is-ask .tl__head b, .tl.is-auto .tl__head b { color: #fff; }
 /* On a painted card the card is the state, so the lamp joins the text. */
 .tl.is-ask .led, .tl.is-auto .led { background: #fff; box-shadow: 0 0 7px rgba(255, 255, 255, 0.55); }
-.tl.is-ask .tl__facts > span + span, .tl.is-auto .tl__facts > span + span { border-left-color: rgba(255, 255, 255, 0.35); }
+.tl.is-ask .tl__facts > span + span::before, .tl.is-auto .tl__facts > span + span::before { background: rgba(255, 255, 255, 0.35); }
 .tl.is-ask .goto, .tl.is-auto .goto { color: rgba(255, 255, 255, 0.75); }
 .tl.is-ask .goto:hover, .tl.is-auto .goto:hover { color: #fff; }
 .tl.is-ask .tl__bar, .tl.is-auto .tl__bar { background: rgba(0, 0, 0, 0.25); }
@@ -426,8 +448,11 @@ button { white-space: nowrap; }
 .tl.is-ask .seg--gap, .tl.is-auto .seg--gap { background: transparent; box-shadow: none; }
 .tl.is-ask .tick.is-music, .tl.is-auto .tick.is-music { color: #fff; }
 .tl.is-ask .tl__ticks, .tl.is-auto .tl__ticks { color: rgba(255, 255, 255, 0.85); }
-/* The line stays dark on a painted card too. It was white here, which is the
-   colour of the blocks it crosses — over a song it disappeared entirely. */
+/* A painted card keeps its colour in either theme, so the line over it is pinned
+   dark rather than taking `--c-ink` — which flips to near-white in the dark
+   theme, the very colour of the blocks the line has to cross. */
+.tl.is-ask .now, .tl.is-auto .now { background: #1B2029; }
+.tl.is-ask .now::before, .tl.is-auto .now::before { border-top-color: #1B2029; }
 .tl.is-ask .btn--go { background: #fff; border-color: #fff; color: #0E6B34; }
 .tl.is-auto .btn { background: #fff; border-color: #fff; color: #7A4A06; }
 .tl__ask { margin-left: auto; display: flex; gap: 7px; }
@@ -443,7 +468,7 @@ button { white-space: nowrap; }
 /* The one press that moves the masters, held at the far end away from the rows.
    It wears an ordinary face: the dialog it opens carries the warning, and a red
    key here would claim the room is at stake before anyone has agreed to it. */
-.x32__init { margin-left: auto; }
+.x32__init { margin-left: auto; min-width: 96px; }
 .x32__h b { color: var(--c-ink); font-size: 16px; font-weight: 700; }
 /* The name and the button both hold words the media server chooses — an input
    can be renamed, and the button says either 켜기 or 켜져 있음. Both columns are
@@ -477,13 +502,20 @@ button { white-space: nowrap; }
 /* A meter, not a hairline. At 6px it was a thread the eye slid off; the track is
    outlined so the empty part is as readable as the filled part, which is what
    makes a level look like a level rather than a coloured smear. */
-.chrow__bar { height: 11px; border-radius: 3px; background: var(--well); position: relative;
+.chrow__bar { height: 11px; border-radius: 3px; background: var(--track); position: relative;
               box-shadow: inset 0 0 0 1px var(--line); }
 .chrow__bar i { position: absolute; inset: 0 auto 0 0; border-radius: 3px 0 0 3px; background: var(--c-fnt); }
+/* Notches every 10 dB across the meter's -60..+10, cut in the colour of the card
+   so they read over the fill and over the empty part alike. Seven steps put one
+   exactly on 0 dB, which is the one anybody looks for. */
+.chrow__bar::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 4px;
+  background: repeating-linear-gradient(90deg, var(--panel) 0 1px, transparent 1px calc(100% / 7));
+}
 .chrow.on .chrow__bar i { background: var(--go); }
 /* Where the level belongs. Solid and past both edges, so it reads as a mark on
    the scale — at 45% it faded into whatever it was sitting on. */
-.chrow__mark { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px;
+.chrow__mark { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; z-index: 1;
                border-radius: 1px; background: var(--c-ink);
                box-shadow: 0 0 0 1px var(--panel); }
 .chrow__bar.is-off i { background: var(--hold); }
@@ -511,7 +543,10 @@ button { white-space: nowrap; }
 
 /* ================= dashboard summary: the system tab in miniature ================= */
 .sum { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-top: 1px solid var(--line); padding-top: 12px; }
+/* A rule between the two, so the log does not read as a third column of the
+   machine's numbers. */
 .sum > div { min-width: 0; }
+.sum > div + div { padding-left: 20px; border-left: 1px solid var(--line); }
 /* These name whole blocks, so they are sized like the headings they are. */
 .sum__t { display: flex; align-items: center; justify-content: space-between; font-size: 14.5px;
           font-weight: 600; color: var(--c-mut); margin-bottom: 10px; }
@@ -601,7 +636,9 @@ button { white-space: nowrap; }
 .detail__songs > div { display: flex; justify-content: space-between; color: var(--c-mut); }
 /* When it starts and how loud it plays are two readings, kept apart by a rule. */
 .detail__cue { display: flex; align-items: center; gap: 9px; }
-.detail__vol { padding-left: 9px; border-left: 1px solid var(--line); color: var(--c-fnt); font-size: 13px; }
+.detail__vol { position: relative; padding-left: 9px; color: var(--c-fnt); font-size: 13px; }
+.detail__vol::before { content: ""; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+                       width: 1px; height: 13px; background: var(--line); }
 .detail__b { display: flex; gap: 7px; align-items: center; margin-top: auto; }
 
 /* ================= the run box (unknown phase fault only) ================= */
@@ -633,8 +670,12 @@ body.has-modal { overflow: hidden; }
   padding: 16px 20px; border-bottom: 1px solid var(--line);
 }
 .modal__t { flex: 1; min-width: 0; font-size: 16.5px; font-weight: 700; }
-.modal__a { display: flex; gap: 8px; }
+.modal__a { display: flex; align-items: center; gap: 8px; }
 .modal__a .btn { padding: 8px 16px; }
+/* Deleting sits in the head with the rest, but stood well off from 저장 — they
+   are one press apart on a keypad and one of them cannot be taken back. */
+.editor__danger { display: flex; align-items: center; gap: 8px; margin-right: 20px; }
+.editor__danger .editor__warn { font-size: 13px; }
 .modal__x {
   flex: none; width: 32px; height: 32px; border-radius: 8px; cursor: pointer;
   background: none; border: 0; color: var(--c-mut); font-size: 15px;
@@ -714,12 +755,6 @@ body.has-modal { overflow: hidden; }
 .editor__srow { display: flex; gap: 12px; }
 .editor__srow > span:first-child { width: 34px; color: var(--c-fnt); flex: none; }
 .editor__warn { color: var(--bad); font-weight: 600; }
-/* Only the one that cannot be taken back lives down here, quietly, away from
-   the head where saving is. */
-.editor__buttons { display: flex; align-items: center; gap: 10px;
-                   padding-top: 14px; margin-top: 10px; border-top: 1px solid var(--line); }
-.editor__buttons .btn { margin-left: auto; }
-.editor__buttons .btn + .btn { margin-left: 0; }
 
 /* ================= login ================= */
 .login { height: 100%; display: grid; place-items: center; background: var(--bg); }

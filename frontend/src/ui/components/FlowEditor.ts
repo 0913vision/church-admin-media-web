@@ -41,6 +41,8 @@ export class FlowEditor {
   private cues: ScheduledTrack[] = [];
   private endsAt = "20:00";
   private tracks: Track[] = [];
+  /** Whether this draft is already on the calendar — only then is deleting offered. */
+  private existing = false;
   /**
    * The one part that changes as you type. Lasting, not remade by `render`:
    * redrawing the editor replaced the box being typed into and lost its focus.
@@ -88,12 +90,13 @@ export class FlowEditor {
     this.cues = music ? music.tracks.map((cue) => ({ ...cue })) : [];
     this.endsAt = music?.endsAt ?? "20:00";
 
+    this.existing = flow !== null;
     this.el.classList.remove("is-hidden");
-    this.render(flow !== null);
+    this.render();
     this.emit();
   }
 
-  private render(existing: boolean): void {
+  private render(): void {
     this.el.replaceChildren(
       this.field("이름", this.text(this.name, (value) => { this.name = value; })),
       this.field("요일", this.weekdayRow()),
@@ -105,7 +108,6 @@ export class FlowEditor {
       this.field("잠금 해제", this.unlockRow()),
       this.field("시작", this.autoRow()),
       this.summaryEl,
-      this.buttons(existing),
     );
     this.refresh();
   }
@@ -134,7 +136,7 @@ export class FlowEditor {
       });
       button.addEventListener("click", () => {
         this.autoStart = value;
-        this.render(true);
+        this.render();
       });
       return button;
     };
@@ -195,7 +197,7 @@ export class FlowEditor {
         this.smallButton("✕", "빼기", () => {
           this.cues.splice(index, 1);
           this.emit();
-          this.render(true);
+          this.render();
         }),
       ]);
     });
@@ -219,7 +221,7 @@ export class FlowEditor {
         // someone would have picked anyway — and can then be changed here.
         this.cues.push({ id: track.id, volume: track.volume });
         this.emit();
-        this.render(true);
+        this.render();
       });
     });
 
@@ -300,7 +302,7 @@ export class FlowEditor {
       button.addEventListener("click", () => {
         this.followsMusic = value;
         this.emit();
-        this.render(true);
+        this.render();
       });
       return button;
     };
@@ -376,8 +378,13 @@ export class FlowEditor {
   }
 
   /**
-   * What this dialog is for, for its head to carry. They read the draft when
+   * Every key this dialog has, for its head to carry. They read the draft when
    * pressed, so they can be made once while the form below is redrawn.
+   *
+   * Note(yoochan.kim): deleting rides here too, rather than at the foot where it
+   * used to sit — one dialog answered in two places is a dialog you have to
+   * look twice at. It keeps its distance from 저장 instead: they are one press
+   * apart on a keypad and one of them cannot be taken back.
    */
   actions(): HTMLElement[] {
     const cancel = el("button", { class: "btn", type: "button", textContent: "취소" });
@@ -388,36 +395,29 @@ export class FlowEditor {
     this.saveButton = save;
     this.refresh();
 
-    return [cancel, save];
+    return this.existing ? [this.danger(), cancel, save] : [cancel, save];
   }
 
-  /**
-   * Note(yoochan.kim): deleting is nowhere near saving. They are one press apart
-   * on a keypad and one of them cannot be taken back.
-   */
-  private buttons(existing: boolean): HTMLElement {
-    if (!existing) return el("div", {});
-    const row = el("div", { class: "editor__buttons" });
+  /** Deleting, asked once in its own slot so the press that deletes is a second press. */
+  private danger(): HTMLElement {
+    const slot = el("div", { class: "editor__danger" });
 
     const offer = (): void => {
-      const remove = el("button", { class: "textbtn textbtn--bad", type: "button", textContent: "이 자동 진행 삭제" });
+      const remove = el("button", { class: "textbtn textbtn--bad", type: "button", textContent: "삭제" });
       remove.addEventListener("click", ask);
-      row.replaceChildren(remove);
+      slot.replaceChildren(remove);
     };
 
-    // Note(yoochan.kim): asked in place rather than in a second dialog over this
-    // one. The question takes the button's spot, so the press that deletes is
-    // never the press that was already on its way.
     const ask = (): void => {
-      const keep = el("button", { class: "btn btn--small", type: "button", textContent: "그대로 두기" });
+      const keep = el("button", { class: "btn btn--small", type: "button", textContent: "아니오" });
       keep.addEventListener("click", offer);
       const yes = el("button", { class: "btn btn--stop btn--small", type: "button", textContent: "삭제" });
       yes.addEventListener("click", () => this.options.onDelete(this.id));
-      row.replaceChildren(el("span", { class: "editor__warn", textContent: "삭제하면 되돌릴 수 없어요" }), keep, yes);
+      slot.replaceChildren(el("span", { class: "editor__warn", textContent: "되돌릴 수 없어요" }), keep, yes);
     };
 
     offer();
-    return row;
+    return slot;
   }
 
   private entry(): FlowEntry {
@@ -450,7 +450,7 @@ export class FlowEditor {
     const [moved] = this.cues.splice(index, 1);
     this.cues.splice(to, 0, moved!);
     this.emit();
-    this.render(true);
+    this.render();
   }
 
   private smallButton(glyph: string, title: string, onClick: () => void): HTMLElement {
