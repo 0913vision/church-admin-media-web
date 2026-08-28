@@ -35,6 +35,33 @@ interface LogPayload {
   reason?: string;
 }
 
+type LogSource = "media" | "kernel";
+
+/** One scheduled job as the machine holds it, plus whatever note was written beside it. */
+interface CronPayload {
+  available: boolean;
+  jobs: { when: string; command: string; note: string }[];
+  reason?: string;
+}
+
+const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
+
+/**
+ * A crontab's five fields in words. Only the shapes this building actually uses
+ * are spelled out; anything else goes back as written rather than as a guess,
+ * because a schedule described wrongly is worse than one left in its own syntax.
+ */
+function whenInWords(when: string): string {
+  const [min, hour, dom, mon, dow] = when.split(/\s+/);
+  if (min === undefined || hour === undefined || !/^\d+$/.test(min) || !/^\d+$/.test(hour)) return when;
+  const at = `${hour.padStart(2, "0")}:${min.padStart(2, "0")}`;
+  if (dom === "*" && mon === "*" && dow === "*") return `매일 ${at}`;
+  if (dom === "*" && mon === "*" && dow !== undefined && /^\d$/.test(dow)) {
+    return `${DAYS[Number(dow) % 7]}요일 ${at}`;
+  }
+  return when;
+}
+
 /**
  * htop on the left, the media server's own log on the right.
  *
@@ -48,19 +75,51 @@ export class SystemPanel {
   private readonly host = el("span", { textContent: BLANK });
   private readonly htop = el("div", { class: "htop" });
   private readonly log = el("div", { class: "log" });
+  private readonly cron = el("div", { class: "cron" });
+  /**
+   * Which log the right-hand panel is showing. The dashboard's small copy always
+   * follows the media server's, whichever is picked here — it is a summary of
+   * the thing this dashboard drives, not of whatever is being read at the moment.
+   */
+  private source: LogSource = "media";
+  private readonly tabs: Record<LogSource, HTMLButtonElement>;
+  private pull: (() => void) | null = null;
   private timer = 0;
 
   constructor() {
+    const tab = (key: LogSource, label: string): HTMLButtonElement => {
+      const button = el("button", { type: "button", textContent: label }) as HTMLButtonElement;
+      button.classList.toggle("on", this.source === key);
+      button.addEventListener("click", () => this.pick(key));
+      return button;
+    };
+    this.tabs = { media: tab("media", "미디어 서버"), kernel: tab("kernel", "커널") };
+
     this.el = el("div", { class: "sys" }, [
       el("div", { class: "sys__p" }, [
         el("div", { class: "sys__t" }, [el("span", { textContent: "호스트" }), this.host]),
         this.htop,
+        // Note(yoochan.kim): what this machine does on its own. The checks that run
+        // before a service are root's jobs and belong to no login, so they are
+        // invisible from here unless the panel goes and reads them.
+        el("div", { class: "sys__t sys__t--sub" }, [el("span", { textContent: "예약 작업" })]),
+        this.cron,
       ]),
       el("div", { class: "sys__p" }, [
-        el("div", { class: "sys__t" }, [el("span", { textContent: "미디어 서버 로그" })]),
+        el("div", { class: "sys__t" }, [
+          el("span", { textContent: "로그" }),
+          el("div", { class: "segctl segctl--logs" }, [this.tabs.media, this.tabs.kernel]),
+        ]),
         this.log,
       ]),
     ]);
+  }
+
+  private pick(source: LogSource): void {
+    this.source = source;
+    for (const [key, button] of Object.entries(this.tabs)) button.classList.toggle("on", key === source);
+    this.log.replaceChildren(el("div", { class: "log__none", textContent: "읽는 중이에요" }));
+    this.pull?.();
   }
 
   /**
@@ -70,14 +129,27 @@ export class SystemPanel {
    * show the top of the same log rather than a second telling of it.
    */
   watchLog(onLines?: (lines: HTMLElement[]) => void): () => void {
-    const pull = (): void => {
+    this.pull = (): void => {
       http
         .get<LogPayload>("/api/system/log")
-        .then((payload) => onLines?.(this.renderLog(payload)))
-        .catch(() => onLines?.(this.renderLog({ available: false, lines: [] })));
+        .then((payload) => onLines?.(this.mediaRows(payload, this.source === "media")))
+        .catch(() => onLines?.(this.mediaRows({ available: false, lines: [] }, this.source === "media")));
+      if (this.source === "kernel") {
+        http
+          .get<LogPayload>("/api/system/kernel")
+          .then((payload) => this.paintKernel(payload))
+          .catch(() => this.paintKernel({ available: false, lines: [] }));
+      }
     };
-    pull();
-    this.timer = window.setInterval(pull, 5000);
+    // Note(yoochan.kim): the jobs are read once. A crontab is edited by hand every
+    // year or two, and asking the machine for it every five seconds spends a
+    // process on an answer that has not changed since the page opened.
+    http
+      .get<CronPayload>("/api/system/cron")
+      .then((payload) => this.paintCron(payload))
+      .catch(() => this.paintCron({ available: false, jobs: [] }));
+    this.pull();
+    this.timer = window.setInterval(() => this.pull?.(), 5000);
     return () => window.clearInterval(this.timer);
   }
 
@@ -170,7 +242,56 @@ export class SystemPanel {
     this.htop.replaceChildren(...rows);
   }
 
-  private renderLog(payload: LogPayload): HTMLElement[] {
+  /** The kernel's tail. Its lines are the machine's own, so they are shown as they came. */
+  private paintKernel(payload: LogPayload): void {
+    if (!payload.available) {
+      this.log.replaceChildren(
+        el("div", { class: "log__none", textContent: `커널 로그를 읽을 수 없어요: ${payload.reason ?? "확인해 주세요"}` }),
+      );
+      return;
+    }
+    this.log.replaceChildren(
+      ...payload.lines
+        .slice(-120)
+        .reverse()
+        .map((line) => {
+          // "Aug 28 14:26:36 raspberrypi kernel: ..." — the stamp, then the rest.
+          const match = /^(\w{3}\s+\d+\s[\d:]{8})\s+\S+\s+([^:]+):\s*(.*)$/.exec(line);
+          const text = match?.[3] ?? line;
+          const bad = /error|fail|corrupt|read-only|panic|oops/i.test(text);
+          const warn = /warn|throttl|voltage|temperature/i.test(text);
+          return el("div", {}, [
+            el("time", { textContent: match?.[1]?.slice(7) ?? "" }),
+            el("b", { class: bad ? "error" : warn ? "warn" : "debug", textContent: match?.[2] ?? "" }),
+            el("span", { textContent: text }),
+          ]);
+        }),
+    );
+  }
+
+  /** What this machine does on its own, and when. */
+  private paintCron(payload: CronPayload): void {
+    if (!payload.available || payload.jobs.length === 0) {
+      const why = payload.available ? "예약된 작업이 없어요" : `읽을 수 없어요: ${payload.reason ?? "확인해 주세요"}`;
+      this.cron.replaceChildren(el("div", { class: "log__none", textContent: why }));
+      return;
+    }
+    this.cron.replaceChildren(
+      ...payload.jobs.map((job) =>
+        el("div", { class: "cron__r" }, [
+          el("span", { class: "cron__w", textContent: whenInWords(job.when) }),
+          el("span", { class: "cron__c", textContent: job.note || job.command, title: job.command }),
+        ]),
+      ),
+    );
+  }
+
+  /**
+   * The media server's tail. Always rendered, because the dashboard's small copy
+   * wants these rows whichever log this panel happens to be showing; `paint` is
+   * whether they also belong on the panel itself.
+   */
+  private mediaRows(payload: LogPayload, paint: boolean): HTMLElement[] {
     if (!payload.available) {
       // Note(yoochan.kim): which file, and why. "읽을 수 없어요" on its own sends
       // the reader to SSH, which is the one thing this panel is here to avoid.
@@ -180,7 +301,12 @@ export class SystemPanel {
           ...(payload.path === undefined ? [] : [el("code", { textContent: payload.path })]),
         ]),
       ];
-      this.log.replaceChildren(...none);
+      if (paint) this.log.replaceChildren(...none);
+      return none;
+    }
+    if (payload.lines.length === 0) {
+      const none = [el("div", { class: "log__none", textContent: "아직 기록이 없어요" })];
+      if (paint) this.log.replaceChildren(...none);
       return none;
     }
     const rows = payload.lines
@@ -196,7 +322,7 @@ export class SystemPanel {
           el("span", { textContent: text.trim() }),
         ]);
       });
-    this.log.replaceChildren(...rows.map((row) => row.cloneNode(true)));
+    if (paint) this.log.replaceChildren(...rows.map((row) => row.cloneNode(true)));
     return rows;
   }
 }

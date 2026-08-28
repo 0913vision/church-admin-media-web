@@ -333,12 +333,11 @@ button { white-space: nowrap; }
 .volrow__n { font-size: 26px; font-weight: 700; text-align: right; letter-spacing: -0.02em; line-height: 1; }
 .slider { position: relative; height: 10px; border-radius: 3px; background: var(--track); cursor: pointer; touch-action: none; }
 .slider i { position: absolute; inset: 0 auto 0 0; border-radius: 3px 0 0 3px; background: var(--go); }
-/* Every tenth of the way, cut in the card's colour so a notch shows on the
-   filled side as well as the empty one. Without them the deck's level was a
-   coloured length with nothing to measure it against. */
+/* Every tenth of the way, cut through the whole bar in the card's colour. Without
+   it the deck's level was a coloured length with nothing to measure it against. */
 .slider::after {
-  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 4px;
-  background: repeating-linear-gradient(90deg, var(--panel) 0 1px, transparent 1px 10%);
+  content: ""; position: absolute; inset: 0;
+  background: repeating-linear-gradient(90deg, var(--panel) 0 1.5px, transparent 1.5px 10%);
 }
 .slider u { position: absolute; top: 50%; width: 16px; height: 16px; border-radius: 50%; z-index: 1;
             background: var(--cap); border: 1px solid var(--cap-line);
@@ -505,12 +504,13 @@ button { white-space: nowrap; }
 .chrow__bar { height: 11px; border-radius: 3px; background: var(--track); position: relative;
               box-shadow: inset 0 0 0 1px var(--line); }
 .chrow__bar i { position: absolute; inset: 0 auto 0 0; border-radius: 3px 0 0 3px; background: var(--c-fnt); }
-/* Notches every 10 dB across the meter's -60..+10, cut in the colour of the card
-   so they read over the fill and over the empty part alike. Seven steps put one
-   exactly on 0 dB, which is the one anybody looks for. */
+/* Every 10 dB across the meter's -60..+10, cut through the whole height in the
+   colour of the card behind it. A notch at the foot of the bar was a scratch the
+   eye slid over; a full cut divides the bar into steps you can count.
+   Seven steps land one exactly on 0 dB, which is the one anybody looks for. */
 .chrow__bar::after {
-  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 4px;
-  background: repeating-linear-gradient(90deg, var(--panel) 0 1px, transparent 1px calc(100% / 7));
+  content: ""; position: absolute; inset: 0;
+  background: repeating-linear-gradient(90deg, var(--panel) 0 1.5px, transparent 1.5px calc(100% / 7));
 }
 .chrow.on .chrow__bar i { background: var(--go); }
 /* Where the level belongs. Solid and past both edges, so it reads as a mark on
@@ -565,10 +565,24 @@ button { white-space: nowrap; }
    columns widen with it, or a wider glyph runs into the bar beside it. */
 .sys__t { display: flex; align-items: center; gap: 13px; font-size: 14.5px; font-weight: 600;
           color: var(--c-mut); margin-bottom: 10px; }
+/* A second heading inside a panel, standing off what came before it. */
+.sys__t--sub { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
+/* Which log the panel is showing. Small, because it names a view rather than
+   doing anything to the building. */
+.segctl--logs { height: 26px; margin-left: auto; }
+.segctl--logs > button { padding: 0 11px; font-size: 12.5px; font-weight: 600; }
+/* What the machine does on its own: when, then what. */
+.cron { font-size: 13.5px; line-height: 1.9; }
+.cron__r { display: grid; grid-template-columns: 96px 1fr; gap: 10px; color: var(--c-mut); }
+.cron__w { color: var(--c-ink); font-weight: 600; }
+.cron__c { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--mono); font-size: 12.5px; }
 .htop { font-family: var(--mono); font-size: 14px; line-height: 1.8; }
 .htop__r { display: grid; grid-template-columns: 52px 1fr 86px; gap: 9px; align-items: center; }
 .htop__l { color: var(--c-fnt); }
-.htop__b { height: 9px; background: var(--well); border-radius: 2px; display: flex; overflow: hidden; }
+/* The same track every meter here uses. On `--well` the unused part of a bar was
+   darker than the card in the dark theme, so a CPU at 20% looked like a bar that
+   simply ended rather than one four-fifths empty. */
+.htop__b { height: 9px; background: var(--track); border-radius: 2px; display: flex; overflow: hidden; }
 .htop__b i { height: 100%; background: var(--go); }
 .htop__b i.is-warn { background: var(--hold); }
 .htop__b i.is-bad { background: var(--bad); }

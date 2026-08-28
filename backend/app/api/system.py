@@ -1,3 +1,4 @@
+import asyncio
 from collections import deque
 from pathlib import Path
 
@@ -9,6 +10,29 @@ from app.config import settings
 router = APIRouter(prefix="/api/system", tags=["system"], dependencies=[Depends(require_session)])
 
 _LINES = 200
+_RUN_TIMEOUT = 5.0
+
+
+async def _run(*command: str) -> tuple[bool, list[str], str]:
+    """Runs a fixed read-only command and returns its lines.
+
+    Note(yoochan.kim): the words are literals in this file and never come from a
+    request, and the shell is not involved — this reads the machine, and the only
+    way it could ever write to it is if somebody passed input in here.
+    """
+    try:
+        process = await asyncio.create_subprocess_exec(
+            *command, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL
+        )
+        out, _ = await asyncio.wait_for(process.communicate(), timeout=_RUN_TIMEOUT)
+    except (OSError, asyncio.TimeoutError) as error:
+        return False, [], str(error) or "실행할 수 없어요"
+    if process.returncode != 0:
+        # The exit code, not the machine's own words: stderr is thrown away here so
+        # that nothing this process is told ever reaches a browser.
+        return False, [], f"이 기계에서 {command[0]}을(를) 쓸 수 없어요 (코드 {process.returncode})"
+    text = out.decode("utf-8", errors="replace")
+    return True, [line for line in text.splitlines() if line.strip()], ""
 
 
 @router.get("/log")
@@ -28,3 +52,40 @@ async def log() -> dict:
         # file sends you to SSH anyway — which is how a wrong path went unnoticed.
         return {"available": False, "lines": [], "path": str(path), "reason": error.strerror or "읽을 수 없어요"}
     return {"available": True, "lines": [line.rstrip("\n") for line in lines]}
+
+
+@router.get("/kernel")
+async def kernel() -> dict:
+    """The kernel's own tail.
+
+    Note(yoochan.kim): this is where a Pi says the things nothing else reports — an SD
+    card going read-only, USB audio dropping off, the board browning out. None of
+    that reaches the media server's log, so a panel that only shows that log is
+    quiet in exactly the failures worth catching early.
+    """
+    ok, lines, reason = await _run("journalctl", "-k", "--no-pager", "-n", str(_LINES))
+    return {"available": ok, "lines": lines, "reason": reason}
+
+
+@router.get("/cron")
+async def cron() -> dict:
+    """Root's scheduled jobs, as the machine has them.
+
+    Read-only and root's own, because that is where this building's jobs live —
+    the checks that run before a service belong to no login.
+    """
+    ok, lines, reason = await _run("sudo", "-n", "crontab", "-l")
+    if not ok:
+        return {"available": False, "jobs": [], "reason": reason}
+    jobs = []
+    for line in lines:
+        if line.lstrip().startswith("#"):
+            continue
+        # A crontab line is five time fields and then the command; a trailing
+        # "# ..." is the author's own note about it, so it is kept as one.
+        parts = line.split(None, 5)
+        if len(parts) < 6:
+            continue
+        command, _, note = parts[5].partition("#")
+        jobs.append({"when": " ".join(parts[:5]), "command": command.strip(), "note": note.strip()})
+    return {"available": True, "jobs": jobs, "reason": ""}
