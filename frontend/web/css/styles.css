@@ -412,7 +412,11 @@ button { white-space: nowrap; }
    and the spare width sat unused at the far end instead. */
 /* Note: the lamp sits with the name it belongs to, the meter takes a share
    rather than everything left, and the keys hold the right edge. */
-.chrow { display: grid; grid-template-columns: minmax(110px, max-content) minmax(120px, 0.6fr) max-content 1fr max-content max-content;
+/* Note: the level column is a fixed width, wide enough for the longest reading
+   it ever holds. Sized to its content it grew when "(음소거)" appeared, and the
+   meter beside it shrank — so a muted row's bar came out shorter than its
+   neighbour's, which reads as a level that moved. */
+.chrow { display: grid; grid-template-columns: minmax(110px, max-content) minmax(120px, 0.6fr) 128px 1fr max-content max-content;
          gap: 14px; align-items: center;
          padding: 11px 0; border-top: 1px solid var(--line); font-size: 15px; }
 .chrow__n { color: var(--c-mut); font-weight: 600; }
@@ -433,10 +437,10 @@ button { white-space: nowrap; }
 .chrow__bar.is-off i { background: var(--hold); }
 /* The reading turns red when the input is muted: the number and the meter say
    it together, which is why the row needs no lamp of its own. */
-.chrow__db { display: flex; align-items: center; gap: 6px; color: var(--c-mut); font-size: 12.5px;
-             font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chrow__db { display: flex; align-items: center; gap: 6px; color: var(--c-ink); font-size: 15px;
+             font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .chrow__db.is-muted { color: var(--bad); }
-.chrow__muted { font-weight: 700; }
+.chrow__muted { font-size: 13px; font-weight: 700; }
 .chrow__bar.is-muted i { background: var(--bad); }
 /* Puts a level back where it belongs. A glyph, since it repeats on every row. */
 .iconbtn {
