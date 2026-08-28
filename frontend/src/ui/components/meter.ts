@@ -30,3 +30,34 @@ export function meter(input: ConsoleInput): HTMLElement {
 export function levelText(input: ConsoleInput): string {
   return input.state.kind === "read" ? `${input.state.db.toFixed(1)} dB` : BLANK;
 }
+
+/**
+ * The lamp and the word beside it.
+ *
+ * Note(yoochan.kim): muted, not off. The desk mutes a channel and unmutes it; it
+ * is never switched off, and ON/OFF reads as power — a different claim.
+ */
+export function statusOf(input: ConsoleInput): HTMLElement {
+  const read = input.state;
+  const on = read.kind === "read" && read.on;
+  return el("span", { class: "chrow__s" }, [
+    el("span", { class: `led ${on ? "led--go" : "led--off"}` }),
+    el("span", { textContent: read.kind === "read" ? (read.on ? "UNMUTED" : "MUTED") : BLANK }),
+  ]);
+}
+
+/**
+ * The one press that puts sound into a room, so it is red while the input is
+ * silent and inert once it is not.
+ */
+export function unmuteButton(input: ConsoleInput, reachable: boolean, onEnable: () => void): HTMLButtonElement {
+  const on = input.state.kind === "read" && input.state.on;
+  const button = el("button", {
+    class: `pick${on ? "" : " btn--stop"}`,
+    type: "button",
+    textContent: on ? "소리 나는 중" : "소리 켜기",
+  }) as HTMLButtonElement;
+  button.disabled = !reachable || on;
+  button.addEventListener("click", onEnable);
+  return button;
+}

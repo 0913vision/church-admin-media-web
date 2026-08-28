@@ -1,6 +1,6 @@
-import { BLANK, el } from "../../util/dom.js";
+import { el } from "../../util/dom.js";
 import type { ConsoleInput } from "../../protocol.js";
-import { levelText, meter } from "./meter.js";
+import { levelText, meter, statusOf, unmuteButton } from "./meter.js";
 import { icon } from "../icons.js";
 
 export interface ConsolePanelOptions {
@@ -56,15 +56,8 @@ export class ConsolePanel {
 
     this.strip.replaceChildren(
       ...this.state.map((input) => {
-        const read = input.state;
-        const on = read.kind === "read" && read.on;
-        const button = el("button", {
-          class: "pick",
-          type: "button",
-          textContent: on ? "켜져 있음" : "켜기",
-        }) as HTMLButtonElement;
-        button.disabled = !this.reachable || on;
-        button.addEventListener("click", () => this.options.onEnable(input.id));
+        const on = input.state.kind === "read" && input.state.on;
+        const button = unmuteButton(input, this.reachable, () => this.options.onEnable(input.id));
 
         // Note(yoochan.kim): the same command as switching on — it drives every
         // channel to its own level — offered where a moved fader is visible.
@@ -75,10 +68,7 @@ export class ConsolePanel {
 
         return el("div", { class: `chrow${on ? " on" : ""}` }, [
           el("span", { class: "chrow__n", textContent: input.label }),
-          el("span", { class: "chrow__s" }, [
-            el("span", { class: `led ${on ? "led--go" : "led--off"}` }),
-            el("span", { textContent: read.kind === "read" ? (read.on ? "ON" : "OFF") : BLANK }),
-          ]),
+          statusOf(input),
           meter(input),
           el("span", { class: "chrow__db", textContent: levelText(input) }),
           reset,
