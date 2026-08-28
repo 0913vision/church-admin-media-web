@@ -433,14 +433,10 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
       // bar across the top had nothing left in it once these moved, so it is gone.
       el("aside", { class: "side" }, [gate, nav, el("div", { class: "side__gap" }), theme, logout]),
       el("div", { class: "main" }, [
-        el("main", { class: "page" }, [
-          views.overview,
-          views.schedule,
-          views.console,
-          views.clock,
-          views.system,
-          views.logs,
-        ]),
+        // Note(yoochan.kim): every view, taken from the map rather than listed by
+        // hand. Written out one by one, a new tab is a section that exists and is
+        // never mounted — and the deck, moved into it, left the page altogether.
+        el("main", { class: "page" }, Object.values(views)),
       ]),
       confirm.el,
     ]),
