@@ -13,6 +13,9 @@
      both themes — in dark it was darker than the card, so a bar at half looked
      like a bar that simply stopped. */
   --track: #D3DBE7;
+  /* The grip on a fader. Not a key: it has to stand off the track it slides on,
+     which is pale here and dark in the other theme. */
+  --knob: #FFFFFF;
   --line: rgba(20, 26, 40, 0.10);
   /* Contrast against the surface behind them: 7.5:1 and 4.5:1. The muted greys
      used to sit at 2.8:1, which is under what a body of text needs to be read. */
@@ -31,6 +34,7 @@
 :root[data-theme="dark"] {
   --bg: #0F1216; --panel: #161B22; --raised: #1D242D; --well: #10151B; --slot: #232B35;
   --track: #3B4657;
+  --knob: #E9EDF4;
   --line: rgba(255, 255, 255, 0.08);
   --c-ink: #E9EDF4; --c-mut: #9BA5B6; --c-fnt: #7C8798;
   --go: #22C55E; --go-soft: rgba(34, 197, 94, 0.16); --go-face: #15803D;
@@ -350,7 +354,7 @@ button { white-space: nowrap; }
   background: repeating-linear-gradient(90deg, var(--c-mut) 0 2px, transparent 2px 10%);
 }
 .slider u { position: absolute; top: 50%; width: 16px; height: 16px; border-radius: 50%; z-index: 1;
-            background: var(--cap); border: 1px solid var(--cap-line);
+            background: var(--knob); border: 1px solid var(--cap-line);
             transform: translate(-50%, -50%); box-shadow: 0 1px 2px var(--key-dn); }
 .slider.is-disabled { opacity: 0.5; cursor: default; }
 .volrow.dis .slider i { background: var(--slot); }
