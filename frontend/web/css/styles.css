@@ -365,6 +365,9 @@ button { white-space: nowrap; }
 .tl.is-ask .seg, .tl.is-auto .seg { background: rgba(255, 255, 255, 0.94); color: #1B2029;
                                     box-shadow: inset -1px 0 0 var(--go-face); }
 .tl.is-auto .seg { box-shadow: inset -1px 0 0 var(--hold-face); }
+/* The stretch before the first song is silence, and has to look like it. This
+   rule outranks the one above, which was painting it like a song. */
+.tl.is-ask .seg--gap, .tl.is-auto .seg--gap { background: transparent; box-shadow: none; }
 .tl.is-ask .tick.is-music, .tl.is-auto .tick.is-music { color: #fff; }
 .tl.is-ask .tl__ticks, .tl.is-auto .tl__ticks { color: rgba(255, 255, 255, 0.85); }
 .tl.is-ask .now, .tl.is-auto .now { background: #fff; }
