@@ -74,7 +74,12 @@ button { font: inherit; }
 /* Anything shaped like a tab sits on the tabs' own margin, or its text starts
    further in than theirs and the column reads crooked. */
 .side > .nav, .side > .nav__tab { margin: 0; }
+/* A column, so the tabs stretch across it. A button shrinks to its own label
+   however it is displayed, and the chosen one was painted only as wide as its
+   own words — a stripe the length of "대시보드" rather than of the sidebar. */
+.nav { display: flex; flex-direction: column; }
 .nav__tab {
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 9px;
@@ -258,10 +263,9 @@ button { white-space: nowrap; }
 /* A key that can be held needs the gauge behind its label, and a place to draw it. */
 .pick { position: relative; overflow: hidden; }
 .pick > * { position: relative; }
-/* Solid, and in the colour of what the hold is about to do. A tint on a grey
-   key could not be seen filling, which is the one thing the gauge is for. */
-.pick .arm { background: var(--go); }
-.pick.arming { color: #fff; }
+/* A shade darker than the key it fills, so the movement is what shows rather
+   than a colour. Colour on this page means a state; a gauge is neither. */
+.pick .arm { background: var(--slot); }
 .gate.cooling { pointer-events: none; }
 .gate__l { color: inherit; }
 .gate.on { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
@@ -430,6 +434,10 @@ button { white-space: nowrap; }
 .x32__h { display: flex; align-items: center; gap: 11px; font-size: 14.5px; color: var(--c-mut); margin-bottom: 9px; }
 /* The lamp belongs to the word beside it, not to the title. */
 .x32__link { display: flex; align-items: center; gap: 8px; }
+/* The one press that moves the masters, held at the far end away from the rows.
+   It wears an ordinary face: the dialog it opens carries the warning, and a red
+   key here would claim the room is at stake before anyone has agreed to it. */
+.x32__init { margin-left: auto; }
 .x32__h b { color: var(--c-ink); font-size: 16px; font-weight: 700; }
 /* The name and the button both hold words the media server chooses — an input
    can be renamed, and the button says either 켜기 or 켜져 있음. Both columns are
@@ -503,9 +511,13 @@ button { white-space: nowrap; }
 /* ================= system tab: htop + the server's own log ================= */
 .sys { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(360px, 1fr) minmax(0, 1fr); gap: 14px; }
 .sys__p { background: var(--panel); border-radius: 12px; padding: 13px 15px; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
-.sys__t { display: flex; align-items: center; gap: 13px; font-size: 13px; color: var(--c-fnt); margin-bottom: 9px; }
-.htop { font-family: var(--mono); font-size: 12.5px; line-height: 1.75; }
-.htop__r { display: grid; grid-template-columns: 46px 1fr 78px; gap: 8px; align-items: center; }
+/* Note: this tab is read from a chair, not glanced at. Its type was sized for
+   the dashboard's miniature of it and came out too small to read here — the
+   columns widen with it, or a wider glyph runs into the bar beside it. */
+.sys__t { display: flex; align-items: center; gap: 13px; font-size: 14.5px; font-weight: 600;
+          color: var(--c-mut); margin-bottom: 10px; }
+.htop { font-family: var(--mono); font-size: 14px; line-height: 1.8; }
+.htop__r { display: grid; grid-template-columns: 52px 1fr 86px; gap: 9px; align-items: center; }
 .htop__l { color: var(--c-fnt); }
 .htop__b { height: 9px; background: var(--well); border-radius: 2px; display: flex; overflow: hidden; }
 .htop__b i { height: 100%; background: var(--go); }
@@ -514,7 +526,7 @@ button { white-space: nowrap; }
 .htop__v { color: var(--c-mut); text-align: right; font-variant-numeric: tabular-nums; }
 .htop__load { display: flex; gap: 9px; margin-top: 9px; color: var(--c-mut); }
 .htop__proc { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 9px; }
-.htop__proc div { display: grid; grid-template-columns: 52px 1fr 46px 46px; gap: 8px; color: var(--c-mut); }
+.htop__proc div { display: grid; grid-template-columns: 58px 1fr 52px 52px; gap: 9px; color: var(--c-mut); }
 .htop__proc div.h { color: var(--c-fnt); }
 .htop__proc div span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .log { flex: 1; min-height: 0; overflow: auto; font-family: var(--mono);
@@ -527,6 +539,9 @@ button { white-space: nowrap; }
 .log b.error { color: var(--bad); }
 .log b.debug { color: var(--c-fnt); }
 .log span { color: var(--c-mut); overflow: hidden; text-overflow: ellipsis; }
+/* Only here. The dashboard's copy is a miniature and keeps its own smaller type. */
+.sys .log { font-size: 13.5px; line-height: 1.9; }
+.sys .log b { width: 46px; }
 .sys .log span { overflow: visible; text-overflow: clip; }
 .sys .log::-webkit-scrollbar { width: 10px; height: 10px; }
 .sys .log::-webkit-scrollbar-thumb { background: var(--slot); border-radius: 5px; }
@@ -612,6 +627,9 @@ body.has-modal { overflow: hidden; }
 }
 .modal__x:hover { background: var(--raised); color: var(--c-ink); }
 .modal__b { flex: 1; min-height: 0; overflow: auto; padding: 6px 20px 20px; }
+/* A question the dialog asks, at reading size. The keys that answer it are in
+   the head, so nothing here competes with them. */
+.ask { margin: 0; padding: 10px 0 6px; font-size: 15.5px; line-height: 1.6; color: var(--c-ink); }
 
 /* ================= flow editor ================= */
 .editor { display: flex; flex-direction: column; }

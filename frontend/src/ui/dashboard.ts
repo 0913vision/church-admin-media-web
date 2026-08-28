@@ -12,6 +12,7 @@ import { throttle } from "../util/rate.js";
 import { ConsolePanel } from "./components/ConsolePanel.js";
 import { levelText, meter, unmuteButton } from "./components/meter.js";
 import { holdToFire } from "./components/hold.js";
+import { Modal } from "./components/Modal.js";
 import { Fader } from "./components/Fader.js";
 import { SchedulePanel } from "./components/SchedulePanel.js";
 import { SystemPanel, formatUptime } from "./components/SystemPanel.js";
@@ -140,6 +141,26 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   };
 
   /**
+   * Puts the whole desk back to where a service starts — the same command the
+   * panel's two-finger press sends.
+   *
+   * Note(yoochan.kim): asked first, in the same words the panel uses. It moves the
+   * masters, so the room hears it the moment it lands.
+   */
+  const initializeConsole = (): void => {
+    const body = el("p", { class: "ask", textContent: "본당 음향을 예배와 동일하게 변경합니다. 진행할까요?" });
+    const no = el("button", { class: "btn", type: "button", textContent: "아니오" });
+    no.addEventListener("click", () => confirm.close());
+    const yes = el("button", { class: "btn btn--go", type: "button", textContent: "네" });
+    yes.addEventListener("click", () => {
+      confirm.close();
+      guard(deviceApi.invoke({ command: "initializeConsole", args: {} }));
+      showNotice("본당 음향을 예배와 동일하게 맞췄어요", true);
+    });
+    confirm.open("주의", body, () => {}, [no, yes]);
+  };
+
+  /**
    * A write to the calendar, and what it did. A refusal used to be swallowed by
    * `guard`, so a save the backend rejected left the dialog open saying nothing.
    */
@@ -179,7 +200,11 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   });
   const consolePanel = new ConsolePanel({
     onEnable: (input, resend) => sendConsole(input, resend),
+    onInitialize: () => initializeConsole(),
   });
+  // Note(yoochan.kim): one dialog for the whole page's questions, so a second one
+  // can never open behind the first.
+  const confirm = new Modal();
   const systemPanel = new SystemPanel();
   const church = new ChurchClock();
   const clockPanel = new ClockPanel({
@@ -387,6 +412,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
           views.system,
         ]),
       ]),
+      confirm.el,
     ]),
     // Note(yoochan.kim): last, and outside the shell. A dialog opens deeper in the
     // tree than this sat, and later siblings win however high a z-index the

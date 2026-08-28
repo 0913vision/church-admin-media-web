@@ -1,11 +1,12 @@
 import { el } from "../../util/dom.js";
 import type { ConsoleInput } from "../../protocol.js";
 import { levelText, meter, unmuteButton } from "./meter.js";
-import { icon } from "../icons.js";
 
 export interface ConsolePanelOptions {
   /** `resend` when the press was a hold on an input that already sounds. */
   onEnable: (inputId: string, resend: boolean) => void;
+  /** Puts the whole desk back to where a service starts. */
+  onInitialize: () => void;
 }
 
 /**
@@ -20,6 +21,7 @@ export class ConsolePanel {
   private readonly strip: HTMLElement;
   private readonly led: HTMLElement;
   private readonly conn: HTMLElement;
+  private readonly initialize: HTMLButtonElement;
   private reachable = false;
   private state: ConsoleInput[] = [];
 
@@ -27,6 +29,11 @@ export class ConsolePanel {
     this.strip = el("div", {});
     this.led = el("span", { class: "led led--go" });
     this.conn = el("span", { textContent: "연결됨" });
+    // Note(yoochan.kim): the same act as the panel's two-finger press — every
+    // input up, the mute group released, the masters at their levels. It is one
+    // press for the whole desk, so it sits with the desk rather than in a row.
+    this.initialize = el("button", { class: "btn btn--small x32__init", type: "button", textContent: "전체 초기화" });
+    this.initialize.addEventListener("click", () => this.options.onInitialize());
     this.el = el("div", { class: "x32" }, [
       // Note(yoochan.kim): the lamp sits with the word it is about. Beside the
       // title it looked like a lamp for the desk itself, which is not what it
@@ -34,6 +41,7 @@ export class ConsolePanel {
       el("div", { class: "x32__h" }, [
         el("b", { textContent: "X32 콘솔" }),
         el("span", { class: "x32__link" }, [this.conn, this.led]),
+        this.initialize,
       ]),
       this.strip,
     ]);
@@ -55,6 +63,7 @@ export class ConsolePanel {
     // the media server did — a silent desk says 응답 없음.
     const heard = this.state.some((input) => input.state.kind === "read");
     this.led.className = `led ${this.reachable && heard ? "led--go" : "led--bad"}`;
+    this.initialize.disabled = !this.reachable;
     this.conn.textContent = !this.reachable ? "알 수 없음" : heard ? "연결됨" : "응답 없음";
 
     this.strip.replaceChildren(
@@ -62,19 +71,14 @@ export class ConsolePanel {
         const on = input.state.kind === "read" && input.state.on;
         const button = unmuteButton(input, this.reachable, (resend) => this.options.onEnable(input.id, resend));
 
-        // Note(yoochan.kim): the same command as switching on — it drives every
-        // channel to its own level — offered where a moved fader is visible.
-        const reset = el("button", { class: "iconbtn", type: "button" }, [icon("reset", 16)]) as HTMLButtonElement;
-        reset.disabled = !this.reachable;
-        reset.title = `${input.nominalDb.toFixed(1)} dB로 되돌려요`;
-        reset.addEventListener("click", () => this.options.onEnable(input.id, true));
-
+        // Note(yoochan.kim): no per-row reset key. Holding the row's own button
+        // already re-sends that input's level, and putting the whole desk back
+        // is one act — it belongs to the panel, not to a row.
         return el("div", { class: `chrow${on ? " on" : ""}` }, [
           el("span", { class: "chrow__n", textContent: input.label }),
           meter(input),
           levelText(input),
           el("span", {}),
-          reset,
           button,
         ]);
       }),
