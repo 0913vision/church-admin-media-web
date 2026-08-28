@@ -113,6 +113,7 @@ button { font: inherit; }
   box-shadow: 0 6px 18px rgba(20, 26, 40, 0.18);
 }
 .notice.on { transform: translate(-50%, 16px); opacity: 1; }
+.notice.is-ok { background: var(--go); }
 
 /* A lamp carries no spacing of its own; the row it sits in decides.
 
@@ -237,8 +238,10 @@ button { white-space: nowrap; }
    where a tab's glyph is 15, and the words would sit 7px apart. */
 .side > .gate { margin: 0; }
 .side > .gate .led { width: 15px; background: none; display: grid; place-items: center; }
+/* Green while the gate is open, red while it holds. Grey on a raised chip is
+   the one pairing that cannot be seen. */
 .side > .gate .led::after { content: ""; width: 8px; height: 8px; border-radius: 50%;
-                            background: var(--slot); }
+                            background: var(--go); box-shadow: 0 0 7px var(--go); }
 .side > .gate.on .led { box-shadow: none; }
 .side > .gate.on .led::after { background: var(--bad); box-shadow: 0 0 7px var(--bad); }
 .gate:hover:not(:disabled):not(.on) { background: var(--slot); }
@@ -255,7 +258,10 @@ button { white-space: nowrap; }
 /* A key that can be held needs the gauge behind its label, and a place to draw it. */
 .pick { position: relative; overflow: hidden; }
 .pick > * { position: relative; }
-.pick .arm { background: rgba(27, 32, 41, 0.16); }
+/* Solid, and in the colour of what the hold is about to do. A tint on a grey
+   key could not be seen filling, which is the one thing the gauge is for. */
+.pick .arm { background: var(--go); }
+.pick.arming { color: #fff; }
 .gate.cooling { pointer-events: none; }
 .gate__l { color: inherit; }
 .gate.on { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
@@ -285,7 +291,8 @@ button { white-space: nowrap; }
 .play.paused { background: var(--cap); border-color: var(--cap-line); color: var(--cap-ink);
                box-shadow: 0 1px 2px var(--key-dn); }
 .play:active:not(:disabled) { transform: translateY(1px); }
-.play svg { width: 26px; height: 26px; }
+/* The glyph fills its key: at 26px in a 66px circle it read as a mark, not a control. */
+.play svg { width: 34px; height: 34px; }
 .play:disabled { opacity: 0.45; cursor: default; }
 .deck__song { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
 .deck__meta { display: flex; align-items: center; gap: 8px; margin-top: 6px; color: var(--c-mut); font-size: 15px; }
@@ -483,7 +490,9 @@ button { white-space: nowrap; }
 /* ================= dashboard summary: the system tab in miniature ================= */
 .sum { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-top: 1px solid var(--line); padding-top: 12px; }
 .sum > div { min-width: 0; }
-.sum__t { display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; color: var(--c-fnt); margin-bottom: 8px; }
+/* These name whole blocks, so they are sized like the headings they are. */
+.sum__t { display: flex; align-items: center; justify-content: space-between; font-size: 14.5px;
+          font-weight: 600; color: var(--c-mut); margin-bottom: 10px; }
 .sum__row { display: grid; grid-template-columns: 56px 1fr 48px; gap: 9px; align-items: center;
             font-size: 13px; color: var(--c-mut); line-height: 2; }
 .sum__row .htop__b { height: 7px; }

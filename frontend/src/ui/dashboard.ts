@@ -72,15 +72,12 @@ interface DeckMeta {
 }
 
 function deckMeta(): DeckMeta {
-  const led = el("span", { class: "led led--off" });
-  const text = el("span", {});
   const chip = el("span", { class: "chip chip--go is-hidden" });
   return {
-    el: el("div", { class: "deck__meta" }, [led, text, chip]),
+    // Note(yoochan.kim): no lamp and no "정지됨". The key beside this is already
+    // the state and the way to change it; a second telling can only disagree.
+    el: el("div", { class: "deck__meta" }, [chip]),
     set(state) {
-      const playing = state.playback === "playing";
-      led.className = `led ${playing ? "led--go" : "led--off"}`;
-      text.textContent = playing ? "재생 중" : "정지됨";
       const flow = state.flow;
       chip.classList.toggle("is-hidden", flow.phase !== "playing");
       if (flow.phase === "playing") chip.textContent = `자동 진행 ${flow.track.index}/${flow.track.total}`;
@@ -129,6 +126,20 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   const sendVolume = throttle((value: number) => write("volume", value), 60);
 
   /**
+   * Drives one console input to its own level.
+   *
+   * Note(yoochan.kim): a re-send says so out loud. Nothing on screen changes — the
+   * desk already reported the input as sounding — so without a word the press
+   * looks like it missed.
+   */
+  const sendConsole = (input: string, resend: boolean): void => {
+    guard(deviceApi.invoke({ command: "enableConsoleInput", args: { input } }));
+    if (!resend) return;
+    const label = consoleState.find((entry) => entry.id === input)?.label ?? "입력";
+    showNotice(`${label} 소리를 기준으로 되돌렸어요`, true);
+  };
+
+  /**
    * A write to the calendar, and what it did. A refusal used to be swallowed by
    * `guard`, so a save the backend rejected left the dialog open saying nothing.
    */
@@ -167,7 +178,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     },
   });
   const consolePanel = new ConsolePanel({
-    onEnable: (input) => guard(deviceApi.invoke({ command: "enableConsoleInput", args: { input } })),
+    onEnable: (input, resend) => sendConsole(input, resend),
   });
   const systemPanel = new SystemPanel();
   const church = new ChurchClock();
@@ -253,9 +264,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     consoleStrip.replaceChildren(
       ...consoleState.map((input) => {
         const on = input.state.kind === "read" && input.state.on;
-        const button = unmuteButton(input, consoleReachable, () =>
-          guard(deviceApi.invoke({ command: "enableConsoleInput", args: { input: input.id } })),
-        );
+        const button = unmuteButton(input, consoleReachable, (resend) => sendConsole(input.id, resend));
 
         return el("div", { class: `chrow${on ? " on" : ""}` }, [
           el("span", { class: "chrow__n", textContent: input.label }),
@@ -396,8 +405,9 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   });
 
   /** Shows why something did nothing, rather than leaving it looking broken. */
-  const showNotice = (text: string): void => {
+  const showNotice = (text: string, done = false): void => {
     notice.textContent = text;
+    notice.classList.toggle("is-ok", done);
     notice.classList.add("on");
     window.clearTimeout(noticeTimer);
     noticeTimer = window.setTimeout(() => notice.classList.remove("on"), 4000);

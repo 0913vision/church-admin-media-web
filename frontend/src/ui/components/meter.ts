@@ -53,7 +53,12 @@ export function levelText(input: ConsoleInput): HTMLElement {
  * The one press that puts sound into a room, so it is red while the input is
  * silent and inert once it is not.
  */
-export function unmuteButton(input: ConsoleInput, reachable: boolean, onEnable: () => void): HTMLButtonElement {
+export function unmuteButton(
+  input: ConsoleInput,
+  reachable: boolean,
+  /** `resend` when the press was a hold on an input that already sounds. */
+  onEnable: (resend: boolean) => void,
+): HTMLButtonElement {
   const on = input.state.kind === "read" && input.state.on;
   const button = el("button", {
     class: `pick pick--mute${on ? " pick--hold" : " btn--stop"}`,
@@ -67,9 +72,9 @@ export function unmuteButton(input: ConsoleInput, reachable: boolean, onEnable: 
   button.disabled = !reachable;
   if (on) {
     button.title = `${input.nominalDb.toFixed(1)} dB로 다시 보내려면 길게 누르세요`;
-    holdToFire(button, onEnable);
+    holdToFire(button, () => onEnable(true));
   } else {
-    button.addEventListener("click", onEnable);
+    button.addEventListener("click", () => onEnable(false));
   }
   return button;
 }

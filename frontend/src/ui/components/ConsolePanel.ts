@@ -4,7 +4,8 @@ import { levelText, meter, unmuteButton } from "./meter.js";
 import { icon } from "../icons.js";
 
 export interface ConsolePanelOptions {
-  onEnable: (inputId: string) => void;
+  /** `resend` when the press was a hold on an input that already sounds. */
+  onEnable: (inputId: string, resend: boolean) => void;
 }
 
 /**
@@ -59,14 +60,14 @@ export class ConsolePanel {
     this.strip.replaceChildren(
       ...this.state.map((input) => {
         const on = input.state.kind === "read" && input.state.on;
-        const button = unmuteButton(input, this.reachable, () => this.options.onEnable(input.id));
+        const button = unmuteButton(input, this.reachable, (resend) => this.options.onEnable(input.id, resend));
 
         // Note(yoochan.kim): the same command as switching on — it drives every
         // channel to its own level — offered where a moved fader is visible.
         const reset = el("button", { class: "iconbtn", type: "button" }, [icon("reset", 16)]) as HTMLButtonElement;
         reset.disabled = !this.reachable;
         reset.title = `${input.nominalDb.toFixed(1)} dB로 되돌려요`;
-        reset.addEventListener("click", () => this.options.onEnable(input.id));
+        reset.addEventListener("click", () => this.options.onEnable(input.id, true));
 
         return el("div", { class: `chrow${on ? " on" : ""}` }, [
           el("span", { class: "chrow__n", textContent: input.label }),
