@@ -1,12 +1,12 @@
 import type { FlowStatus } from "../protocol.js";
 
 /**
- * Whether a run holds the gate, and with it the deck.
+ * Whether a run has the deck.
  *
- * Note(yoochan.kim): the same condition the device applies — it refuses every deck
- * write with flowActive from the moment the gate engages. An accepted flow that
- * has not started yet still leaves the deck to whoever is at the panel.
+ * Note(yoochan.kim): the same condition the device applies — sounding music, not
+ * merely holding the gate. A flow holding the gate keeps the panel out; the deck
+ * is still free, and the device takes writes to it.
  */
 export function flowOwnsDeck(flow: FlowStatus): boolean {
-  return flow.phase === "playing" || flow.phase === "holding";
+  return flow.phase === "playing";
 }
