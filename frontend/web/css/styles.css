@@ -270,7 +270,7 @@ button { white-space: nowrap; }
    not by being stretched to fit it — widened alone it became an oval, which is
    not a lamp. Green while the gate is open, red while it holds; grey on a
    raised chip is the one pairing that cannot be seen. */
-.side > .gate .led { margin: 0 3.5px; background: var(--go); box-shadow: 0 0 7px var(--go); }
+.side > .gate .led { margin: 0 7px 0 0; background: var(--go); box-shadow: 0 0 7px var(--go); }
 .side > .gate.on .led { background: var(--bad); box-shadow: 0 0 7px var(--bad); }
 .gate:hover:not(:disabled):not(.on) { background: var(--slot); }
 .gate { position: relative; overflow: hidden; }
