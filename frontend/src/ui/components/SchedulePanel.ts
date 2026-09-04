@@ -45,6 +45,8 @@ export class SchedulePanel {
   private readonly modal: Modal;
   private tracks = new Map<string, Track>();
   private running = false;
+  /** The id of the flow the device is running, or "" when none is. */
+  private runningId = "";
 
   constructor(private readonly options: SchedulePanelOptions) {
     this.runBox = el("div", { class: "run is-hidden" });
@@ -106,6 +108,7 @@ export class SchedulePanel {
   setStatus(status: FlowStatus): void {
     this.message.textContent = "";
     this.running = status.phase !== "idle";
+    this.runningId = status.phase === "idle" ? "" : status.id;
     this.renderFault(status);
     this.renderDetail();
   }
@@ -149,12 +152,12 @@ export class SchedulePanel {
     const music = flow.parts.find((part) => part.kind === "music");
     const rows: HTMLElement[] = [
       row("요일", el("span", { textContent: `${flow.weekdayLabels.join(", ")}요일` })),
-      row("시작", el("span", {}, [
-        el("span", {
-          class: flow.autoStart ? "tag tag--auto" : "tag",
-          textContent: flow.autoStart ? "자동 시작" : "승인 필요",
-        }),
-      ])),
+      row(
+        "시작",
+        flow.autoStart
+          ? el("span", { class: "tag tag--auto", textContent: "자동 시작" })
+          : el("span", { textContent: "눌러야 시작해요" }),
+      ),
       row("잠금", el("span", { class: "num", textContent: `${hhmmss(minutesOf(flow.lock.at) * 60)} → ${this.closesOf(flow)}` })),
     ];
 
@@ -188,7 +191,11 @@ export class SchedulePanel {
       });
     }
 
-    const edit = el("button", { class: "pick", type: "button", textContent: "편집" });
+    // Note(yoochan.kim): the device owns its run, so a save here would change the
+    // calendar without changing what is playing.
+    const edit = el("button", { class: "pick", type: "button", textContent: "편집" }) as HTMLButtonElement;
+    edit.disabled = this.runningId === flow.id;
+    if (edit.disabled) edit.title = "진행 중에는 편집할 수 없어요";
     edit.addEventListener("click", () => this.openEditor(flow));
 
     let action: HTMLElement;

@@ -108,7 +108,7 @@ export class WeekView {
       "div",
       { class: "cal__days" },
       [el("span", {}), ...DAYS.map((label, column) =>
-        el("span", { class: column === today ? "wk" : "", textContent: `${label}${column === today && label.length === 1 ? "요일" : ""}` }),
+        el("span", { class: column === today ? "wk" : "", textContent: label }),
       )],
     );
 

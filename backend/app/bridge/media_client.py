@@ -115,6 +115,8 @@ class MediaBridge:
         @sio.event
         async def disconnect() -> None:
             self._link = {"connected": False}
+            # Note(yoochan.kim): a replayed beat reads as a live one, so it dies with the link.
+            self._last_ping = None
             self._publish_link()
 
         @sio.on(S2C.READY)

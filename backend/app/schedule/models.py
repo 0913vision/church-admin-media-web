@@ -78,6 +78,7 @@ class ScheduledFlow:
                 closes_at += timedelta(days=1)
 
         return {
+            "id": self.id,
             "name": self.name,
             "lock": {"at": _wire(opens_at), "until": _wire(closes_at)},
             "parts": parts,
