@@ -101,7 +101,9 @@ button { font: inherit; }
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 9px;
+  /* Kept in step with the gate above: both sit their words the same distance
+     from the icon column, or one row in the list reads as indented. */
+  gap: 7px;
   padding: 8px 21px;
   border-radius: 0;
   color: var(--c-mut);
@@ -258,7 +260,7 @@ button { white-space: nowrap; }
 /* ---- lock: the one place the gate is toggled. It sits over the tabs and is
    shaped like them — a pill among flat rows read as a stray control. The hold
    to arm it is unchanged; only its outline is. ---- */
-.gate { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 600; padding: 8px 21px;
+.gate { display: flex; align-items: center; gap: 7px; font-size: 15px; font-weight: 600; padding: 8px 21px;
         border-radius: 0; background: var(--raised); color: var(--c-ink);
         border: 0; box-shadow: none; cursor: pointer; text-align: left;
         transition: background-color 0.16s ease, color 0.16s ease; }
