@@ -41,7 +41,7 @@ interface Span {
  *
  * The device reports what phase a run is in but not the shape of it; the
  * window and the track list belong to the calendar on this side. Matching the
- * two by name is what lets the dashboard draw the whole run rather than a
+ * two by id is what lets the dashboard draw the whole run rather than a
  * sentence about part of it.
  */
 export class FlowPanel {
@@ -83,7 +83,7 @@ export class FlowPanel {
   private render(): void {
     const running = this.status.phase !== "idle";
     const flow = running
-      ? this.flows.find((each) => each.name === (this.status as { name?: string }).name)
+      ? this.flows.find((each) => each.id === (this.status as { id?: string }).id)
       : this.candidate();
 
     if (!flow) {
@@ -128,7 +128,7 @@ export class FlowPanel {
       if (span.segments.length > 0) facts.push(`${hhmm(span.musicTo)}에 음악 종료`);
       facts.push(`${hhmm(span.closes)}에 잠금 해제`);
     } else {
-      if (flow.autoStart) facts.push("자동으로 시작해요");
+      if (flow.autoStart) facts.push("자동으로 시작");
       facts.push(opensInSec > 0 ? `${durationOf(opensInSec)} 뒤 시작해요` : "자동 진행을 시작할 수 있어요");
       if (span.segments.length > 0) {
         // Note(yoochan.kim): written out here rather than left to the scale, where a

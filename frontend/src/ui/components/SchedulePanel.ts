@@ -152,7 +152,7 @@ export class SchedulePanel {
     const music = flow.parts.find((part) => part.kind === "music");
     const rows: HTMLElement[] = [
       row("요일", el("span", { textContent: `${flow.weekdayLabels.join(", ")}요일` })),
-      row("시작", el("span", { textContent: flow.autoStart ? "자동으로 시작해요" : "눌러야 시작해요" })),
+      row("시작", el("span", { textContent: flow.autoStart ? "자동으로 시작" : "직접 눌러서 시작" })),
       row("잠금", el("span", { class: "num", textContent: `${hhmmss(minutesOf(flow.lock.at) * 60)} → ${this.closesOf(flow)}` })),
     ];
 

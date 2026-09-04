@@ -140,7 +140,7 @@ export class FlowEditor {
       });
       return button;
     };
-    return el("div", { class: "segctl" }, [choice("눌러야 시작해요", false), choice("자동으로 시작해요", true)]);
+    return el("div", { class: "segctl" }, [choice("직접 눌러서 시작", false), choice("자동으로 시작", true)]);
   }
 
   private text(value: string, onInput: (value: string) => void): HTMLElement {
