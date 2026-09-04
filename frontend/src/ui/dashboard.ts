@@ -21,6 +21,7 @@ import { FlowPanel } from "./components/FlowPanel.js";
 import { ChurchClock, driftOf, hhmmOf, ssOf } from "../util/churchClock.js";
 import { TransportControls } from "./components/TransportControls.js";
 import { icon } from "./icons.js";
+import { flowOwnsDeck } from "../util/flow.js";
 
 type ViewKey = "overview" | "player" | "schedule" | "console" | "clock" | "system" | "logs";
 
@@ -316,16 +317,16 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
 
   /** The deck's song list — the confirmed radio, one row per song. */
   const renderSongRadios = (state: State): void => {
-    const flowOwnsDeck = state.flow.phase === "playing";
+    const held = flowOwnsDeck(state.flow);
     songRadios.replaceChildren(
       ...[...songTitles.entries()].map(([id, title]) => {
-        const selected = !flowOwnsDeck && id === state.song;
+        const selected = !held && id === state.song;
         const row = el("button", { class: selected ? "on" : "", type: "button" }, [
           el("span", { class: "r" }),
           title,
         ]);
-        row.disabled = state.audioLock || flowOwnsDeck;
-        row.title = flowOwnsDeck ? "자동 진행이 재생 중이에요" : "";
+        row.disabled = state.audioLock || held;
+        row.title = held ? "자동 진행 중이에요" : "";
         if (!selected) row.addEventListener("click", () => write("song", id));
         return row;
       }),
@@ -504,10 +505,11 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     // Note(yoochan.kim): a silent deck reads red, the same as a muted console
     // input — one colour for one meaning, wherever sound is being held back.
     fader.setMuted(state.mute === MuteState.MUTED);
-    fader.setDisabled(state.audioLock);
+    const deckHeld = state.audioLock || flowOwnsDeck(state.flow);
+    fader.setDisabled(deckHeld);
     transport.update(state);
     renderSongRadios(state);
-    mute.set(state.mute === MuteState.MUTED, state.audioLock);
+    mute.set(state.mute === MuteState.MUTED, deckHeld);
 
     adminLocked = state.adminLock;
     // A state, not an instruction: this chip says what the gate is, and pressing

@@ -1,6 +1,7 @@
 import { el } from "../../util/dom.js";
 import { PlaybackState } from "../../protocol.js";
 import type { State } from "../../protocol.js";
+import { flowOwnsDeck } from "../../util/flow.js";
 
 export interface TransportOptions {
   onToggle: (next: PlaybackState) => void;
@@ -32,8 +33,8 @@ export class TransportControls {
     this.el.title = playing ? "정지" : "재생";
     // Note(yoochan.kim): A flow's music is the flow's to stop: pausing under it would leave the
     // run describing sound that is not there.
-    const flowOwnsDeck = state.flow.phase === "playing";
-    this.el.disabled = state.audioLock || flowOwnsDeck;
-    if (flowOwnsDeck) this.el.title = "자동 진행이 재생 중이에요";
+    const held = flowOwnsDeck(state.flow);
+    this.el.disabled = state.audioLock || held;
+    if (held) this.el.title = "자동 진행 중이에요";
   }
 }
