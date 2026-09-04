@@ -174,8 +174,6 @@ button { font: inherit; }
         white-space: nowrap; background: none; border: 0; padding: 0; cursor: pointer; }
 .goto::after { content: "›"; font-size: 17px; line-height: 1; }
 .goto:hover { color: var(--c-mut); }
-.tag { font-size: 14px; font-weight: 600; padding: 3px 11px; border-radius: 999px; background: var(--raised); color: var(--c-ink); }
-.tag--auto { background: var(--hold-soft); color: var(--hold); font-weight: 700; }
 
 /* ---- keycap: a button that visibly presses ---- */
 /* A label on a key is two or three words and names one act. Broken across
@@ -718,8 +716,6 @@ button { white-space: nowrap; }
 .blk__n i.auto { display: inline-block; width: 0; height: 0; margin-right: 5px; vertical-align: middle;
                  border-left: 5px solid currentColor; border-top: 3.5px solid transparent;
                  border-bottom: 3.5px solid transparent; }
-.blk__m { position: absolute; left: 0; right: 0; background: var(--seg-idle); opacity: 0.85; }
-.blk.sel .blk__m { background: #fff; opacity: 0.35; }
 
 .detail { background: var(--panel); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
 .detail__n { font-size: 18px; font-weight: 700; margin-bottom: 2px; }

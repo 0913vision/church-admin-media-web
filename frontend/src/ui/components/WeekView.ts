@@ -169,19 +169,10 @@ export class WeekView {
 
   private block(flow: ScheduledFlow, pct: (minutes: number) => number, rangeTo: number): HTMLElement {
     const opens = minutesOf(flow.lock.at);
-    const music = flow.parts.find((part) => part.kind === "music");
     const closesFlow = this.spanOf(flow).closes;
     const closes = Math.min(rangeTo, closesFlow);
 
     const children: HTMLElement[] = [];
-    if (music) {
-      const endsAt = minutesOf(music.endsAt);
-      // Note(yoochan.kim): Without track lengths here the music span is drawn from the lock's own
-      // start; the editor is where exact lengths are checked.
-      const top = ((Math.max(opens, endsAt - 60) - opens) / Math.max(1, closes - opens)) * 100;
-      const height = ((endsAt - Math.max(opens, endsAt - 60)) / Math.max(1, closes - opens)) * 100;
-      children.push(el("div", { class: "blk__m", style: `top:${top}%;height:${height}%` }));
-    }
     children.push(
       el("div", { class: "blk__n" }, [
         ...(flow.autoStart ? [el("i", { class: "auto" })] : []),
