@@ -266,13 +266,12 @@ button { white-space: nowrap; }
    at the same place. The lamp takes an icon's slot to get there: it is 8px
    where a tab's glyph is 15, and the words would sit 7px apart. */
 .side > .gate { margin: 0; }
-.side > .gate .led { width: 15px; background: none; display: grid; place-items: center; }
-/* Green while the gate is open, red while it holds. Grey on a raised chip is
-   the one pairing that cannot be seen. */
-.side > .gate .led::after { content: ""; width: 8px; height: 8px; border-radius: 50%;
-                            background: var(--go); box-shadow: 0 0 7px var(--go); }
-.side > .gate.on .led { box-shadow: none; }
-.side > .gate.on .led::after { background: var(--bad); box-shadow: 0 0 7px var(--bad); }
+/* The lamp keeps its own 8px and is centred in the 15px an icon takes by margin,
+   not by being stretched to fit it — widened alone it became an oval, which is
+   not a lamp. Green while the gate is open, red while it holds; grey on a
+   raised chip is the one pairing that cannot be seen. */
+.side > .gate .led { margin: 0 3.5px; background: var(--go); box-shadow: 0 0 7px var(--go); }
+.side > .gate.on .led { background: var(--bad); box-shadow: 0 0 7px var(--bad); }
 .gate:hover:not(:disabled):not(.on) { background: var(--slot); }
 .gate { position: relative; overflow: hidden; }
 .gate > * { position: relative; }
