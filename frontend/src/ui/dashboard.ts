@@ -41,10 +41,15 @@ const NAV: { key: ViewKey; label: string; icon: string }[] = [
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
-/** A track's length, written the way the library list writes it. */
+/**
+ * A track's length for a column of them.
+ *
+ * Note(yoochan.kim): mm:ss rather than the list's "61분 25초". Right-aligned, the two
+ * numbers in that form put 분 in a different place on every row.
+ */
 function lengthOf(seconds: number): string {
   const whole = Math.round(seconds);
-  return `${Math.floor(whole / 60)}분 ${String(whole % 60).padStart(2, "0")}초`;
+  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
 }
 
 /** Every attribute the dashboard needs before it can claim to show the device */

@@ -833,14 +833,22 @@ body.has-modal { overflow: hidden; }
 /* A table, not a list of boxes: the column says what the number is, and a
    setting added later is one more column. The levels sit under each other so
    they can be compared, which is the only way a level means anything. */
+/* Note(yoochan.kim): the columns are fixed, not max-content. Each row is its own grid, so
+   content-sized columns are sized by that row alone and no two rows agree — the
+   heading ended up over nothing in particular. */
 .setlist { display: flex; flex-direction: column; }
-.setlist__r { display: grid; grid-template-columns: 1fr max-content 88px; gap: 16px; align-items: center;
+.setlist__r { display: grid; grid-template-columns: 1fr 96px 84px; gap: 16px; align-items: center;
               padding: 7px 0; border-top: 1px solid var(--line); }
+.setlist__r > :nth-child(2), .setlist__r > :nth-child(3) { text-align: right; }
 .setlist__r--h { border-top: 0; padding-bottom: 9px; font-size: 13px; color: var(--c-mut); }
-.setlist__r--h > :last-child { text-align: right; }
 .setlist__n { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.setlist__d { font-size: 13.5px; color: var(--c-fnt); font-family: var(--mono); }
-.setlist .editor__input { text-align: right; font-variant-numeric: tabular-nums; }
+.setlist__d { font-size: 13.5px; color: var(--c-fnt); font-variant-numeric: tabular-nums; }
+/* The stepper reserves its width whether or not it is showing, which pushes a
+   right-aligned number off the column it belongs to. */
+.setlist .editor__input { text-align: right; font-variant-numeric: tabular-nums;
+                          appearance: textfield; -moz-appearance: textfield; }
+.setlist .editor__input::-webkit-inner-spin-button,
+.setlist .editor__input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 /* How much longer, offered as durations — the question is never "at what o'clock". */
 .whens { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 0 4px; }
 .whens .btn { flex: 1; min-width: 84px; }
