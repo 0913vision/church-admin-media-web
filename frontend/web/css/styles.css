@@ -837,16 +837,27 @@ body.has-modal { overflow: hidden; }
    content-sized columns are sized by that row alone and no two rows agree — the
    heading ended up over nothing in particular. */
 .setlist { display: flex; flex-direction: column; }
-.setlist__r { display: grid; grid-template-columns: 1fr 96px 84px; gap: 16px; align-items: center;
-              padding: 7px 0; border-top: 1px solid var(--line); }
+.setlist__r { display: grid; grid-template-columns: 1fr 96px 76px; gap: 16px; align-items: center;
+              padding: 3px 10px 3px 0; margin: 0 -10px 0 0; border-radius: 8px; }
 .setlist__r > :nth-child(2), .setlist__r > :nth-child(3) { text-align: right; }
-.setlist__r--h { border-top: 0; padding-bottom: 9px; font-size: 13px; color: var(--c-mut); }
+/* One rule, under the headings. Between every row as well, the table read as a
+   stack of separate things rather than one list. */
+.setlist__r--h { padding-bottom: 8px; margin-bottom: 4px; border-bottom: 1px solid var(--line);
+                 font-size: 13px; color: var(--c-mut); }
+.setlist__r:not(.setlist__r--h):hover { background: var(--raised); }
 .setlist__n { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .setlist__d { font-size: 13.5px; color: var(--c-fnt); font-variant-numeric: tabular-nums; }
-/* The stepper reserves its width whether or not it is showing, which pushes a
-   right-aligned number off the column it belongs to. */
-.setlist .editor__input { text-align: right; font-variant-numeric: tabular-nums;
-                          appearance: textfield; -moz-appearance: textfield; }
+/* A number that reads as a number until it is touched. Eight bordered boxes in a
+   column are the loudest thing on a page that exists to be read down.
+   The stepper is dropped: it reserves its width whether or not it is showing,
+   which pushes a right-aligned number off the column it belongs to. */
+.setlist .editor__input {
+  height: 30px; padding: 0 8px; text-align: right; font-size: 15px;
+  background: transparent; border-color: transparent; box-shadow: none;
+  font-variant-numeric: tabular-nums; appearance: textfield; -moz-appearance: textfield;
+}
+.setlist__r:hover .editor__input { background: var(--well); border-color: var(--line); }
+.setlist .editor__input:focus { background: var(--panel); border-color: var(--go); }
 .setlist .editor__input::-webkit-inner-spin-button,
 .setlist .editor__input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 /* How much longer, offered as durations — the question is never "at what o'clock". */
