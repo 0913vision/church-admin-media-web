@@ -215,7 +215,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   const confirm = new Modal();
   const libraryPanel = new LibraryPanel({
     onSelectSong: (id) => write("song", id),
-    onPlayTrack: (id) => guard(deviceApi.invoke({ command: "playTrack", args: { id } })),
+    onPlayTrack: (id) => guard(deviceApi.invoke({ command: "selectTrack", args: { id } })),
     onLoop: (loop) => write("loop", loop),
     onUnlockWhenDone: (on) => write("unlockWhenDone", on),
   });
