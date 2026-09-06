@@ -22,6 +22,7 @@ import { ChurchClock, driftOf, hhmmOf, ssOf } from "../util/churchClock.js";
 import { TransportControls } from "./components/TransportControls.js";
 import { icon } from "./icons.js";
 import { flowOwnsDeck } from "../util/flow.js";
+import { LibraryPanel } from "./components/LibraryPanel.js";
 
 type ViewKey = "overview" | "player" | "schedule" | "console" | "clock" | "system" | "logs";
 
@@ -42,7 +43,8 @@ const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 /** Every attribute the dashboard needs before it can claim to show the device */
 const ATTRIBUTES = [
-  "playback", "volume", "mute", "song", "adminLock", "audioLock", "isAdmin", "flow", "clockOffsetSec", "console",
+  "playback", "volume", "mute", "loop", "song", "deck", "unlockWhenDone",
+  "adminLock", "audioLock", "isAdmin", "flow", "clockOffsetSec", "console",
 ] as const;
 
 const REJECT_LABEL: Record<string, string> = {
@@ -211,6 +213,11 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   // Note(yoochan.kim): one dialog for the whole page's questions, so a second one
   // can never open behind the first.
   const confirm = new Modal();
+  const libraryPanel = new LibraryPanel({
+    onPlay: (id) => guard(deviceApi.invoke({ command: "playTrack", args: { id } })),
+    onLoop: (loop) => write("loop", loop),
+    onUnlockWhenDone: (on) => write("unlockWhenDone", on),
+  });
   const systemPanel = new SystemPanel({
     onOpenFile: (title, body) => confirm.open(title, body, () => {}),
   });
@@ -397,7 +404,9 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     schedule: el("section", { class: "view" }, [schedulePanel.el, ...schedulePanel.below()]),
     console: el("section", { class: "view" }, [consolePanel.el]),
     clock: el("section", { class: "view" }, [clockPanel.el]),
-    player: el("section", { class: "view" }, [deckOnPlayer]),
+    player: el("section", { class: "view" }, [
+      el("div", { class: "player" }, [deckOnPlayer, libraryPanel.el]),
+    ]),
     system: el("section", { class: "view" }, [systemPanel.el]),
     logs: el("section", { class: "view" }, [systemPanel.logEl]),
   };
@@ -484,21 +493,29 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     // Note(yoochan.kim): Catalogues are fixed for the connection, so they are applied once here
     // rather than re-read on every state patch.
     songTitles = new Map(link.songs.map((song) => [song.id, song.title]));
+    trackTitles = new Map(link.tracks.map((track) => [track.id, track.title]));
+    libraryPanel.setTracks(link.tracks, link.songs.map((song) => song.id));
     schedulePanel.setTracks(link.tracks);
     flowPanel.setTracks(link.tracks);
   };
 
   let songTitles = new Map<string, string>();
+  let trackTitles = new Map<string, string>();
 
   const renderDevice = (patch: StatePatch): void => {
     const device = deviceOf(patch);
     if (!device.known) return;
     const state = device.state;
 
-    // Note(yoochan.kim): While a flow plays its own track, the selected song is not what sounds.
-    const title =
-      state.flow.phase === "playing" ? state.flow.track.title : (songTitles.get(state.song) ?? state.song);
-    deckSong.textContent = title;
+    // Note(yoochan.kim): the deck names what is sounding, not what is selected. A flow's
+    // track and an admin's both take the deck while `song` still points at the
+    // panel's own, which is the one thing this must never show as playing.
+    deckSong.textContent =
+      state.flow.phase === "playing"
+        ? state.flow.track.title
+        : state.deck.source === "track"
+          ? (trackTitles.get(state.deck.id) ?? state.deck.id)
+          : (songTitles.get(state.song) ?? state.song);
     meta.set(state, songTitles);
 
     fader.setValue(state.volume);
@@ -530,6 +547,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     // Note(yoochan.kim): the clock is told before anything drawn against it, so a
     // correction shows at once rather than at the next heartbeat.
     church.setOffset(state.clockOffsetSec);
+    libraryPanel.setState(state);
     clockPanel.setOffset(state.clockOffsetSec);
     // Note(yoochan.kim): A run always holds the gate, so this is also "no clock changes while
     // music is playing".
