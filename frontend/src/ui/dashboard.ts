@@ -41,6 +41,12 @@ const NAV: { key: ViewKey; label: string; icon: string }[] = [
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
+/** The tab an address names, or nothing when it names none this build has. */
+function viewOf(hash: string): ViewKey | null {
+  const key = hash.replace(/^#/, "");
+  return NAV.some((entry) => entry.key === key) ? (key as ViewKey) : null;
+}
+
 /**
  * A track's length for a column of them.
  *
@@ -147,6 +153,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
 
   /** What the library holds, kept for the settings dialog to open onto. */
   let libraryTracks: Track[] = [];
+  let deckSongIds = new Set<string>();
   let trackLevels = new Map<string, number>();
 
   /**
@@ -248,13 +255,15 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     // setting added later is one more column rather than a redrawing.
     const body = el("div", { class: "setlist" }, [
       el("div", { class: "setlist__r setlist__r--h" }, [
+        el("span", {}),
         el("span", { textContent: "곡" }),
         el("span", { textContent: "길이" }),
         el("span", { textContent: "볼륨" }),
       ]),
     ]);
 
-    for (const track of libraryTracks) {
+    let index = 0;
+    const row = (track: Track): HTMLElement => {
       const input = el("input", {
         class: "editor__input",
         type: "number",
@@ -263,11 +272,26 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
       input.min = "0";
       input.max = "100";
       fields.set(track.id, input);
-      body.append(el("div", { class: "setlist__r" }, [
+      index += 1;
+      return el("div", { class: "setlist__r" }, [
+        el("span", { class: "setlist__i num", textContent: String(index) }),
         el("span", { class: "setlist__n", textContent: track.title }),
         el("span", { class: "setlist__d num", textContent: lengthOf(track.durationSec) }),
         input,
+      ]);
+    };
+
+    // Note(yoochan.kim): the same two groups the list is drawn in. Eight flat rows say the
+    // tracks are alike; two of them can be reached from the wall and six cannot.
+    const panelSongs = libraryTracks.filter((track) => deckSongIds.has(track.id));
+    const gated = libraryTracks.filter((track) => !deckSongIds.has(track.id));
+    body.append(...panelSongs.map(row));
+    if (gated.length > 0) {
+      body.append(el("div", { class: "setlist__g" }, [
+        el("span", { class: "icon" }, [icon("lock", 13)]),
+        el("span", { textContent: "잠금 필요" }),
       ]));
+      body.append(...gated.map(row));
     }
 
     const cancel = el("button", { class: "btn", type: "button", textContent: "취소" });
@@ -528,6 +552,10 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     // A tab title takes a string and nothing else, so this one separator is a
     // character. A plain hyphen: no dashes anywhere a reader sees.
     document.title = `${NAV.find((entry) => entry.key === key)?.label ?? ""} - 미디어 관리자`;
+    // Note(yoochan.kim): in the address, so a reload comes back to the tab it was on. A
+    // dashboard is left open on the log or the desk for an hour at a time, and
+    // refreshing to see something is not asking to be sent home.
+    if (viewOf(location.hash) !== key) history.replaceState(null, "", `#${key}`);
   };
 
   const nav = el(
@@ -564,7 +592,9 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     notice,
   );
 
-  setView("overview");
+  setView(viewOf(location.hash) ?? "overview");
+  // The address is the tab, so the browser's own back and forward move between them.
+  window.addEventListener("hashchange", () => setView(viewOf(location.hash) ?? "overview"));
 
   church.start((now) => {
     topDate.textContent = `${now.getMonth() + 1}월 ${now.getDate()}일 (${WEEKDAYS[now.getDay()]})`;
@@ -603,6 +633,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     songTitles = new Map(link.songs.map((song) => [song.id, song.title]));
     trackTitles = new Map(link.tracks.map((track) => [track.id, track.title]));
     libraryTracks = link.tracks;
+    deckSongIds = new Set(link.songs.map((song) => song.id));
     libraryPanel.setTracks(link.tracks, link.songs.map((song) => song.id));
     schedulePanel.setTracks(link.tracks);
     flowPanel.setTracks(link.tracks);

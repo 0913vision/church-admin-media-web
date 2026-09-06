@@ -837,16 +837,21 @@ body.has-modal { overflow: hidden; }
    content-sized columns are sized by that row alone and no two rows agree — the
    heading ended up over nothing in particular. */
 .setlist { display: flex; flex-direction: column; }
-.setlist__r { display: grid; grid-template-columns: 1fr 96px 76px; gap: 16px; align-items: center;
-              padding: 3px 10px 3px 0; margin: 0 -10px 0 0; border-radius: 8px; }
-.setlist__r > :nth-child(2), .setlist__r > :nth-child(3) { text-align: right; }
+.setlist__r { display: grid; grid-template-columns: 22px 1fr 96px 76px; gap: 14px; align-items: center;
+              padding: 3px 10px; margin: 0 -10px; border-radius: 8px; }
+.setlist__r > :nth-child(3), .setlist__r > :nth-child(4) { text-align: right; }
+/* Numbered straight through, both groups: it says which of the eight this is. */
+.setlist__i { font-size: 12.5px; color: var(--c-fnt); text-align: right; font-variant-numeric: tabular-nums; }
 /* One rule, under the headings. Between every row as well, the table read as a
    stack of separate things rather than one list. */
 .setlist__r--h { padding-bottom: 8px; margin-bottom: 4px; border-bottom: 1px solid var(--line);
                  font-size: 13px; color: var(--c-mut); }
 /* The heading stands over the digits, not over the field's edge — the field
    holds 8px of padding the heading does not. */
-.setlist__r--h > :nth-child(3) { padding-right: 8px; }
+.setlist__r--h > :nth-child(4) { padding-right: 8px; }
+/* Names the group under it, the way the library list does. */
+.setlist__g { display: flex; align-items: center; gap: 6px; margin: 12px 0 4px;
+              padding-top: 10px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--c-fnt); }
 .setlist__r:not(.setlist__r--h):hover { background: var(--raised); }
 .setlist__n { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .setlist__d { font-size: 13.5px; color: var(--c-fnt); font-variant-numeric: tabular-nums; }
