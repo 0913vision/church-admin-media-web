@@ -837,7 +837,9 @@ body.has-modal { overflow: hidden; }
    content-sized columns are sized by that row alone and no two rows agree — the
    heading ended up over nothing in particular. */
 .setlist { display: flex; flex-direction: column; }
-.setlist__r { display: grid; grid-template-columns: 22px 1fr 96px 76px; gap: 14px; align-items: center;
+/* The number columns are sized to the widest thing that goes in them — three
+   digits and "173:25" — not to a round figure. */
+.setlist__r { display: grid; grid-template-columns: 22px 1fr 60px 54px; gap: 14px; align-items: center;
               padding: 3px 10px; margin: 0 -10px; border-radius: 8px; }
 .setlist__r > :nth-child(3), .setlist__r > :nth-child(4) { text-align: right; }
 /* Numbered straight through, both groups: it says which of the eight this is. */
