@@ -58,9 +58,11 @@ export class Modal {
     this.el.classList.remove("is-hidden");
     document.body.classList.add("has-modal");
     document.addEventListener("keydown", this.onKey);
-    // Note(yoochan.kim): into the dialog, so the keyboard is where the eye is and
-    // Escape reaches this rather than the page underneath.
-    (this.body.querySelector<HTMLElement>("input, button, select") ?? this.box).focus();
+    // Note(yoochan.kim): into the dialog, so the keyboard is where the eye is and Escape
+    // reaches this rather than the page underneath. Into a *field* only when the
+    // dialog has one: landing in the first of eight lights up a row nobody chose.
+    const fields = this.body.querySelectorAll<HTMLElement>("input, select");
+    (fields.length === 1 ? fields[0]! : this.box).focus();
   }
 
   close(): void {

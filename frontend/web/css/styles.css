@@ -844,6 +844,9 @@ body.has-modal { overflow: hidden; }
    stack of separate things rather than one list. */
 .setlist__r--h { padding-bottom: 8px; margin-bottom: 4px; border-bottom: 1px solid var(--line);
                  font-size: 13px; color: var(--c-mut); }
+/* The heading stands over the digits, not over the field's edge — the field
+   holds 8px of padding the heading does not. */
+.setlist__r--h > :nth-child(3) { padding-right: 8px; }
 .setlist__r:not(.setlist__r--h):hover { background: var(--raised); }
 .setlist__n { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .setlist__d { font-size: 13.5px; color: var(--c-fnt); font-variant-numeric: tabular-nums; }
