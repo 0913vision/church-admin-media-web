@@ -7,8 +7,8 @@ export interface LibraryPanelOptions {
   onSelectSong: (songId: string) => void;
   /** A library track: put on the deck and played. Needs the gate. */
   onPlayTrack: (trackId: string) => void;
-  /** Opens one track's settings, where its level is edited. */
-  onSettings: (track: Track, volume: number) => void;
+  /** Opens the library's settings, where levels are edited. */
+  onSettings: () => void;
   onLoop: (loop: boolean) => void;
   onUnlockWhenDone: (on: boolean) => void;
   /** Asks when the music should stop; the panel only says that it must be asked. */
@@ -38,7 +38,6 @@ export class LibraryPanel {
   private tracks: Track[] = [];
   private deckSongs = new Set<string>();
   private state: State | null = null;
-  private levels = new Map<string, number>();
 
   constructor(private readonly options: LibraryPanelOptions) {}
 
@@ -48,9 +47,8 @@ export class LibraryPanel {
     this.render();
   }
 
-  setState(state: State, levels: Map<string, number>): void {
+  setState(state: State): void {
     this.state = state;
-    this.levels = levels;
     this.render();
   }
 
@@ -63,7 +61,7 @@ export class LibraryPanel {
     const gated = this.tracks.filter((track) => !this.deckSongs.has(track.id));
 
     this.el.replaceChildren(
-      el("div", { class: "lib__h" }, [el("b", { textContent: "라이브러리" })]),
+      el("div", { class: "lib__h" }, [el("b", { textContent: "라이브러리" }), this.settingsKey()]),
       el("div", { class: "lib__rows" }, panel.map((track) => {
         const on = state?.deck.source === "song" && state.song === track.id;
         return this.row(track, on, false, () => this.options.onSelectSong(track.id));
@@ -114,12 +112,19 @@ export class LibraryPanel {
     ];
   }
 
+  /** Opens the whole library's settings. One dialog, not a control per row. */
+  private settingsKey(): HTMLElement {
+    const key = el("button", { class: "lib__cog", type: "button", title: "라이브러리 설정" }, [icon("cog", 16)]);
+    key.addEventListener("click", () => this.options.onSettings());
+    return key;
+  }
+
   /**
-   * One track: its name, its length, and a key that opens its settings.
+   * One track: its name and its length.
    *
-   * Note(yoochan.kim): the level is not edited here. A row is for choosing, and a number
-   * box in every row turned the list into a form — pressed by accident, it moves
-   * a level that is heard the next time somebody picks that song.
+   * Note(yoochan.kim): a row is for choosing and nothing else. A number box in every row
+   * turned the list into a form, and one pressed by accident moves a level that
+   * is heard the next time somebody picks that song.
    */
   private row(track: Track, on: boolean, off: boolean, onPick: () => void): HTMLElement {
     const pick = el("button", { class: "lib__pick", type: "button" }, [
@@ -128,13 +133,7 @@ export class LibraryPanel {
     ]) as HTMLButtonElement;
     pick.disabled = off;
     pick.addEventListener("click", onPick);
-
-    const settings = el("button", { class: "lib__cog", type: "button", title: `${track.title} 설정` }, [
-      icon("cog", 15),
-    ]) as HTMLButtonElement;
-    settings.addEventListener("click", () => this.options.onSettings(track, this.levels.get(track.id) ?? 50));
-
-    return el("div", { class: `lib__r${on ? " on" : ""}` }, [pick, settings]);
+    return el("div", { class: `lib__r${on ? " on" : ""}` }, [pick]);
   }
 
   private toggle(label: string, on: boolean, enabled: boolean, onChange: (next: boolean) => void): HTMLElement {

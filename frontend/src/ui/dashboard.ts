@@ -134,6 +134,10 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   };
   const sendVolume = throttle((value: number) => write("volume", value), 60);
 
+  /** What the library holds, kept for the settings dialog to open onto. */
+  let libraryTracks: Track[] = [];
+  let trackLevels = new Map<string, number>();
+
   /**
    * Drives one console input to its own level.
    *
@@ -215,32 +219,52 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   const libraryPanel = new LibraryPanel({
     onSelectSong: (id) => write("song", id),
     onPlayTrack: (id) => guard(deviceApi.invoke({ command: "selectTrack", args: { id } })),
-    onSettings: (track, volume) => openTrackSettings(track, volume),
+    onSettings: () => openLibrarySettings(),
     onLoop: (loop) => write("loop", loop),
     onUnlockWhenDone: (on) => write("unlockWhenDone", on),
     onSetMusicEnd: () => openMusicEnd(),
   });
-  /** One track's settings. Only its level today; adding and removing land here later. */
-  const openTrackSettings = (track: Track, volume: number): void => {
-    const input = el("input", { class: "editor__input", type: "number", value: String(volume) }) as HTMLInputElement;
-    input.min = "0";
-    input.max = "100";
-    const body = el("div", { class: "setrow" }, [
-      el("label", { textContent: "볼륨" }),
-      input,
-      el("span", { class: "setrow__h", textContent: "이 곡을 고를 때 돌아오는 값이에요" }),
-    ]);
+  /**
+   * The library's settings: every track and the level it comes back at.
+   *
+   * Note(yoochan.kim): one dialog for the whole library rather than one per track. These
+   * are read against each other — a level only means something next to the
+   * others — and adding and removing tracks will land here too.
+   */
+  const openLibrarySettings = (): void => {
+    const fields = new Map<string, HTMLInputElement>();
+    const body = el("div", { class: "setlist" });
+
+    for (const track of libraryTracks) {
+      const input = el("input", {
+        class: "editor__input",
+        type: "number",
+        value: String(trackLevels.get(track.id) ?? 50),
+      }) as HTMLInputElement;
+      input.min = "0";
+      input.max = "100";
+      fields.set(track.id, input);
+      body.append(el("div", { class: "setlist__r" }, [
+        el("span", { class: "setlist__n", textContent: track.title }),
+        input,
+      ]));
+    }
 
     const cancel = el("button", { class: "btn", type: "button", textContent: "취소" });
     cancel.addEventListener("click", () => confirm.close());
     const save = el("button", { class: "btn btn--go", type: "button", textContent: "저장" });
     save.addEventListener("click", () => {
-      const asked = Math.round(Number(input.value));
-      if (!Number.isFinite(asked) || asked < 0 || asked > 100) return;
       confirm.close();
-      guard(deviceApi.invoke({ command: "setTrackVolume", args: { id: track.id, volume: asked } }));
+      // Only what actually moved: an untouched track needs no write, and every
+      // write is a broadcast to every screen.
+      for (const [id, input] of fields) {
+        const asked = Math.round(Number(input.value));
+        if (!Number.isFinite(asked) || asked < 0 || asked > 100) continue;
+        if (asked === (trackLevels.get(id) ?? 50)) continue;
+        guard(deviceApi.invoke({ command: "setTrackVolume", args: { id, volume: asked } }));
+      }
     });
-    confirm.open(track.title, body, () => {}, [cancel, save]);
+    confirm.open("라이브러리 설정", body, () => {}, [cancel, save]);
   };
 
   /**
@@ -558,6 +582,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     // rather than re-read on every state patch.
     songTitles = new Map(link.songs.map((song) => [song.id, song.title]));
     trackTitles = new Map(link.tracks.map((track) => [track.id, track.title]));
+    libraryTracks = link.tracks;
     libraryPanel.setTracks(link.tracks, link.songs.map((song) => song.id));
     schedulePanel.setTracks(link.tracks);
     flowPanel.setTracks(link.tracks);
@@ -618,9 +643,9 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     schedulePanel.setFlows(flows);
     flowPanel.setFlows(flows);
     renderSongRadios(state);
-    const levels = new Map(state.trackVolumes.map((each) => [each.id, each.volume]));
-    schedulePanel.setLevels(levels);
-    libraryPanel.setState(state, levels);
+    trackLevels = new Map(state.trackVolumes.map((each) => [each.id, each.volume]));
+    schedulePanel.setLevels(trackLevels);
+    libraryPanel.setState(state);
     clockPanel.setOffset(state.clockOffsetSec);
     // Note(yoochan.kim): A run always holds the gate, so this is also "no clock changes while
     // music is playing".
