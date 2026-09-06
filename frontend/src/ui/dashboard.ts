@@ -323,33 +323,6 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   const sysLog = el("div", { class: "log log--sum" });
 
   // --- views ---
-  const dashDeck = el("div", { class: "deck" }, [
-    el("div", { class: "deck__top" }, [
-      transport.el,
-      el("div", {}, [deckSong, meta.el]),
-    ]),
-    el("div", { class: "volrow" }, [
-      // Note(yoochan.kim): a speaker rather than the word. The row already reads as
-      // a level — a slider, a number, a mute key — so the label was only telling
-      // the reader something the shape of the row had said already.
-      el("span", { class: "volrow__l", title: "볼륨" }, [icon("volume", 22)]),
-      fader.el,
-      fader.valueEl,
-      mute.el,
-    ]),
-  ]);
-
-  /**
-   * Where the deck sits on each page that shows it.
-   *
-   * Note(yoochan.kim): one deck, not two. Its transport, fader, mute and song list
-   * are single controls wired to one stream of state — built twice they would be
-   * two things to keep in step, and the moment they disagreed the panel would be
-   * lying about what is playing. Only one view is ever on screen, so the deck is
-   * moved into whichever that is.
-   */
-  // Note(yoochan.kim): the two the panel offers, kept on the dashboard when the deck
-  // itself walks off to its own tab. Its own element, so it stays behind.
   const songRadios = el("div", { class: "radios" });
   const renderSongRadios = (state: State): void => {
     const held = flowOwnsDeck(state.flow) || state.deck.source === "track";
@@ -367,13 +340,40 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     );
   };
 
+  const dashDeck = el("div", { class: "deck" }, [
+    el("div", { class: "deck__top" }, [
+      transport.el,
+      el("div", {}, [deckSong, meta.el]),
+    ]),
+    el("div", { class: "volrow" }, [
+      // Note(yoochan.kim): a speaker rather than the word. The row already reads as
+      // a level — a slider, a number, a mute key — so the label was only telling
+      // the reader something the shape of the row had said already.
+      el("span", { class: "volrow__l", title: "볼륨" }, [icon("volume", 22)]),
+      fader.el,
+      fader.valueEl,
+      mute.el,
+    ]),
+    // Note(yoochan.kim): inside the card. Beside it, the rule floated on the page.
+    el("div", { class: "deck__songs" }, [songRadios]),
+  ]);
+
+  /**
+   * Where the deck sits on each page that shows it.
+   *
+   * Note(yoochan.kim): one deck, not two. Its transport, fader, mute and song list
+   * are single controls wired to one stream of state — built twice they would be
+   * two things to keep in step, and the moment they disagreed the panel would be
+   * lying about what is playing. Only one view is ever on screen, so the deck is
+   * moved into whichever that is.
+   */
   const deckOnOverview = el("div", { class: "deck-slot" }, [dashDeck]);
   const deckOnPlayer = el("div", { class: "deck-slot deck-slot--wide" });
 
   const views: Record<ViewKey, HTMLElement> = {
     overview: el("section", { class: "view" }, [
       el("div", { class: "head" }, [
-        el("div", { class: "deck-col" }, [deckOnOverview, el("div", { class: "deck__songs" }, [songRadios])]),
+        deckOnOverview,
         el("div", { class: "clock" }, [
           el("div", { class: "clock__t" }, [el("span", { textContent: "교회 시각" }), goto("clock")]),
           el("div", { class: "clock__b" }, [clockVal]),

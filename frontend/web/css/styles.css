@@ -310,13 +310,11 @@ button { white-space: nowrap; }
 .clock__d.is-off { color: var(--hold); }
 
 /* The deck is one element that moves between the pages showing it, so each page
-   gives it a slot rather than styling it differently. On its own page it keeps
-   to a readable width instead of running the length of the screen. */
+   gives it a slot rather than styling it differently. */
 .deck-slot { display: flex; min-width: 0; }
-/* The deck and, under it, the two songs the panel offers. */
-.deck-col { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .deck-slot > .deck { flex: 1; min-width: 0; }
-.deck-slot--wide { max-width: none; }
+/* The player tab has the library beside it, which is where choosing happens there. */
+.deck-slot--wide .deck__songs { display: none; }
 /* The deck, and beside it everything the server can play. */
 .player { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 420px); gap: 14px; align-items: start; }
 
