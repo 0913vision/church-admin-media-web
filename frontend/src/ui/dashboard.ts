@@ -43,7 +43,7 @@ const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 /** Every attribute the dashboard needs before it can claim to show the device */
 const ATTRIBUTES = [
-  "playback", "volume", "mute", "loop", "song", "deck", "unlockWhenDone",
+  "playback", "volume", "mute", "loop", "song", "deck", "unlockWhenDone", "trackVolumes",
   "adminLock", "audioLock", "isAdmin", "flow", "clockOffsetSec", "console",
 ] as const;
 
@@ -216,6 +216,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   const libraryPanel = new LibraryPanel({
     onSelectSong: (id) => write("song", id),
     onPlayTrack: (id) => guard(deviceApi.invoke({ command: "selectTrack", args: { id } })),
+    onLevel: (id, volume) => guard(deviceApi.invoke({ command: "setTrackVolume", args: { id, volume } })),
     onLoop: (loop) => write("loop", loop),
     onUnlockWhenDone: (on) => write("unlockWhenDone", on),
   });
@@ -547,7 +548,9 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     // correction shows at once rather than at the next heartbeat.
     church.setOffset(state.clockOffsetSec);
     renderSongRadios(state);
-    libraryPanel.setState(state);
+    const levels = new Map(state.trackVolumes.map((each) => [each.id, each.volume]));
+    schedulePanel.setLevels(levels);
+    libraryPanel.setState(state, levels);
     clockPanel.setOffset(state.clockOffsetSec);
     // Note(yoochan.kim): A run always holds the gate, so this is also "no clock changes while
     // music is playing".

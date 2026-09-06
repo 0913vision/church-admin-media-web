@@ -7,6 +7,8 @@ export interface LibraryPanelOptions {
   onSelectSong: (songId: string) => void;
   /** A library track: put on the deck and played. Needs the gate. */
   onPlayTrack: (trackId: string) => void;
+  /** The level a track sounds at, kept across restarts. */
+  onLevel: (trackId: string, volume: number) => void;
   onLoop: (loop: boolean) => void;
   onUnlockWhenDone: (on: boolean) => void;
 }
@@ -29,6 +31,7 @@ export class LibraryPanel {
   private tracks: Track[] = [];
   private deckSongs = new Set<string>();
   private state: State | null = null;
+  private levels = new Map<string, number>();
 
   constructor(private readonly options: LibraryPanelOptions) {}
 
@@ -38,8 +41,9 @@ export class LibraryPanel {
     this.render();
   }
 
-  setState(state: State): void {
+  setState(state: State, levels: Map<string, number>): void {
     this.state = state;
+    this.levels = levels;
     this.render();
   }
 
@@ -55,19 +59,15 @@ export class LibraryPanel {
       el("div", { class: "lib__h" }, [el("b", { textContent: "라이브러리" })]),
       el("div", { class: "lib__rows" }, panel.map((track) => {
         const on = state?.deck.source === "song" && state.song === track.id;
-        const row = this.row(track, on, false);
-        row.addEventListener("click", () => this.options.onSelectSong(track.id));
-        return row;
+        return this.row(track, on, false, () => this.options.onSelectSong(track.id));
       })),
       el("div", { class: "lib__g" }, [
         el("span", { class: "icon" }, [icon("lock", 13)]),
         el("span", { textContent: "잠금 필요" }),
       ]),
-      el("div", { class: "lib__rows" }, gated.map((track) => {
-        const row = this.row(track, track.id === playingTrack, !held);
-        row.addEventListener("click", () => this.options.onPlayTrack(track.id));
-        return row;
-      })),
+      el("div", { class: "lib__rows" }, gated.map((track) =>
+        this.row(track, track.id === playingTrack, !held, () => this.options.onPlayTrack(track.id)),
+      )),
       el("div", { class: "lib__opts" }, [
         this.toggle("반복", state?.loop === true, held, (next) => this.options.onLoop(next)),
         this.toggle(
@@ -80,13 +80,39 @@ export class LibraryPanel {
     );
   }
 
-  private row(track: Track, on: boolean, off: boolean): HTMLButtonElement {
-    const row = el("button", { class: `lib__r${on ? " on" : ""}`, type: "button" }, [
+  /**
+   * One track: its name, its level, its length.
+   *
+   * Note(yoochan.kim): the level box sits outside the choosing key rather than inside
+   * it — a field within a button cannot be typed into, and pressing one would be
+   * pressing the other.
+   */
+  private row(track: Track, on: boolean, off: boolean, onPick: () => void): HTMLElement {
+    const pick = el("button", { class: "lib__pick", type: "button" }, [
       el("span", { class: "lib__n", textContent: track.title }),
       el("span", { class: "lib__d num", textContent: minutes(track.durationSec) }),
     ]) as HTMLButtonElement;
-    row.disabled = off;
-    return row;
+    pick.disabled = off;
+    pick.addEventListener("click", onPick);
+    return el("div", { class: `lib__r${on ? " on" : ""}` }, [pick, this.level(track.id)]);
+  }
+
+  /** The level this track sounds at, kept across restarts. */
+  private level(id: string): HTMLElement {
+    const input = el("input", { class: "lib__v", type: "number", value: String(this.levels.get(id) ?? 50) }) as HTMLInputElement;
+    input.min = "0";
+    input.max = "100";
+    input.step = "1";
+    input.title = "이 곡을 고를 때의 볼륨";
+    // Note(yoochan.kim): sent when the box is left, not per keystroke. Rewriting 5 into
+    // 50 under somebody's fingers is worse than a moment out of range.
+    input.addEventListener("blur", () => {
+      const asked = Number(input.value);
+      const level = Number.isFinite(asked) ? Math.min(100, Math.max(0, Math.round(asked))) : (this.levels.get(id) ?? 50);
+      input.value = String(level);
+      if (level !== this.levels.get(id)) this.options.onLevel(id, level);
+    });
+    return el("span", { class: "vol" }, [input]);
   }
 
   private toggle(label: string, on: boolean, enabled: boolean, onChange: (next: boolean) => void): HTMLElement {
