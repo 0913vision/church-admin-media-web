@@ -54,8 +54,13 @@ export class Fader {
   }
 
   private attachPointer(): void {
+    // Note(yoochan.kim): Chrome on Windows starts its own drag of the element under the
+    // cursor unless the press is taken. It then shows the no-drop cursor and the
+    // fader stops following the hand part-way through a move.
+    this.el.addEventListener("dragstart", (event) => event.preventDefault());
     this.el.addEventListener("pointerdown", (event) => {
       if (this.disabled) return;
+      event.preventDefault();
       this.dragging = true;
       this.el.setPointerCapture(event.pointerId);
       this.commit(this.valueFromPointer(event.clientX));

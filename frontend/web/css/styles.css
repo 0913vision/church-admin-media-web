@@ -318,9 +318,10 @@ button { white-space: nowrap; }
 .player { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 420px); gap: 14px; align-items: start; }
 
 .lib { background: var(--panel); border-radius: 12px; padding: 14px 18px 16px; display: flex; flex-direction: column; gap: 12px; }
-.lib__h { display: flex; align-items: baseline; gap: 12px; }
 .lib__h b { font-size: 16px; font-weight: 700; }
-.lib__why { font-size: 13px; color: var(--c-fnt); }
+/* Names the group below it: these need the gate, whether or not it is held now. */
+.lib__g { display: flex; align-items: center; gap: 6px; margin-top: 6px; padding-top: 10px;
+          border-top: 1px solid var(--line); font-size: 12.5px; color: var(--c-fnt); }
 .lib__rows { display: flex; flex-direction: column; }
 .lib__r {
   display: flex; align-items: center; gap: 10px; width: 100%;
@@ -388,7 +389,8 @@ button { white-space: nowrap; }
    and to the left of the column it names. */
 .volrow__l { display: flex; align-items: center; justify-content: center; color: var(--c-mut); }
 .volrow__n { font-size: 26px; font-weight: 700; text-align: right; letter-spacing: -0.02em; line-height: 1; }
-.slider { position: relative; height: 10px; border-radius: 3px; background: var(--track); cursor: pointer; touch-action: none; }
+.slider { position: relative; height: 10px; border-radius: 3px; background: var(--track); cursor: pointer;
+          touch-action: none; user-select: none; -webkit-user-select: none; -webkit-user-drag: none; }
 .slider i { position: absolute; inset: 0 auto 0 0; border-radius: 3px 0 0 3px; background: var(--go); }
 /* A ruler under the slider, every tenth of the way. Below rather than through:
    see the note on the console meter. In ink at full strength — at 45% of the

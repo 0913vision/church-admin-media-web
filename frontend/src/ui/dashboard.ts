@@ -214,7 +214,8 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   // can never open behind the first.
   const confirm = new Modal();
   const libraryPanel = new LibraryPanel({
-    onPlay: (id) => guard(deviceApi.invoke({ command: "playTrack", args: { id } })),
+    onSelectSong: (id) => write("song", id),
+    onPlayTrack: (id) => guard(deviceApi.invoke({ command: "playTrack", args: { id } })),
     onLoop: (loop) => write("loop", loop),
     onUnlockWhenDone: (on) => write("unlockWhenDone", on),
   });
@@ -320,25 +321,6 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   const x32Conn = el("span", { textContent: BLANK });
   const sysBars = el("div", {});
   const sysLog = el("div", { class: "log log--sum" });
-  const songRadios = el("div", { class: "radios" });
-
-  /** The deck's song list — the confirmed radio, one row per song. */
-  const renderSongRadios = (state: State): void => {
-    const held = flowOwnsDeck(state.flow);
-    songRadios.replaceChildren(
-      ...[...songTitles.entries()].map(([id, title]) => {
-        const selected = !held && id === state.song;
-        const row = el("button", { class: selected ? "on" : "", type: "button" }, [
-          el("span", { class: "r" }),
-          title,
-        ]);
-        row.disabled = state.audioLock || held;
-        row.title = held ? "자동 진행 중이에요" : "";
-        if (!selected) row.addEventListener("click", () => write("song", id));
-        return row;
-      }),
-    );
-  };
 
   // --- views ---
   const dashDeck = el("div", { class: "deck" }, [
@@ -355,7 +337,6 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
       fader.valueEl,
       mute.el,
     ]),
-    el("div", { class: "deck__songs" }, [songRadios]),
   ]);
 
   /**
@@ -525,7 +506,6 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     const deckHeld = state.audioLock || flowOwnsDeck(state.flow);
     fader.setDisabled(deckHeld);
     transport.update(state);
-    renderSongRadios(state);
     mute.set(state.mute === MuteState.MUTED, deckHeld);
 
     adminLocked = state.adminLock;

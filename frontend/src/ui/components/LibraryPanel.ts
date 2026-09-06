@@ -1,8 +1,12 @@
 import { el } from "../../util/dom.js";
+import { icon } from "../icons.js";
 import type { State, Track } from "../../protocol.js";
 
 export interface LibraryPanelOptions {
-  onPlay: (trackId: string) => void;
+  /** A song the panel itself offers: selected, not started. */
+  onSelectSong: (songId: string) => void;
+  /** A library track: put on the deck and played. Needs the gate. */
+  onPlayTrack: (trackId: string) => void;
   onLoop: (loop: boolean) => void;
   onUnlockWhenDone: (on: boolean) => void;
 }
@@ -13,11 +17,11 @@ function minutes(seconds: number): string {
 }
 
 /**
- * Every track the server holds, playable while the gate is held.
+ * Everything the server can play, in one list.
  *
- * Note(yoochan.kim): the list is always here and goes quiet without the gate, rather
- * than appearing with it. A control that comes and goes is one nobody learns; a
- * greyed one says what it needs.
+ * Note(yoochan.kim): one place to choose. The deck used to carry its own two songs
+ * underneath it while the library sat beside it, so picking a song meant deciding
+ * which of two lists to look in first.
  */
 export class LibraryPanel {
   readonly el = el("div", { class: "lib" });
@@ -42,38 +46,47 @@ export class LibraryPanel {
   private render(): void {
     const state = this.state;
     const held = state?.adminLock === true;
-    const playingId = state?.deck.source === "track" ? state.deck.id : "";
+    const playingTrack = state?.deck.source === "track" ? state.deck.id : "";
 
-    const rows = this.tracks.map((track) => {
-      const on = track.id === playingId;
-      const row = el("button", { class: `lib__r${on ? " on" : ""}`, type: "button" }, [
-        el("span", { class: "lib__n", textContent: track.title }),
-        // The panel's own songs are marked: they are the two a person can also
-        // reach from the wall, and they repeat by default.
-        ...(this.deckSongs.has(track.id) ? [el("span", { class: "lib__tag", textContent: "패널" })] : []),
-        el("span", { class: "lib__d num", textContent: minutes(track.durationSec) }),
-      ]) as HTMLButtonElement;
-      row.disabled = !held;
-      row.addEventListener("click", () => this.options.onPlay(track.id));
-      return row;
-    });
-
-    const loop = this.toggle("반복", state?.loop === true, held, (next) => this.options.onLoop(next));
-    const auto = this.toggle(
-      "노래 마치면 잠금 해제",
-      state?.unlockWhenDone === true,
-      held && state?.loop === false,
-      (next) => this.options.onUnlockWhenDone(next),
-    );
+    const panel = this.tracks.filter((track) => this.deckSongs.has(track.id));
+    const gated = this.tracks.filter((track) => !this.deckSongs.has(track.id));
 
     this.el.replaceChildren(
-      el("div", { class: "lib__h" }, [
-        el("b", { textContent: "라이브러리" }),
-        ...(held ? [] : [el("span", { class: "lib__why", textContent: "관리자 잠금을 걸면 고를 수 있어요" })]),
+      el("div", { class: "lib__h" }, [el("b", { textContent: "라이브러리" })]),
+      el("div", { class: "lib__rows" }, panel.map((track) => {
+        const on = state?.deck.source === "song" && state.song === track.id;
+        const row = this.row(track, on, false);
+        row.addEventListener("click", () => this.options.onSelectSong(track.id));
+        return row;
+      })),
+      el("div", { class: "lib__g" }, [
+        el("span", { class: "icon" }, [icon("lock", 13)]),
+        el("span", { textContent: "잠금 필요" }),
       ]),
-      el("div", { class: "lib__rows" }, rows),
-      el("div", { class: "lib__opts" }, [loop, auto]),
+      el("div", { class: "lib__rows" }, gated.map((track) => {
+        const row = this.row(track, track.id === playingTrack, !held);
+        row.addEventListener("click", () => this.options.onPlayTrack(track.id));
+        return row;
+      })),
+      el("div", { class: "lib__opts" }, [
+        this.toggle("반복", state?.loop === true, held, (next) => this.options.onLoop(next)),
+        this.toggle(
+          "노래 마치면 잠금 해제",
+          state?.unlockWhenDone === true,
+          held && state?.loop === false,
+          (next) => this.options.onUnlockWhenDone(next),
+        ),
+      ]),
     );
+  }
+
+  private row(track: Track, on: boolean, off: boolean): HTMLButtonElement {
+    const row = el("button", { class: `lib__r${on ? " on" : ""}`, type: "button" }, [
+      el("span", { class: "lib__n", textContent: track.title }),
+      el("span", { class: "lib__d num", textContent: minutes(track.durationSec) }),
+    ]) as HTMLButtonElement;
+    row.disabled = off;
+    return row;
   }
 
   private toggle(label: string, on: boolean, enabled: boolean, onChange: (next: boolean) => void): HTMLElement {
