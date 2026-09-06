@@ -1,5 +1,5 @@
 import { authApi } from "../api/auth.js";
-import { deviceApi, scheduleApi } from "../api/device.js";
+import { asScheduledFlow, deviceApi, scheduleApi } from "../api/device.js";
 import { subscribeEvents } from "../api/events.js";
 import type { Rejection, SystemStats } from "../api/events.js";
 import { UnauthorizedError } from "../api/http.js";
@@ -44,7 +44,7 @@ const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 /** Every attribute the dashboard needs before it can claim to show the device */
 const ATTRIBUTES = [
   "playback", "volume", "mute", "loop", "song", "deck", "unlockWhenDone", "trackVolumes",
-  "adminLock", "audioLock", "isAdmin", "flow", "clockOffsetSec", "console",
+  "adminLock", "audioLock", "isAdmin", "flow", "schedule", "clockOffsetSec", "console",
 ] as const;
 
 const REJECT_LABEL: Record<string, string> = {
@@ -174,10 +174,9 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
    */
   const written = (call: Promise<unknown>, done: string, failed: string): void => {
     call
-      .then(() => scheduleApi.list())
-      .then(({ flows }) => {
-        schedulePanel.setFlows(flows);
-        flowPanel.setFlows(flows);
+      .then(() => {
+        // Note(yoochan.kim): the new calendar is not read back here — it arrives as state,
+        // to every screen at once, and this one is no more entitled than the rest.
         schedulePanel.closeEditor();
         schedulePanel.showMessage(done);
       })
@@ -547,6 +546,11 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     // Note(yoochan.kim): the clock is told before anything drawn against it, so a
     // correction shows at once rather than at the next heartbeat.
     church.setOffset(state.clockOffsetSec);
+    // Note(yoochan.kim): "runnable today" is worked out against church time, not this
+    // machine's — a laptop an hour out would grey out the evening's service.
+    const flows = state.schedule.map((entry) => asScheduledFlow(entry, church.now()));
+    schedulePanel.setFlows(flows);
+    flowPanel.setFlows(flows);
     renderSongRadios(state);
     const levels = new Map(state.trackVolumes.map((each) => [each.id, each.volume]));
     schedulePanel.setLevels(levels);
@@ -593,16 +597,6 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     renderLink(dashboard.link);
     renderDevice(dashboard.device);
   });
-
-  scheduleApi
-    .list()
-    .then(({ flows }) => {
-      schedulePanel.setFlows(flows);
-      flowPanel.setFlows(flows);
-    })
-    .catch((err) => {
-      if (err instanceof UnauthorizedError) leave();
-    });
 
   const stopLog = systemPanel.watchLog((lines) => {
     // Note(yoochan.kim): The same log the system tab shows, cut to what fits here.

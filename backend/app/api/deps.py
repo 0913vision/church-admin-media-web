@@ -2,7 +2,6 @@ from fastapi import Request, HTTPException, status
 
 from app.bridge.broadcaster import Broadcaster
 from app.bridge.media_client import MediaBridge
-from app.schedule.models import ScheduledFlow
 from app.security.session import verify_session, COOKIE_NAME
 from app.system.monitor import SystemMonitor
 
@@ -17,10 +16,6 @@ def get_broadcaster(request: Request) -> Broadcaster:
 
 def get_monitor(request: Request) -> SystemMonitor:
     return request.app.state.monitor
-
-
-def get_flows(request: Request) -> dict[str, ScheduledFlow]:
-    return request.app.state.flows
 
 
 def require_session(request: Request) -> None:

@@ -17,7 +17,6 @@ class Settings(BaseSettings):
     session_secret: str
     session_max_age: int
     cookie_secure: bool
-    schedules_file_path: str
     # Note(yoochan.kim): Where the media server writes its log. Shown in the system tab so the
     # answer to "what happened at 19:30" is on screen, not behind SSH.
     media_log_path: str

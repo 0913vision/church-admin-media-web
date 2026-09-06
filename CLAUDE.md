@@ -45,19 +45,19 @@ repo speaks that model end to end rather than translating it.
 - **`api/device.py`** — `POST /api/device/write` and `/invoke`. Deliberately a
   relay: what counts as a valid value is the media server's call, and a refusal
   arrives on the event stream as `rejected`. No second copy of the rules here
-- **`api/schedule.py`** — the flows this dashboard offers. **The calendar is
-  ours; the run is the server's.** Which flows exist and which day each may run
-  is decided here; `startFlow` hands the plan over and the server owns it from
-  there, which is what stops a lock outliving this process
-- **`schedule/models.py`** — loads `schedules.json` at boot, failing fast, so a
-  typo surfaces then rather than at 19:30 on a Wednesday. A flow's `parts` are
-  in the protocol's own shape and pass through untouched. `autoStart` says
-  whether the flow needs approval
-- **`schedule/autostart.py`** — starts `autoStart` flows when their window
-  opens. Here rather than in the browser because a dashboard nobody has open is
-  the normal case. The media server still holds no calendar: this presses start
-  exactly as a person would, once per occurrence, and only while nothing is
-  running
+- **The calendar is not here.** It used to be — `schedule/models.py`,
+  `schedule/autostart.py`, `api/schedule.py`, `schedules.json`, all gone. It is
+  the media server's now: a track cannot be deleted while a flow still names
+  it, and only whoever holds both the library and the calendar can answer that.
+  This side is the editor. Reading it is the `schedule` attribute off the event
+  stream; changing it is `saveFlow` / `deleteFlow` / `startScheduledFlow` /
+  `skipFlow` through the ordinary invoke relay, with the refusal arriving as
+  `rejected` like any other. `asScheduledFlow` in `api/device.ts` turns a wire
+  entry into what screens want — `mon..sun` into day numbers and labels, plus
+  `runnableToday` worked out against **church** time, since a laptop an hour out
+  would otherwise grey out the evening's service. Those two are derived here
+  rather than sent, because "today" turns over at midnight and a flag sent once
+  would be wrong by morning
 - **`system/monitor.py`** — psutil host stats (per-core, memory, swap, load,
   top processes), this machine's business rather than the device's
 - **`api/system.py`** — the tail of `MEDIA_LOG_PATH`, so "what happened at
@@ -92,5 +92,6 @@ repo speaks that model end to end rather than translating it.
 
 ## Not in the repo
 
-`backend/.env` and `backend/schedules.json` are site-specific and gitignored.
-A fresh clone needs both before the backend will start.
+`backend/.env` is site-specific and gitignored. A fresh clone needs it before
+the backend will start. `backend/schedules.json` is gone — the calendar moved
+to the media server's `SCHEDULE_FILE_PATH`.

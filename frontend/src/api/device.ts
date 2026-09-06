@@ -1,36 +1,42 @@
-import type { InvokeRequest, ScheduledTrack, State } from "../protocol.js";
+import type { InvokeRequest, ScheduleEntry, ScheduleUntil, SchedulePart, State } from "../protocol.js";
 import { http } from "./http.js";
 
 /** When the panel unlocks: with the music, or at a time of its own. */
-export type LockUntil = { kind: "music" } | { kind: "clock"; at: string };
+export type LockUntil = ScheduleUntil;
+export type MusicPart = Extract<SchedulePart, { kind: "music" }>;
 
-export interface MusicPart {
-  kind: "music";
-  /** Each song with the level it plays at in this flow */
-  tracks: ScheduledTrack[];
-  endsAt: string;
-}
+/** A flow as an edit sends it back — the calendar's own shape, minus the id. */
+export type FlowEntry = Omit<ScheduleEntry, "id">;
 
-/** A flow as it is written in schedules.json — what an edit sends back. */
-export interface FlowEntry {
-  name: string;
-  weekdays: string[];
-  /** Starts without anyone approving it when its window opens. */
-  autoStart: boolean;
-  lock: { at: string; until: LockUntil };
-  parts: MusicPart[];
-}
-
-/** A flow as the dashboard reads it, with the day names already worked out. */
-export interface ScheduledFlow {
-  id: string;
-  name: string;
+/**
+ * A flow as the dashboard reads it: the calendar entry, plus the two things
+ * screens ask of it.
+ *
+ * Note(yoochan.kim): worked out here rather than sent. The media server states the days
+ * as mon..sun and says nothing about today, because "today" turns over at
+ * midnight and a flag sent once would be wrong by morning.
+ */
+export interface ScheduledFlow extends Omit<ScheduleEntry, "weekdays"> {
   weekdays: number[];
   weekdayLabels: string[];
-  autoStart: boolean;
-  lock: { at: string; until: LockUntil };
-  parts: MusicPart[];
   runnableToday: boolean;
+}
+
+const WEEKDAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+const WEEKDAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
+
+export function asScheduledFlow(entry: ScheduleEntry, today: Date): ScheduledFlow {
+  const days = entry.weekdays
+    .map((key) => WEEKDAY_KEYS.indexOf(key))
+    .filter((day) => day >= 0)
+    .sort((a, b) => a - b);
+  return {
+    ...entry,
+    weekdays: days,
+    weekdayLabels: days.map((day) => WEEKDAY_LABELS[day]!),
+    // getDay() counts Sunday first; the calendar counts Monday first.
+    runnableToday: days.includes((today.getDay() + 6) % 7),
+  };
 }
 
 /**
@@ -47,13 +53,20 @@ export const deviceApi = {
     http.post("/api/device/invoke", { command: request.command, args: request.args }),
 };
 
+/**
+ * The calendar, driven the same way as everything else: commands to the device.
+ *
+ * Note(yoochan.kim): there is no list here. The calendar arrives as state, so a dashboard
+ * left open sees an edit made on another screen without asking for it.
+ */
 export const scheduleApi = {
-  list: (): Promise<{ flows: ScheduledFlow[] }> => http.get("/api/schedule"),
   save: (id: string, entry: FlowEntry): Promise<unknown> =>
-    http.put(`/api/schedule/${encodeURIComponent(id)}`, entry),
+    deviceApi.invoke({ command: "saveFlow", args: { flow: { ...entry, id } } }),
   remove: (id: string): Promise<unknown> =>
-    http.delete(`/api/schedule/${encodeURIComponent(id)}`),
-  start: (flowId: string): Promise<unknown> => http.post(`/api/schedule/${encodeURIComponent(flowId)}/start`),
-  skip: (flowId: string): Promise<unknown> => http.post(`/api/schedule/${encodeURIComponent(flowId)}/skip`),
-  stop: (): Promise<unknown> => http.post("/api/schedule/stop"),
+    deviceApi.invoke({ command: "deleteFlow", args: { id } }),
+  start: (id: string): Promise<unknown> =>
+    deviceApi.invoke({ command: "startScheduledFlow", args: { id } }),
+  skip: (id: string): Promise<unknown> =>
+    deviceApi.invoke({ command: "skipFlow", args: { id } }),
+  stop: (): Promise<unknown> => deviceApi.invoke({ command: "stopFlow", args: {} }),
 };
