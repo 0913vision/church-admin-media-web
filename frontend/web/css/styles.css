@@ -57,6 +57,28 @@
 }
 
 * { box-sizing: border-box; }
+
+/* ---- optical centring ----------------------------------------------------
+   Measured, not guessed: this face paints its ink about 0.07em ABOVE the middle
+   of its own line box. So `align-items: center`, which centres boxes, leaves
+   every word sitting high beside the lamp, bar or key next to it — by 1px at
+   15px type and 2.4px at 26px. Dropping the words by that much puts ink on the
+   same line as the graphics, which already sit on the box centre.
+
+   Text inside a key is dropped with padding instead, so the key's own box does
+   not move. Anything added to a row like these wants `.ink` too. ---- */
+.ink { position: relative; top: 0.07em; }
+.chrow__n, .chrow__s, .chrow__db, .hold__l,
+.tl__head b, .deck__song, .lib__n, .lib__d,
+.setlist__i, .setlist__n, .setlist__d, .lib__i { position: relative; top: 0.07em; }
+/* When the graphic is *inside* the same element as the words, the graphic moves
+   instead — dropping the parent would carry both and change nothing. */
+.radios > button .r, .lib__g .icon, .setlist__g .icon { position: relative; top: -0.07em; }
+/* Digits alone sit higher still: nothing descends below the baseline to balance
+   them, so a row of numerals wants more of a drop than a row of words. */
+.volrow__n { position: relative; top: 0.1em; }
+
+
 html, body, #app { height: 100%; margin: 0; }
 body {
   background: var(--bg);
@@ -150,8 +172,7 @@ button { font: inherit; }
    box-centred dot lands below the ink beside it. Lifted in em, since the gap it
    closes belongs to the font and grows with it. Measured off the painted pixels
    at 6x: this puts the dot's centre on the words' within a fifth of a pixel. */
-.led { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none;
-       position: relative; top: -0.055em; }
+.led { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
 .led--go { background: var(--go); box-shadow: 0 0 7px var(--go); }
 .led--hold { background: var(--hold); box-shadow: 0 0 7px var(--hold); }
 .led--bad { background: var(--bad); box-shadow: 0 0 7px var(--bad); }
@@ -183,7 +204,9 @@ button { font: inherit; }
 button { white-space: nowrap; }
 
 .pick, .btn {
-  font-size: 15px; font-weight: 600; padding: 10px 18px; border-radius: 8px;
+  /* Uneven on purpose: the label is dropped to the key's optical middle
+     without the key itself changing height. See "optical centring". */
+  font-size: 15px; font-weight: 600; padding: 11px 18px 9px; border-radius: 8px;
   background: var(--cap); color: var(--cap-ink); border: 1px solid var(--cap-line);
   box-shadow: 0 1px 2px var(--key-dn); cursor: pointer;
   transition: background-color 0.16s ease, color 0.16s ease, border-color 0.16s ease, box-shadow 0.12s ease;
@@ -205,7 +228,7 @@ button { white-space: nowrap; }
   background: var(--raised); color: var(--c-fnt); border-color: transparent;
   box-shadow: none; cursor: default; transform: none;
 }
-.btn--small { font-size: 13px; padding: 8px 13px; }
+.btn--small { font-size: 13px; padding: 9px 13px 7px; }
 .btn--ghost { background: var(--cap); }
 
 /* ---- the bar: joined cells, the chosen cell is painted ---- */
@@ -281,7 +304,7 @@ button { white-space: nowrap; }
                 padding: 7px 21px 9px; background: var(--raised); }
 .hold__l { flex: 1; font-size: 13px; color: var(--c-mut); font-variant-numeric: tabular-nums; }
 .hold.is-soon .hold__l { color: var(--hold); font-weight: 700; }
-.hold .btn { padding: 4px 10px; font-size: 12.5px; }
+.hold .btn { padding: 5px 10px 3px; font-size: 12.5px; }
 .gate { position: relative; overflow: hidden; }
 .gate > * { position: relative; }
 /* The gauge is what makes a hold visible, so it is a solid wash rather than a
@@ -350,6 +373,9 @@ button { white-space: nowrap; }
 .lib__cog { margin-left: auto; display: grid; place-items: center; width: 30px; height: 30px;
             border: 0; border-radius: 8px; background: none; color: var(--c-fnt); cursor: pointer; }
 .lib__cog:hover { background: var(--raised); color: var(--c-ink); }
+.lib__i { flex: none; width: 16px; text-align: right; font-size: 12.5px; color: var(--c-fnt);
+          font-variant-numeric: tabular-nums; }
+.lib__r.on .lib__i { color: rgba(255, 255, 255, 0.75); }
 .lib__n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Marks the two a person can also reach from the wall. */
 .lib__tag { flex: none; font-size: 11.5px; color: var(--c-fnt); }
@@ -391,7 +417,11 @@ button { white-space: nowrap; }
 .play svg { width: 34px; height: 34px; }
 .play:disabled { opacity: 0.45; cursor: default; }
 .deck__song { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+/* Note(yoochan.kim): gone entirely when it has nothing to say, rather than an empty row
+   with a margin. Left standing it made the block beside the play key two lines
+   tall, and the key centred on the pair — so the song title rode well above it. */
 .deck__meta { display: flex; align-items: center; gap: 8px; margin-top: 6px; color: var(--c-mut); font-size: 15px; }
+.deck__meta:not(:has(> :not(.is-hidden))) { display: none; }
 .deck__songs { margin-top: 14px; padding-top: 9px; border-top: 1px solid var(--line); }
 
 .volrow { display: grid; grid-template-columns: 42px 1fr 52px auto; gap: 13px; align-items: center;
@@ -399,7 +429,7 @@ button { white-space: nowrap; }
 /* One width whichever way it reads: the deck's fader sits beside it, and a key
    that grows by two characters shortens the fader every time it is pressed. */
 .mute { display: flex; align-items: center; justify-content: center; gap: 7px; min-width: 118px;
-        font-size: 15px; font-weight: 600; padding: 10px 18px;
+        font-size: 15px; font-weight: 600; padding: 11px 18px 9px;
         border-radius: 8px; background: var(--cap); color: var(--cap-ink);
         border: 1px solid var(--cap-line); box-shadow: 0 1px 2px var(--key-dn); cursor: pointer;
         transition: background-color 0.16s ease, color 0.16s ease; }

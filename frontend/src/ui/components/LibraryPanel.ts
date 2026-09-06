@@ -61,17 +61,18 @@ export class LibraryPanel {
     const gated = this.tracks.filter((track) => !this.deckSongs.has(track.id));
 
     this.el.replaceChildren(
-      el("div", { class: "lib__h" }, [el("b", { textContent: "라이브러리" }), this.settingsKey()]),
+      el("div", { class: "lib__h" }, [el("b", { textContent: "곡 목록" }), this.settingsKey()]),
       el("div", { class: "lib__rows" }, panel.map((track) => {
         const on = state?.deck.source === "song" && state.song === track.id;
-        return this.row(track, on, false, () => this.options.onSelectSong(track.id));
+        return this.row(track, panel.indexOf(track) + 1, on, false, () => this.options.onSelectSong(track.id));
       })),
       el("div", { class: "lib__g" }, [
         el("span", { class: "icon" }, [icon("lock", 13)]),
         el("span", { textContent: "잠금 필요" }),
       ]),
-      el("div", { class: "lib__rows" }, gated.map((track) =>
-        this.row(track, track.id === playingTrack, !held, () => this.options.onPlayTrack(track.id)),
+      el("div", { class: "lib__rows" }, gated.map((track, at) =>
+        // Numbered straight on from the panel songs: it says which of them all this is.
+        this.row(track, panel.length + at + 1, track.id === playingTrack, !held, () => this.options.onPlayTrack(track.id)),
       )),
       el("div", { class: "lib__opts" }, [
         this.toggle("반복", state?.loop === true, held, (next) => this.options.onLoop(next)),
@@ -114,7 +115,7 @@ export class LibraryPanel {
 
   /** Opens the whole library's settings. One dialog, not a control per row. */
   private settingsKey(): HTMLElement {
-    const key = el("button", { class: "lib__cog", type: "button", title: "라이브러리 설정" }, [icon("cog", 16)]);
+    const key = el("button", { class: "lib__cog", type: "button", title: "곡 설정" }, [icon("cog", 16)]);
     key.addEventListener("click", () => this.options.onSettings());
     return key;
   }
@@ -126,8 +127,9 @@ export class LibraryPanel {
    * turned the list into a form, and one pressed by accident moves a level that
    * is heard the next time somebody picks that song.
    */
-  private row(track: Track, on: boolean, off: boolean, onPick: () => void): HTMLElement {
+  private row(track: Track, index: number, on: boolean, off: boolean, onPick: () => void): HTMLElement {
     const pick = el("button", { class: "lib__pick", type: "button" }, [
+      el("span", { class: "lib__i num", textContent: String(index) }),
       el("span", { class: "lib__n", textContent: track.title }),
       el("span", { class: "lib__d num", textContent: minutes(track.durationSec) }),
     ]) as HTMLButtonElement;

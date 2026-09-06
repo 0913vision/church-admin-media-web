@@ -472,10 +472,14 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   };
 
   const dashDeck = el("div", { class: "deck" }, [
+    // Note(yoochan.kim): the chip is a line of its own, not stacked under the title inside
+    // this row. Stacked, the block beside the play key was two lines tall and the
+    // key centred on the pair, leaving the song title riding well above it.
     el("div", { class: "deck__top" }, [
       transport.el,
-      el("div", {}, [deckSong, meta.el]),
+      deckSong,
     ]),
+    meta.el,
     el("div", { class: "volrow" }, [
       // Note(yoochan.kim): a speaker rather than the word. The row already reads as
       // a level — a slider, a number, a mute key — so the label was only telling
