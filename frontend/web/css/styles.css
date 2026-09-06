@@ -145,12 +145,13 @@ button { font: inherit; }
 
 /* A lamp carries no spacing of its own; the row it sits in decides.
 
-   `align-items: center` centres boxes, and the glyphs do not sit in the middle
-   of theirs — a font keeps more room above the baseline than below — so a
-   box-centred dot rides above the words. Nudged back down in em, since the gap
-   it closes belongs to the font and grows with it. */
+   `align-items: center` centres boxes, and a glyph does not sit in the middle of
+   its own — a font keeps more room above the baseline than below — so a
+   box-centred dot lands below the ink beside it. Lifted in em, since the gap it
+   closes belongs to the font and grows with it. Measured off the painted pixels
+   at 6x: this puts the dot's centre on the words' within a fifth of a pixel. */
 .led { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none;
-       position: relative; top: 0.09em; }
+       position: relative; top: -0.055em; }
 .led--go { background: var(--go); box-shadow: 0 0 7px var(--go); }
 .led--hold { background: var(--hold); box-shadow: 0 0 7px var(--hold); }
 .led--bad { background: var(--bad); box-shadow: 0 0 7px var(--bad); }
@@ -312,6 +313,8 @@ button { white-space: nowrap; }
    gives it a slot rather than styling it differently. On its own page it keeps
    to a readable width instead of running the length of the screen. */
 .deck-slot { display: flex; min-width: 0; }
+/* The deck and, under it, the two songs the panel offers. */
+.deck-col { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .deck-slot > .deck { flex: 1; min-width: 0; }
 .deck-slot--wide { max-width: none; }
 /* The deck, and beside it everything the server can play. */
@@ -345,7 +348,10 @@ button { white-space: nowrap; }
 }
 .lib__t:hover:not(:disabled) { background: var(--raised); }
 .lib__t:disabled { color: var(--c-fnt); cursor: default; }
-.lib__box { width: 16px; height: 16px; flex: none; border-radius: 4px; border: 1px solid var(--slot); background: var(--well); }
+/* A box that is ticked, not one that is painted: colour alone reads as a state,
+   and a tick reads as a choice somebody made. */
+.lib__box { width: 16px; height: 16px; flex: none; border-radius: 4px; border: 1px solid var(--slot);
+            background: var(--well); display: grid; place-items: center; color: #fff; }
 .lib__t.on .lib__box { background: var(--go); border-color: var(--go); }
 .lib__t:disabled .lib__box { opacity: 0.5; }
 .deck { background: var(--panel); border-radius: 12px; padding: 16px 18px; position: relative; }

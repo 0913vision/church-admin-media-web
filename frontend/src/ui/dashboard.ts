@@ -348,13 +348,32 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
    * lying about what is playing. Only one view is ever on screen, so the deck is
    * moved into whichever that is.
    */
+  // Note(yoochan.kim): the two the panel offers, kept on the dashboard when the deck
+  // itself walks off to its own tab. Its own element, so it stays behind.
+  const songRadios = el("div", { class: "radios" });
+  const renderSongRadios = (state: State): void => {
+    const held = flowOwnsDeck(state.flow) || state.deck.source === "track";
+    songRadios.replaceChildren(
+      ...[...songTitles.entries()].map(([id, title]) => {
+        const selected = !held && id === state.song;
+        const row = el("button", { class: selected ? "on" : "", type: "button" }, [
+          el("span", { class: "r" }),
+          title,
+        ]) as HTMLButtonElement;
+        row.disabled = state.audioLock || flowOwnsDeck(state.flow);
+        if (!selected) row.addEventListener("click", () => write("song", id));
+        return row;
+      }),
+    );
+  };
+
   const deckOnOverview = el("div", { class: "deck-slot" }, [dashDeck]);
   const deckOnPlayer = el("div", { class: "deck-slot deck-slot--wide" });
 
   const views: Record<ViewKey, HTMLElement> = {
     overview: el("section", { class: "view" }, [
       el("div", { class: "head" }, [
-        deckOnOverview,
+        el("div", { class: "deck-col" }, [deckOnOverview, el("div", { class: "deck__songs" }, [songRadios])]),
         el("div", { class: "clock" }, [
           el("div", { class: "clock__t" }, [el("span", { textContent: "교회 시각" }), goto("clock")]),
           el("div", { class: "clock__b" }, [clockVal]),
@@ -527,6 +546,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     // Note(yoochan.kim): the clock is told before anything drawn against it, so a
     // correction shows at once rather than at the next heartbeat.
     church.setOffset(state.clockOffsetSec);
+    renderSongRadios(state);
     libraryPanel.setState(state);
     clockPanel.setOffset(state.clockOffsetSec);
     // Note(yoochan.kim): A run always holds the gate, so this is also "no clock changes while

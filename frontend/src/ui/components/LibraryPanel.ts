@@ -91,7 +91,7 @@ export class LibraryPanel {
 
   private toggle(label: string, on: boolean, enabled: boolean, onChange: (next: boolean) => void): HTMLElement {
     const button = el("button", { class: `lib__t${on ? " on" : ""}`, type: "button" }, [
-      el("span", { class: "lib__box" }),
+      el("span", { class: "lib__box" }, on ? [icon("check", 13)] : []),
       el("span", { textContent: label }),
     ]) as HTMLButtonElement;
     button.disabled = !enabled;
