@@ -112,3 +112,10 @@ export function hhmmOf(at: Date): string {
 export function ssOf(at: Date): string {
   return String(at.getSeconds()).padStart(2, "0");
 }
+
+/** The one shape an instant takes on this wire: 2026-08-05T19:30:00.000. */
+export function instantOf(at: Date): string {
+  const pad = (value: number, width = 2): string => String(value).padStart(width, "0");
+  return `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}` +
+    `T${pad(at.getHours())}:${pad(at.getMinutes())}:${pad(at.getSeconds())}.${pad(at.getMilliseconds(), 3)}`;
+}

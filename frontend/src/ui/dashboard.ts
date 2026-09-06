@@ -4,7 +4,7 @@ import { subscribeEvents } from "../api/events.js";
 import type { Rejection, SystemStats } from "../api/events.js";
 import { UnauthorizedError } from "../api/http.js";
 import { MuteState } from "../protocol.js";
-import type { State, StatePatch } from "../protocol.js";
+import type { State, StatePatch, Track } from "../protocol.js";
 import { Store } from "../state/store.js";
 import type { Dashboard, Link } from "../state/store.js";
 import { BLANK, el } from "../util/dom.js";
@@ -18,7 +18,7 @@ import { SchedulePanel } from "./components/SchedulePanel.js";
 import { SystemPanel, formatUptime } from "./components/SystemPanel.js";
 import { ClockPanel } from "./components/ClockPanel.js";
 import { FlowPanel } from "./components/FlowPanel.js";
-import { ChurchClock, driftOf, hhmmOf, ssOf } from "../util/churchClock.js";
+import { ChurchClock, driftOf, hhmmOf, instantOf, ssOf } from "../util/churchClock.js";
 import { TransportControls } from "./components/TransportControls.js";
 import { icon } from "./icons.js";
 import { flowOwnsDeck } from "../util/flow.js";
@@ -43,8 +43,8 @@ const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 /** Every attribute the dashboard needs before it can claim to show the device */
 const ATTRIBUTES = [
-  "playback", "volume", "mute", "loop", "song", "deck", "unlockWhenDone", "trackVolumes",
-  "adminLock", "audioLock", "isAdmin", "flow", "schedule", "clockOffsetSec", "console",
+  "playback", "volume", "mute", "loop", "song", "deck", "unlockWhenDone", "musicEndsAt", "trackVolumes",
+  "adminLock", "adminHold", "audioLock", "isAdmin", "flow", "schedule", "clockOffsetSec", "console",
 ] as const;
 
 const REJECT_LABEL: Record<string, string> = {
@@ -215,10 +215,59 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   const libraryPanel = new LibraryPanel({
     onSelectSong: (id) => write("song", id),
     onPlayTrack: (id) => guard(deviceApi.invoke({ command: "selectTrack", args: { id } })),
-    onLevel: (id, volume) => guard(deviceApi.invoke({ command: "setTrackVolume", args: { id, volume } })),
+    onSettings: (track, volume) => openTrackSettings(track, volume),
     onLoop: (loop) => write("loop", loop),
     onUnlockWhenDone: (on) => write("unlockWhenDone", on),
+    onSetMusicEnd: () => openMusicEnd(),
   });
+  /** One track's settings. Only its level today; adding and removing land here later. */
+  const openTrackSettings = (track: Track, volume: number): void => {
+    const input = el("input", { class: "editor__input", type: "number", value: String(volume) }) as HTMLInputElement;
+    input.min = "0";
+    input.max = "100";
+    const body = el("div", { class: "setrow" }, [
+      el("label", { textContent: "볼륨" }),
+      input,
+      el("span", { class: "setrow__h", textContent: "이 곡을 고를 때 돌아오는 값이에요" }),
+    ]);
+
+    const cancel = el("button", { class: "btn", type: "button", textContent: "취소" });
+    cancel.addEventListener("click", () => confirm.close());
+    const save = el("button", { class: "btn btn--go", type: "button", textContent: "저장" });
+    save.addEventListener("click", () => {
+      const asked = Math.round(Number(input.value));
+      if (!Number.isFinite(asked) || asked < 0 || asked > 100) return;
+      confirm.close();
+      guard(deviceApi.invoke({ command: "setTrackVolume", args: { id: track.id, volume: asked } }));
+    });
+    confirm.open(track.title, body, () => {}, [cancel, save]);
+  };
+
+  /**
+   * When the music should stop.
+   *
+   * Note(yoochan.kim): offered as durations rather than a clock, because the question
+   * being answered is "how much longer", and the person asking is standing at
+   * the desk with the music already playing.
+   */
+  const openMusicEnd = (): void => {
+    const body = el("div", { class: "whens" });
+    for (const minutes of [10, 20, 30, 60]) {
+      const key = el("button", { class: "btn", type: "button", textContent: `${minutes}분 뒤` });
+      key.addEventListener("click", () => {
+        confirm.close();
+        write("musicEndsAt", { kind: "at", at: instantOf(new Date(church.now().getTime() + minutes * 60_000)) });
+      });
+      body.append(key);
+    }
+    const never = el("button", { class: "textbtn", type: "button", textContent: "정하지 않기" });
+    never.addEventListener("click", () => {
+      confirm.close();
+      write("musicEndsAt", { kind: "none" });
+    });
+    confirm.open("음악을 언제 멈출까요", body, () => {}, [never]);
+  };
+
   const systemPanel = new SystemPanel({
     onOpenFile: (title, body) => confirm.open(title, body, () => {}),
   });
@@ -257,6 +306,20 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   let adminLocked = false;
   // Note(yoochan.kim): The gate only moves if you mean it: hold until the chip fills.
   holdToFire(gate, () => write("adminLock", !adminLocked));
+  // Note(yoochan.kim): the gate lapses on its own within the hour, so what is left of it is
+  // shown rather than left to be discovered when the panel comes back to life.
+  const holdLeft = el("span", { class: "hold__l num" });
+  const extend = el("button", { class: "btn btn--small", type: "button", textContent: "+30분" });
+  extend.addEventListener("click", () => guard(deviceApi.invoke({ command: "extendAdminHold", args: {} })));
+  const holdRow = el("div", { class: "hold is-hidden" }, [holdLeft, extend]);
+  let holdEndsAt: Date | null = null;
+  const renderHold = (): void => {
+    holdRow.classList.toggle("is-hidden", holdEndsAt === null);
+    if (!holdEndsAt) return;
+    const left = Math.max(0, Math.round((holdEndsAt.getTime() - church.now().getTime()) / 1000));
+    holdLeft.textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")} 뒤 해제`;
+    holdRow.classList.toggle("is-soon", left <= 300);
+  };
   const notice = el("span", { class: "notice" });
   // Note(yoochan.kim): Light while setting up, dark during a service. Remembered per browser.
   const SUN = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
@@ -441,7 +504,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     el("div", { class: "app" }, [
       // Note(yoochan.kim): what belongs to the dashboard rather than to one tab. The
       // bar across the top had nothing left in it once these moved, so it is gone.
-      el("aside", { class: "side" }, [gate, nav, el("div", { class: "side__gap" }), theme, logout]),
+      el("aside", { class: "side" }, [gate, holdRow, nav, el("div", { class: "side__gap" }), theme, logout]),
       el("div", { class: "main" }, [
         // Note(yoochan.kim): every view, taken from the map rather than listed by
         // hand. Written out one by one, a new tab is a section that exists and is
@@ -464,6 +527,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     clockVal.replaceChildren(hhmmOf(now), el("s", { textContent: `:${ssOf(now)}` }));
     flowPanel.setNow(now);
     schedulePanel.setNow(now);
+    renderHold();
   });
 
   /** Shows why something did nothing, rather than leaving it looking broken. */
@@ -536,6 +600,8 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     // Note(yoochan.kim): A running flow owns the gate, so the chip goes quiet rather than
     // offering a toggle the server would refuse.
     gate.disabled = !state.isAdmin || state.flow.phase !== "idle";
+    holdEndsAt = state.adminHold.kind === "at" ? new Date(state.adminHold.at) : null;
+    renderHold();
 
     consoleState = state.console;
     renderConsoleRows();

@@ -7,15 +7,22 @@ export interface LibraryPanelOptions {
   onSelectSong: (songId: string) => void;
   /** A library track: put on the deck and played. Needs the gate. */
   onPlayTrack: (trackId: string) => void;
-  /** The level a track sounds at, kept across restarts. */
-  onLevel: (trackId: string, volume: number) => void;
+  /** Opens one track's settings, where its level is edited. */
+  onSettings: (track: Track, volume: number) => void;
   onLoop: (loop: boolean) => void;
   onUnlockWhenDone: (on: boolean) => void;
+  /** Asks when the music should stop; the panel only says that it must be asked. */
+  onSetMusicEnd: () => void;
 }
 
 function minutes(seconds: number): string {
   const whole = Math.round(seconds);
   return `${Math.floor(whole / 60)}분 ${String(whole % 60).padStart(2, "0")}초`;
+}
+
+/** The clock part of a wire instant. */
+function hhmmss(at: string): string {
+  return at.slice(11, 19);
 }
 
 /**
@@ -76,16 +83,43 @@ export class LibraryPanel {
           held && state?.loop === false,
           (next) => this.options.onUnlockWhenDone(next),
         ),
+        ...this.musicEnd(state),
       ]),
     );
   }
 
   /**
-   * One track: its name, its level, its length.
+   * When the music stops, and a warning while nothing does.
    *
-   * Note(yoochan.kim): the level box sits outside the choosing key rather than inside
-   * it — a field within a button cannot be typed into, and pressing one would be
-   * pressing the other.
+   * Note(yoochan.kim): a repeating track has no end of its own, so with loop on and no
+   * end set, the gate stays shut until somebody walks back to the desk.
+   */
+  private musicEnd(state: State | null): HTMLElement[] {
+    if (state?.adminLock !== true || state.loop !== true) return [];
+
+    const set = el("button", { class: "lib__when", type: "button" });
+    set.addEventListener("click", () => this.options.onSetMusicEnd());
+
+    if (state.musicEndsAt.kind === "at") {
+      set.replaceChildren(el("span", { textContent: `${hhmmss(state.musicEndsAt.at)}에 멈춰요` }));
+      return [set];
+    }
+    set.replaceChildren(el("span", { textContent: "멈출 시각 정하기" }));
+    return [
+      el("div", { class: "lib__warn" }, [
+        el("span", { class: "led led--hold" }),
+        el("span", { textContent: "반복 중이라 저절로 멈추지 않아요" }),
+      ]),
+      set,
+    ];
+  }
+
+  /**
+   * One track: its name, its length, and a key that opens its settings.
+   *
+   * Note(yoochan.kim): the level is not edited here. A row is for choosing, and a number
+   * box in every row turned the list into a form — pressed by accident, it moves
+   * a level that is heard the next time somebody picks that song.
    */
   private row(track: Track, on: boolean, off: boolean, onPick: () => void): HTMLElement {
     const pick = el("button", { class: "lib__pick", type: "button" }, [
@@ -94,25 +128,13 @@ export class LibraryPanel {
     ]) as HTMLButtonElement;
     pick.disabled = off;
     pick.addEventListener("click", onPick);
-    return el("div", { class: `lib__r${on ? " on" : ""}` }, [pick, this.level(track.id)]);
-  }
 
-  /** The level this track sounds at, kept across restarts. */
-  private level(id: string): HTMLElement {
-    const input = el("input", { class: "lib__v", type: "number", value: String(this.levels.get(id) ?? 50) }) as HTMLInputElement;
-    input.min = "0";
-    input.max = "100";
-    input.step = "1";
-    input.title = "이 곡을 고를 때의 볼륨";
-    // Note(yoochan.kim): sent when the box is left, not per keystroke. Rewriting 5 into
-    // 50 under somebody's fingers is worse than a moment out of range.
-    input.addEventListener("blur", () => {
-      const asked = Number(input.value);
-      const level = Number.isFinite(asked) ? Math.min(100, Math.max(0, Math.round(asked))) : (this.levels.get(id) ?? 50);
-      input.value = String(level);
-      if (level !== this.levels.get(id)) this.options.onLevel(id, level);
-    });
-    return el("span", { class: "vol" }, [input]);
+    const settings = el("button", { class: "lib__cog", type: "button", title: `${track.title} 설정` }, [
+      icon("cog", 15),
+    ]) as HTMLButtonElement;
+    settings.addEventListener("click", () => this.options.onSettings(track, this.levels.get(track.id) ?? 50));
+
+    return el("div", { class: `lib__r${on ? " on" : ""}` }, [pick, settings]);
   }
 
   private toggle(label: string, on: boolean, enabled: boolean, onChange: (next: boolean) => void): HTMLElement {

@@ -274,6 +274,14 @@ button { white-space: nowrap; }
 .side > .gate .led { margin: 0 7px 0 0; background: var(--go); box-shadow: 0 0 7px var(--go); }
 .side > .gate.on .led { background: var(--bad); box-shadow: 0 0 7px var(--bad); }
 .gate:hover:not(:disabled):not(.on) { background: var(--slot); }
+/* What is left of a hold, under the chip that made it. The extend key is always
+   here rather than appearing near the end — a control that arrives when you are
+   already short of time is one nobody has learned the position of. */
+.side > .hold { display: flex; align-items: center; gap: 8px; margin: 0;
+                padding: 7px 21px 9px; background: var(--raised); }
+.hold__l { flex: 1; font-size: 13px; color: var(--c-mut); font-variant-numeric: tabular-nums; }
+.hold.is-soon .hold__l { color: var(--hold); font-weight: 700; }
+.hold .btn { padding: 4px 10px; font-size: 12.5px; }
 .gate { position: relative; overflow: hidden; }
 .gate > * { position: relative; }
 /* The gauge is what makes a hold visible, so it is a solid wash rather than a
@@ -334,12 +342,15 @@ button { white-space: nowrap; }
 }
 .lib__pick:disabled { color: var(--c-fnt); cursor: default; }
 .lib__r.on .lib__pick { color: #fff; font-weight: 700; }
-/* The level this track sounds at. Its own field, so it can be typed into. */
-.lib__v { width: 26px; font: inherit; font-size: 13px; font-family: var(--mono); text-align: right;
-          color: var(--c-ink); background: transparent; border: 0; padding: 0;
-          font-variant-numeric: tabular-nums; appearance: textfield; -moz-appearance: textfield; }
-.lib__v::-webkit-inner-spin-button, .lib__v::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-.lib__v:focus { outline: none; }
+/* Opens the track's settings. Quiet until the row is under the pointer: it is
+   not what a row is for, and a key on every line would read as the point of one. */
+.lib__cog { flex: none; display: grid; place-items: center; width: 28px; height: 28px;
+            border: 0; border-radius: 7px; background: none; color: var(--c-fnt);
+            cursor: pointer; opacity: 0; transition: opacity 0.12s ease; }
+.lib__r:hover .lib__cog, .lib__cog:focus-visible { opacity: 1; }
+.lib__cog:hover { background: var(--slot); color: var(--c-ink); }
+.lib__r.on .lib__cog { color: rgba(255, 255, 255, 0.85); opacity: 1; }
+.lib__r.on .lib__cog:hover { background: rgba(255, 255, 255, 0.18); color: #fff; }
 .lib__n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Marks the two a person can also reach from the wall. */
 .lib__tag { flex: none; font-size: 11.5px; color: var(--c-fnt); }
@@ -360,6 +371,13 @@ button { white-space: nowrap; }
             background: var(--well); display: grid; place-items: center; color: #fff; }
 .lib__t.on .lib__box { background: var(--go); border-color: var(--go); }
 .lib__t:disabled .lib__box { opacity: 0.5; }
+/* Amber, not red: nothing is wrong yet — it is a thing about to be left running. */
+.lib__warn { display: flex; align-items: center; gap: 9px; padding: 8px 10px; margin: 4px -10px 0;
+             border-radius: 8px; background: var(--hold-soft); color: var(--hold); font-size: 13.5px; }
+.lib__when { align-self: flex-start; margin-top: 4px; padding: 7px 12px; border-radius: 8px;
+             border: 1px solid var(--line); background: var(--raised); color: var(--c-ink);
+             font: inherit; font-size: 14px; cursor: pointer; }
+.lib__when:hover { background: var(--slot); }
 .deck { background: var(--panel); border-radius: 12px; padding: 16px 18px; position: relative; }
 .deck__top { display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: center; }
 .deck > .goto { position: absolute; top: 14px; right: 18px; }
@@ -812,6 +830,14 @@ body.has-modal { overflow: hidden; }
    are one press apart on a keypad and one of them cannot be taken back. */
 .editor__danger { display: flex; align-items: center; gap: 8px; margin-right: 20px; }
 .editor__danger .editor__warn { font-size: 13px; }
+/* One setting in a dialog: what it is called, the field, and what it means. */
+.setrow { display: grid; grid-template-columns: 56px 84px 1fr; gap: 12px; align-items: center; padding: 8px 0 4px; }
+.setrow > label { font-size: 14.5px; color: var(--c-mut); }
+.setrow__h { font-size: 13px; color: var(--c-fnt); }
+.setrow .editor__input { text-align: right; font-variant-numeric: tabular-nums; }
+/* How much longer, offered as durations — the question is never "at what o'clock". */
+.whens { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 0 4px; }
+.whens .btn { flex: 1; min-width: 84px; }
 .modal__x {
   flex: none; width: 32px; height: 32px; border-radius: 8px; cursor: pointer;
   background: none; border: 0; color: var(--c-mut); font-size: 15px;
