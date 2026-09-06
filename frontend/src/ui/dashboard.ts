@@ -41,6 +41,12 @@ const NAV: { key: ViewKey; label: string; icon: string }[] = [
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
+/** A track's length, written the way the library list writes it. */
+function lengthOf(seconds: number): string {
+  const whole = Math.round(seconds);
+  return `${Math.floor(whole / 60)}분 ${String(whole % 60).padStart(2, "0")}초`;
+}
+
 /** Every attribute the dashboard needs before it can claim to show the device */
 const ATTRIBUTES = [
   "playback", "volume", "mute", "loop", "song", "deck", "unlockWhenDone", "musicEndsAt", "trackVolumes",
@@ -233,7 +239,15 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
    */
   const openLibrarySettings = (): void => {
     const fields = new Map<string, HTMLInputElement>();
-    const body = el("div", { class: "setlist" });
+    // Note(yoochan.kim): a table with named columns, so a number says what it is and a
+    // setting added later is one more column rather than a redrawing.
+    const body = el("div", { class: "setlist" }, [
+      el("div", { class: "setlist__r setlist__r--h" }, [
+        el("span", { textContent: "곡" }),
+        el("span", { textContent: "길이" }),
+        el("span", { textContent: "볼륨" }),
+      ]),
+    ]);
 
     for (const track of libraryTracks) {
       const input = el("input", {
@@ -246,6 +260,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
       fields.set(track.id, input);
       body.append(el("div", { class: "setlist__r" }, [
         el("span", { class: "setlist__n", textContent: track.title }),
+        el("span", { class: "setlist__d num", textContent: lengthOf(track.durationSec) }),
         input,
       ]));
     }
@@ -264,7 +279,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
         guard(deviceApi.invoke({ command: "setTrackVolume", args: { id, volume: asked } }));
       }
     });
-    confirm.open("라이브러리 설정", body, () => {}, [cancel, save]);
+    confirm.open("곡 설정", body, () => {}, [cancel, save]);
   };
 
   /**

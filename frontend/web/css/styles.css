@@ -830,13 +830,16 @@ body.has-modal { overflow: hidden; }
 .editor__danger { display: flex; align-items: center; gap: 8px; margin-right: 20px; }
 .editor__danger .editor__warn { font-size: 13px; }
 /* One setting in a dialog: what it is called, the field, and what it means. */
-/* Every track and the level it comes back at, read down a single column so the
-   numbers can be compared — which is the only way a level means anything. */
+/* A table, not a list of boxes: the column says what the number is, and a
+   setting added later is one more column. The levels sit under each other so
+   they can be compared, which is the only way a level means anything. */
 .setlist { display: flex; flex-direction: column; }
-.setlist__r { display: grid; grid-template-columns: 1fr 88px; gap: 14px; align-items: center;
+.setlist__r { display: grid; grid-template-columns: 1fr max-content 88px; gap: 16px; align-items: center;
               padding: 7px 0; border-top: 1px solid var(--line); }
-.setlist__r:first-child { border-top: 0; }
+.setlist__r--h { border-top: 0; padding-bottom: 9px; font-size: 13px; color: var(--c-mut); }
+.setlist__r--h > :last-child { text-align: right; }
 .setlist__n { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.setlist__d { font-size: 13.5px; color: var(--c-fnt); font-family: var(--mono); }
 .setlist .editor__input { text-align: right; font-variant-numeric: tabular-nums; }
 /* How much longer, offered as durations — the question is never "at what o'clock". */
 .whens { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 0 4px; }
