@@ -399,6 +399,9 @@ button { white-space: nowrap; }
 /* Note(yoochan.kim): words, not an alarm. The dialog has already asked; this line only
    reports the answer, and one of the answers happens to be "none given". A
    filled amber box for that made a settled situation look like a fault. */
+/* A run in progress, said in words. Same weight as the repeat line: this is a
+   situation to know about, not a fault to be alarmed by. */
+.lib__note { margin: 2px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--c-mut); }
 .lib__when { align-self: flex-start; margin: 2px -6px 0; padding: 5px 6px; border: 0; border-radius: 6px;
              background: none; color: var(--c-mut); font: inherit; font-size: 13.5px;
              text-decoration: underline; text-decoration-color: var(--line);

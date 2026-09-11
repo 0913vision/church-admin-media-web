@@ -1,6 +1,7 @@
 import { el } from "../../util/dom.js";
 import { icon } from "../icons.js";
 import type { State, Track } from "../../protocol.js";
+import { flowOwnsDeck } from "../../util/flow.js";
 
 export interface LibraryPanelOptions {
   /** A song the panel itself offers: selected, not started. */
@@ -54,7 +55,11 @@ export class LibraryPanel {
 
   private render(): void {
     const state = this.state;
-    const held = state?.adminLock === true;
+    // Note(yoochan.kim): a run sounding music owns the deck, and the server refuses every
+    // choice made here — the same rule the deck's own keys follow. A run merely
+    // holding the gate owns nothing, so the list stays usable.
+    const runOwnsDeck = state !== null && flowOwnsDeck(state.flow);
+    const held = state?.adminLock === true && !runOwnsDeck;
     const playingTrack = state?.deck.source === "track" ? state.deck.id : "";
 
     const panel = this.tracks.filter((track) => this.deckSongs.has(track.id));
@@ -64,7 +69,7 @@ export class LibraryPanel {
       el("div", { class: "lib__h" }, [el("b", { textContent: "곡 목록" }), this.settingsKey()]),
       el("div", { class: "lib__rows" }, panel.map((track) => {
         const on = state?.deck.source === "song" && state.song === track.id;
-        return this.row(track, panel.indexOf(track) + 1, on, false, () => this.options.onSelectSong(track.id));
+        return this.row(track, panel.indexOf(track) + 1, on, runOwnsDeck, () => this.options.onSelectSong(track.id));
       })),
       el("div", { class: "lib__g" }, [
         el("span", { class: "icon" }, [icon("lock", 13)]),
@@ -74,6 +79,7 @@ export class LibraryPanel {
         // Numbered straight on from the panel songs: it says which of them all this is.
         this.row(track, panel.length + at + 1, track.id === playingTrack, !held, () => this.options.onPlayTrack(track.id)),
       )),
+      ...this.runNote(state, runOwnsDeck),
       el("div", { class: "lib__opts" }, [
         this.toggle("반복", state?.loop === true, held, (next) => this.options.onLoop(next)),
         this.toggle(
@@ -104,6 +110,22 @@ export class LibraryPanel {
     const set = el("button", { class: "lib__when", type: "button", textContent: said });
     set.addEventListener("click", () => this.options.onSetMusicEnd());
     return [set];
+  }
+
+  /**
+   * What a run in progress means for this list, in words.
+   *
+   * Note(yoochan.kim): plainly, not as an alarm — the same way the repeat line reads.
+   * Nothing is wrong; the panel is simply not the only thing with a claim on
+   * the deck right now, and somebody choosing here should know that before
+   * they choose rather than after the music cuts.
+   */
+  private runNote(state: State | null, runOwnsDeck: boolean): HTMLElement[] {
+    if (!state || state.flow.phase === "idle") return [];
+    const says = runOwnsDeck
+      ? "자동 진행이 음악을 틀고 있어요. 끝나야 고를 수 있어요"
+      : "자동 진행 중이에요. 지금 고른 곡은 자동 진행 음악이 시작되면 멈춰요";
+    return [el("div", { class: "lib__note" }, [el("span", { textContent: says })])];
   }
 
   /** Opens the whole library's settings. One dialog, not a control per row. */
