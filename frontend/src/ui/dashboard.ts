@@ -238,7 +238,12 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     onSelectSong: (id) => write("song", id),
     onPlayTrack: (id) => guard(deviceApi.invoke({ command: "selectTrack", args: { id } })),
     onSettings: () => openLibrarySettings(),
-    onLoop: (loop) => write("loop", loop),
+    onLoop: (loop) => {
+      write("loop", loop);
+      // Asked at the moment it is switched on: repeating audio has no end of its
+      // own, and the answer belongs with the decision that created the question.
+      if (loop) openMusicEnd();
+    },
     onUnlockWhenDone: (on) => write("unlockWhenDone", on),
     onSetMusicEnd: () => openMusicEnd(),
   });
@@ -328,12 +333,16 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
       });
       body.append(key);
     }
-    const never = el("button", { class: "textbtn", type: "button", textContent: "정하지 않기" });
-    never.addEventListener("click", () => {
+    // Note(yoochan.kim): saying "until the gate opens" is an answer, not a refusal to
+    // answer — so it is a key here and it silences the warning, while closing
+    // the dialog leaves the question open and the warning standing.
+    const untilGate = el("button", { class: "btn btn--wide", type: "button", textContent: "관리자 잠금이 풀릴 때까지" });
+    untilGate.addEventListener("click", () => {
       confirm.close();
-      write("musicEndsAt", { kind: "none" });
+      write("musicEndsAt", { kind: "withHold" });
     });
-    confirm.open("음악을 언제 멈출까요", body, () => {}, [never]);
+    body.append(untilGate);
+    confirm.open("음악을 언제 멈출까요", body, () => {});
   };
 
   const systemPanel = new SystemPanel({

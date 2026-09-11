@@ -96,21 +96,14 @@ export class LibraryPanel {
   private musicEnd(state: State | null): HTMLElement[] {
     if (state?.adminLock !== true || state.loop !== true) return [];
 
-    const set = el("button", { class: "lib__when", type: "button" });
-    set.addEventListener("click", () => this.options.onSetMusicEnd());
+    const end = state.musicEndsAt;
+    const said = end.kind === "at" ? `${hhmmss(end.at)}에 멈춰요`
+      : end.kind === "withHold" ? "잠금이 풀릴 때 멈춰요"
+      : "언제 멈출지 정하지 않았어요";
 
-    if (state.musicEndsAt.kind === "at") {
-      set.replaceChildren(el("span", { textContent: `${hhmmss(state.musicEndsAt.at)}에 멈춰요` }));
-      return [set];
-    }
-    set.replaceChildren(el("span", { textContent: "멈출 시각 정하기" }));
-    return [
-      el("div", { class: "lib__warn" }, [
-        el("span", { class: "led led--hold" }),
-        el("span", { textContent: "반복 중이라 저절로 멈추지 않아요" }),
-      ]),
-      set,
-    ];
+    const set = el("button", { class: "lib__when", type: "button", textContent: said });
+    set.addEventListener("click", () => this.options.onSetMusicEnd());
+    return [set];
   }
 
   /** Opens the whole library's settings. One dialog, not a control per row. */

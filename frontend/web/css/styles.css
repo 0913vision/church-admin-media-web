@@ -396,13 +396,15 @@ button { white-space: nowrap; }
             background: var(--well); display: grid; place-items: center; color: #fff; }
 .lib__t.on .lib__box { background: var(--go); border-color: var(--go); }
 .lib__t:disabled .lib__box { opacity: 0.5; }
-/* Amber, not red: nothing is wrong yet — it is a thing about to be left running. */
-.lib__warn { display: flex; align-items: center; gap: 9px; padding: 8px 10px; margin: 4px -10px 0;
-             border-radius: 8px; background: var(--hold-soft); color: var(--hold); font-size: 13.5px; }
-.lib__when { align-self: flex-start; margin-top: 4px; padding: 7px 12px; border-radius: 8px;
-             border: 1px solid var(--line); background: var(--raised); color: var(--c-ink);
-             font: inherit; font-size: 14px; cursor: pointer; }
-.lib__when:hover { background: var(--slot); }
+/* Note(yoochan.kim): words, not an alarm. The dialog has already asked; this line only
+   reports the answer, and one of the answers happens to be "none given". A
+   filled amber box for that made a settled situation look like a fault. */
+.lib__when { align-self: flex-start; margin: 2px -6px 0; padding: 5px 6px; border: 0; border-radius: 6px;
+             background: none; color: var(--c-mut); font: inherit; font-size: 13.5px;
+             text-decoration: underline; text-decoration-color: var(--line);
+             text-underline-offset: 3px; cursor: pointer; }
+.lib__when:hover { color: var(--c-ink); text-decoration-color: var(--c-fnt); }
+.btn--wide { flex-basis: 100%; }
 .deck { background: var(--panel); border-radius: 12px; padding: 16px 18px; position: relative; }
 .deck__top { display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: center; }
 .deck > .goto { position: absolute; top: 14px; right: 18px; }
