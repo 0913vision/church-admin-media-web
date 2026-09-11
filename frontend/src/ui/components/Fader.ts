@@ -91,10 +91,15 @@ export class Fader {
     });
   }
 
+  /**
+   * Note(yoochan.kim): rounded here, not just where it is drawn. A ratio of pixels to a
+   * width is 44.599303135888505, and that is what was being sent, stored and
+   * persisted while the screen showed 45. A level is a whole number.
+   */
   private valueFromPointer(clientX: number): number {
     const rect = this.el.getBoundingClientRect();
     const ratio = (clientX - rect.left) / rect.width;
-    return this.min + ratio * (this.max - this.min);
+    return Math.round(this.min + ratio * (this.max - this.min));
   }
 
   private commit(value: number): void {

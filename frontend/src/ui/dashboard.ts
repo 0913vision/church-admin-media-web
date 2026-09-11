@@ -256,6 +256,10 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
    */
   const openLibrarySettings = (): void => {
     const fields = new Map<string, HTMLInputElement>();
+    // Note(yoochan.kim): the levels this dialog opened onto. Compared against the live map,
+    // a level somebody moved on another screen while this was open would make an
+    // edit here look unchanged, and the write would be dropped without a word.
+    const opened = new Map(trackLevels);
     // Note(yoochan.kim): a table with named columns, so a number says what it is and a
     // setting added later is one more column rather than a redrawing.
     const body = el("div", { class: "setlist" }, [
@@ -272,7 +276,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
       const input = el("input", {
         class: "editor__input",
         type: "number",
-        value: String(trackLevels.get(track.id) ?? 50),
+        value: String(opened.get(track.id) ?? 50),
       }) as HTMLInputElement;
       input.min = "0";
       input.max = "100";
@@ -309,7 +313,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
       for (const [id, input] of fields) {
         const asked = Math.round(Number(input.value));
         if (!Number.isFinite(asked) || asked < 0 || asked > 100) continue;
-        if (asked === (trackLevels.get(id) ?? 50)) continue;
+        if (asked === (opened.get(id) ?? 50)) continue;
         guard(deviceApi.invoke({ command: "setTrackVolume", args: { id, volume: asked } }));
       }
     });
