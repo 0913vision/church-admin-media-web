@@ -1,3 +1,12 @@
+/**
+ * Note(yoochan.kim): the Korean face is served from this repo, not named and hoped for.
+ * A system stack resolves differently on every machine, so the same screen was a
+ * different shape on the Pi's browser, on a phone, and in the headless one these
+ * are checked in — which is why alignment measured in one kept disagreeing with
+ * what was seen in another. One file, one shape, everywhere.
+ */
+@import url('./noto-sans-kr.css');
+
 /* Ported from the approved element mockup (scratchpad/elements.html): colour
    is state (green sounds, amber locks, red stops), a button is a keycap that
    visibly presses, and the chosen cell of a bar is painted green.
@@ -5,7 +14,7 @@
 
 :root {
   color-scheme: light dark;
-  --kr: 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', system-ui, sans-serif;
+  --kr: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
   --mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
 
   --bg: #F1F4F9; --panel: #FFFFFF; --raised: #E8ECF4; --well: #E4E9F1; --slot: #D8DFEA;
@@ -86,8 +95,9 @@
 .x32__link span:has(+ .led) { top: 0; }
 .x32__link .led { position: relative; top: 1px; }
 /* When the lamp is *inside* the words instead of beside them, the lamp moves —
-   dropping the element carries both and changes nothing between them. */
-.chrow__s .led { position: relative; top: -0.07em; }
+   dropping the element carries both and changes nothing between them.
+   Set from the picture, now that the face is one we ship. */
+.chrow__s .led { position: relative; top: 0.5px; }
 /* Digits alone sit higher still: nothing descends below the baseline to balance
    them, so a row of numerals wants more of a drop than a row of words. */
 .volrow__n { position: relative; top: 0.1em; }
