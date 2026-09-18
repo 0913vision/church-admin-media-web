@@ -79,6 +79,9 @@
    missing one, and the answer kept arriving as "this one too". */
 .led + span, .led + b, span:has(+ .led), b:has(+ .led),
 .icon + span, .icon + b, span:has(+ .icon), b:has(+ .icon) { position: relative; top: 0.07em; }
+/* Note(yoochan.kim): not here. Reported as sitting low, repeatedly — the drop above is
+   measured off mixed text and is too much for a short Korean word at this size. */
+.x32__link span:has(+ .led) { top: 0; }
 /* When the lamp is *inside* the words instead of beside them, the lamp moves —
    dropping the element carries both and changes nothing between them. */
 .chrow__s .led { position: relative; top: -0.07em; }
