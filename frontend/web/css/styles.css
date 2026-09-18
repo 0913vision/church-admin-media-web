@@ -519,8 +519,12 @@ button { white-space: nowrap; }
    own line box, so a 16px name and a 13px tag drew rules of different lengths
    sitting at different heights. */
 .tl__facts > span + span { position: relative; }
+/* Note(yoochan.kim): 50% is the middle of the span's box, and the words sit above that.
+   A rule drawn there hangs below them. The same 0.07em the words are dropped by,
+   applied to the rule instead — it cannot be dropped with them, since it is
+   drawn by the span that holds them. */
 .tl__facts > span + span::before {
-  content: ""; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  content: ""; position: absolute; left: 0; top: calc(50% - 0.07em); transform: translateY(-50%);
   width: 1px; height: 13px; background: var(--line);
 }
 .tl__row { display: flex; align-items: flex-start; gap: 14px; }
@@ -833,7 +837,7 @@ button { white-space: nowrap; }
 /* When it starts and how loud it plays are two readings, kept apart by a rule. */
 .detail__cue { display: flex; align-items: center; gap: 9px; }
 .detail__vol { position: relative; padding-left: 9px; color: var(--c-fnt); font-size: 13px; }
-.detail__vol::before { content: ""; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+.detail__vol::before { content: ""; position: absolute; left: 0; top: calc(50% - 0.07em); transform: translateY(-50%);
                        width: 1px; height: 13px; background: var(--line); }
 .detail__b { display: flex; gap: 7px; align-items: center; margin-top: auto; }
 
