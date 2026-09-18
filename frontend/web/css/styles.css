@@ -77,7 +77,8 @@
 /* A word standing next to a lamp, whichever side it is on. Written as the
    relationship rather than a list of the places it happens: the list kept
    missing one, and the answer kept arriving as "this one too". */
-.led + span, .led + b, span:has(+ .led), b:has(+ .led) { position: relative; top: 0.07em; }
+.led + span, .led + b, span:has(+ .led), b:has(+ .led),
+.icon + span, .icon + b, span:has(+ .icon), b:has(+ .icon) { position: relative; top: 0.07em; }
 /* When the lamp is *inside* the words instead of beside them, the lamp moves —
    dropping the element carries both and changes nothing between them. */
 .chrow__s .led { position: relative; top: -0.07em; }
