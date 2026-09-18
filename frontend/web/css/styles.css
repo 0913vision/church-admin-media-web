@@ -79,9 +79,12 @@
    missing one, and the answer kept arriving as "this one too". */
 .led + span, .led + b, span:has(+ .led), b:has(+ .led),
 .icon + span, .icon + b, span:has(+ .icon), b:has(+ .icon) { position: relative; top: 0.07em; }
-/* Note(yoochan.kim): not here. Reported as sitting low, repeatedly — the drop above is
-   measured off mixed text and is too much for a short Korean word at this size. */
+/* Note(yoochan.kim): the words stay put here and the lamp comes down to them. Measuring
+   this locally is no use — headless Chrome resolves a different Korean face than
+   the browsers this is read in, so the metrics I get are not the ones on screen.
+   This number is set from what is actually seen, and moves only on that. */
 .x32__link span:has(+ .led) { top: 0; }
+.x32__link .led { position: relative; top: 1px; }
 /* When the lamp is *inside* the words instead of beside them, the lamp moves —
    dropping the element carries both and changes nothing between them. */
 .chrow__s .led { position: relative; top: -0.07em; }
@@ -527,7 +530,7 @@ button { white-space: nowrap; }
    applied to the rule instead — it cannot be dropped with them, since it is
    drawn by the span that holds them. */
 .tl__facts > span + span::before {
-  content: ""; position: absolute; left: 0; top: calc(50% - 0.07em); transform: translateY(-50%);
+  content: ""; position: absolute; left: 0; top: calc(50% + 1px); transform: translateY(-50%);
   width: 1px; height: 13px; background: var(--line);
 }
 .tl__row { display: flex; align-items: flex-start; gap: 14px; }
@@ -840,7 +843,7 @@ button { white-space: nowrap; }
 /* When it starts and how loud it plays are two readings, kept apart by a rule. */
 .detail__cue { display: flex; align-items: center; gap: 9px; }
 .detail__vol { position: relative; padding-left: 9px; color: var(--c-fnt); font-size: 13px; }
-.detail__vol::before { content: ""; position: absolute; left: 0; top: calc(50% - 0.07em); transform: translateY(-50%);
+.detail__vol::before { content: ""; position: absolute; left: 0; top: calc(50% + 1px); transform: translateY(-50%);
                        width: 1px; height: 13px; background: var(--line); }
 .detail__b { display: flex; gap: 7px; align-items: center; margin-top: auto; }
 
