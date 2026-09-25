@@ -41,7 +41,6 @@ export class FlowEditor {
   private cues: ScheduledTrack[] = [];
   private endsAt = "20:00";
   private tracks: Track[] = [];
-  private levels = new Map<string, number>();
   /** Whether this draft is already on the calendar — only then is deleting offered. */
   private existing = false;
   /**
@@ -58,15 +57,6 @@ export class FlowEditor {
 
   setTracks(tracks: Track[]): void {
     this.tracks = tracks;
-  }
-
-  /** The level a track sounds at, for the box a new cue starts in. */
-  setLevels(levels: Map<string, number>): void {
-    this.levels = levels;
-  }
-
-  private levelOf(id: string): number {
-    return this.levels.get(id) ?? 50;
   }
 
   close(): void {
@@ -229,7 +219,7 @@ export class FlowEditor {
         const track = this.tracks[index]!;
         // Note(yoochan.kim): a song joins at its own level, which is the one
         // someone would have picked anyway — and can then be changed here.
-        this.cues.push({ id: track.id, volume: this.levelOf(track.id) });
+        this.cues.push({ id: track.id, volume: track.volume });
         this.emit();
         this.render();
       });

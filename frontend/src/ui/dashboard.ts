@@ -60,7 +60,7 @@ function lengthOf(seconds: number): string {
 
 /** Every attribute the dashboard needs before it can claim to show the device */
 const ATTRIBUTES = [
-  "playback", "volume", "mute", "loop", "song", "deck", "unlockWhenDone", "musicEndsAt", "trackVolumes",
+  "playback", "volume", "mute", "loop", "song", "deck", "unlockWhenDone", "musicEndsAt", "tracks",
   "adminLock", "adminHold", "audioLock", "isAdmin", "flow", "schedule", "clockOffsetSec", "console",
 ] as const;
 
@@ -154,7 +154,6 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   /** What the library holds, kept for the settings dialog to open onto. */
   let libraryTracks: Track[] = [];
   let deckSongIds = new Set<string>();
-  let trackLevels = new Map<string, number>();
 
   /**
    * Drives one console input to its own level.
@@ -255,11 +254,10 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
    * others — and adding and removing tracks will land here too.
    */
   const openLibrarySettings = (): void => {
-    const fields = new Map<string, HTMLInputElement>();
-    // Note(yoochan.kim): the levels this dialog opened onto. Compared against the live map,
-    // a level somebody moved on another screen while this was open would make an
-    // edit here look unchanged, and the write would be dropped without a word.
-    const opened = new Map(trackLevels);
+    // Note(yoochan.kim): each box keeps the level this dialog opened onto. Compared against
+    // the live list, a level somebody moved on another screen while this was open
+    // would make an edit here look unchanged, and the write would be dropped without a word.
+    const fields = new Map<string, { input: HTMLInputElement; opened: number }>();
     // Note(yoochan.kim): a table with named columns, so a number says what it is and a
     // setting added later is one more column rather than a redrawing.
     const body = el("div", { class: "setlist" }, [
@@ -276,11 +274,11 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
       const input = el("input", {
         class: "editor__input",
         type: "number",
-        value: String(opened.get(track.id) ?? 50),
+        value: String(track.volume),
       }) as HTMLInputElement;
       input.min = "0";
       input.max = "100";
-      fields.set(track.id, input);
+      fields.set(track.id, { input, opened: track.volume });
       index += 1;
       return el("div", { class: "setlist__r" }, [
         el("span", { class: "setlist__i num", textContent: String(index) }),
@@ -310,10 +308,10 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
       confirm.close();
       // Only what actually moved: an untouched track needs no write, and every
       // write is a broadcast to every screen.
-      for (const [id, input] of fields) {
+      for (const [id, { input, opened }] of fields) {
         const asked = Math.round(Number(input.value));
         if (!Number.isFinite(asked) || asked < 0 || asked > 100) continue;
-        if (asked === (opened.get(id) ?? 50)) continue;
+        if (asked === opened) continue;
         guard(deviceApi.invoke({ command: "setTrackVolume", args: { id, volume: asked } }));
       }
     });
@@ -645,24 +643,33 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     if (!link.accepted) {
       showRejection({ target: "hello", reason: "protocolMismatch" });
     }
-    // Note(yoochan.kim): Catalogues are fixed for the connection, so they are applied once here
-    // rather than re-read on every state patch.
+    // Note(yoochan.kim): the panel's songs are fixed for the connection, so they are applied
+    // once here rather than re-read on every state patch.
     songTitles = new Map(link.songs.map((song) => [song.id, song.title]));
-    trackTitles = new Map(link.tracks.map((track) => [track.id, track.title]));
-    libraryTracks = link.tracks;
     deckSongIds = new Set(link.songs.map((song) => song.id));
-    libraryPanel.setTracks(link.tracks, link.songs.map((song) => song.id));
-    schedulePanel.setTracks(link.tracks);
-    flowPanel.setTracks(link.tracks);
+    libraryPanel.setTracks(libraryTracks, [...deckSongIds]);
   };
 
   let songTitles = new Map<string, string>();
   let trackTitles = new Map<string, string>();
 
+  /** The library as last reported. Tracks come and go while the page is open. */
+  const applyTracks = (tracks: Track[]): void => {
+    libraryTracks = tracks;
+    trackTitles = new Map(tracks.map((track) => [track.id, track.title]));
+    libraryPanel.setTracks(tracks, [...deckSongIds]);
+    schedulePanel.setTracks(tracks);
+    flowPanel.setTracks(tracks);
+  };
+
   const renderDevice = (patch: StatePatch): void => {
     const device = deviceOf(patch);
     if (!device.known) return;
     const state = device.state;
+
+    // Note(yoochan.kim): a patch without tracks keeps the same array, so the lists redraw
+    // only when the library itself changed.
+    if (state.tracks !== libraryTracks) applyTracks(state.tracks);
 
     // Note(yoochan.kim): the deck names what is sounding, not what is selected. A flow's
     // track and an admin's both take the deck while `song` still points at the
@@ -711,8 +718,6 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     schedulePanel.setFlows(flows);
     flowPanel.setFlows(flows);
     renderSongRadios(state);
-    trackLevels = new Map(state.trackVolumes.map((each) => [each.id, each.volume]));
-    schedulePanel.setLevels(trackLevels);
     libraryPanel.setState(state);
     clockPanel.setOffset(state.clockOffsetSec);
     // Note(yoochan.kim): A run always holds the gate, so this is also "no clock changes while

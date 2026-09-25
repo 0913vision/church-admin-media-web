@@ -105,11 +105,6 @@ export class SchedulePanel {
     this.renderDetail();
   }
 
-  /** Track levels, for the editor's volume boxes. */
-  setLevels(levels: Map<string, number>): void {
-    this.editor.setLevels(levels);
-  }
-
   setStatus(status: FlowStatus): void {
     this.message.textContent = "";
     this.running = status.phase !== "idle";

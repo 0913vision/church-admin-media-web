@@ -71,6 +71,8 @@ export const RejectReason = {
   NO_FLOW: 'noFlow',
   WINDOW_PASSED: 'windowPassed',
   MUSIC_OUTSIDE_LOCK: 'musicOutsideLock',
+  DECK_SONG: 'deckSong',
+  TRACK_IN_USE: 'trackInUse',
   PROTOCOL_MISMATCH: 'protocolMismatch',
 } as const;
 export type RejectReason = (typeof RejectReason)[keyof typeof RejectReason];
@@ -113,14 +115,6 @@ export interface FlowLock {
   until: string;
 }
 
-/** One track's level */
-export interface TrackVolume {
-  /** Track id from ready.tracks */
-  id: string;
-  /** 0-100 */
-  volume: number;
-}
-
 /** A playable library entry. File paths never leave the server. */
 export interface Track {
   /** Stable identifier used by startFlow */
@@ -129,6 +123,13 @@ export interface Track {
   title: string;
   /** Length in seconds, measured from the file */
   durationSec: number;
+  /**
+   * The level it sounds at, 0-100. One setting serving three uses: what a song returns
+   * to when it is chosen, what a library track is put on at, and what a flow editor
+   * offers when this track joins a service. A flow carries its own level for every
+   * track it plays, so changing this never rewrites a service already written.
+   */
+  volume: number;
 }
 
 /**
@@ -138,7 +139,7 @@ export interface Track {
  * rather than inherited from whatever the panel was left at.
  */
 export interface ScheduledTrack {
-  /** Track id from ready.tracks */
+  /** Track id from the tracks attribute */
   id: string;
   /** Level for this track in this flow, 0-100 */
   volume: number;
@@ -393,14 +394,12 @@ export const ATTRIBUTES = {
    */
   loop: { access: 'rw', permission: 'admin' },
   /**
-   * The level each track sounds at, keyed by track id, 0-100. One setting serving
-   * three uses: what a song returns to when it is chosen, what a library track is put
-   * on at, and what a flow editor offers when this track joins a service. State rather
-   * than part of ready.tracks, because somebody adjusts it while clients are
-   * connected. Read-only — setTrackVolume moves it. A flow carries its own level for
-   * every track it plays, so changing this never rewrites a service already written.
+   * Every track the server can play, each with the level it sounds at, in the order to
+   * show them. State rather than part of ready, because tracks are added, renamed and
+   * deleted while clients are connected. Read-only — setTrackVolume, renameTrack and
+   * deleteTrack move it.
    */
-  trackVolumes: { access: 'ro' },
+  tracks: { access: 'ro' },
   /**
    * What is on the deck: the panel's own song, or a library track an admin put on.
    * Read-only — song and playTrack are what move it.
@@ -578,6 +577,22 @@ export const COMMANDS = {
    */
   setTrackVolume: { permission: 'admin' },
   /**
+   * Change what a track is called. Its id and audio stay as they are, so every flow
+   * that names it still does. Surrounding spaces are trimmed, and a title left empty
+   * is refused with invalidValue. Refused with deckSong for a song the panel offers:
+   * those are named once, in ready.songs, and a panel installed by hand is not asked
+   * to notice a rename.
+   */
+  renameTrack: { permission: 'admin' },
+  /**
+   * Take a track out of the library and delete its audio file. Refused with deckSong
+   * for a song the panel offers, and with trackInUse while anything still needs it: a
+   * calendar entry that names it, the run in flight, or the deck it is on right now. A
+   * run copies its tracks when it starts, so the calendar alone would let a run lose a
+   * track it has yet to play.
+   */
+  deleteTrack: { permission: 'admin' },
+  /**
    * Put a library track on the deck, paused at its start, at its own level — the same
    * act as writing the song attribute, for the tracks that are not among ready.songs.
    * Playing it is a separate write to playback. Refused with adminUnlocked unless the
@@ -633,14 +648,12 @@ export interface State {
    */
   loop: boolean;
   /**
-   * The level each track sounds at, keyed by track id, 0-100. One setting serving
-   * three uses: what a song returns to when it is chosen, what a library track is put
-   * on at, and what a flow editor offers when this track joins a service. State rather
-   * than part of ready.tracks, because somebody adjusts it while clients are
-   * connected. Read-only — setTrackVolume moves it. A flow carries its own level for
-   * every track it plays, so changing this never rewrites a service already written.
+   * Every track the server can play, each with the level it sounds at, in the order to
+   * show them. State rather than part of ready, because tracks are added, renamed and
+   * deleted while clients are connected. Read-only — setTrackVolume, renameTrack and
+   * deleteTrack move it.
    */
-  trackVolumes: TrackVolume[];
+  tracks: Track[];
   /**
    * What is on the deck: the panel's own song, or a library track an admin put on.
    * Read-only — song and playTrack are what move it.
@@ -762,6 +775,8 @@ export type InvokeRequest =
   | { command: 'startScheduledFlow'; args: { id: string } }
   | { command: 'skipFlow'; args: { id: string } }
   | { command: 'setTrackVolume'; args: { id: string; volume: number } }
+  | { command: 'renameTrack'; args: { id: string; title: string } }
+  | { command: 'deleteTrack'; args: { id: string } }
   | { command: 'selectTrack'; args: { id: string } }
   ;
 
@@ -815,10 +830,10 @@ export type S2CEvent = (typeof S2C)[keyof typeof S2C];
 /** Payload carried by each S2C event */
 export interface S2CPayloads {
   /**
-   * Answer to hello: what this server speaks, what it supports, and the fixed track
-   * library. When accepted is false the client is on an incompatible protocol version
-   * — it should tell the user to update. State still arrives, but writes and invokes
-   * are refused with protocolMismatch.
+   * Answer to hello: what this server speaks and what it supports. When accepted is
+   * false the client is on an incompatible protocol version — it should tell the user
+   * to update. State still arrives, but writes and invokes are refused with
+   * protocolMismatch.
    */
   ready: {
     /** Version this server speaks */
@@ -835,8 +850,6 @@ export interface S2CPayloads {
      * Fixed at boot.
      */
     songs: Song[];
-    /** Track library for flows, fixed at boot */
-    tracks: Track[];
     /**
      * Who a client should tell the user to call when something is broken. Fixed at
      * boot.
