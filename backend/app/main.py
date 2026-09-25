@@ -19,7 +19,7 @@ class FreshStaticFiles(StaticFiles):
         response.headers["Cache-Control"] = "no-cache"
         return response
 
-from app.api import auth, device, events, system
+from app.api import auth, device, events, system, uploads
 from app.bridge.broadcaster import Broadcaster
 from app.bridge.media_client import MediaBridge
 from app.system.monitor import SystemMonitor
@@ -57,6 +57,7 @@ def create_app() -> FastAPI:
     app.include_router(device.router)
     app.include_router(events.router)
     app.include_router(system.router)
+    app.include_router(uploads.router)
     # Note(yoochan.kim): Static frontend last so the API routes above take precedence.
     app.mount("/", FreshStaticFiles(directory=WEB_ROOT, html=True), name="static")
     return app

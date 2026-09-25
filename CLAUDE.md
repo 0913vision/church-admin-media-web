@@ -45,6 +45,14 @@ repo speaks that model end to end rather than translating it.
 - **`api/device.py`** — `POST /api/device/write` and `/invoke`. Deliberately a
   relay: what counts as a valid value is the media server's call, and a refusal
   arrives on the event stream as `rejected`. No second copy of the rules here
+- **`api/uploads.py`** — `POST /api/uploads`, the one route that carries a file.
+  Streams the body to the media server's `POST /uploads` unread, with the admin
+  password in `x-admin-password`, and passes its answer back (`201 {upload}`,
+  413, 415). A 401 from upstream means this backend's password is wrong and is
+  turned into 502, or the dashboard would take it for its own session ending.
+  Bytes only: the dashboard then invokes `addTrack {title, source: {kind:
+  'upload', upload}}` through the ordinary relay, and the new track arrives as a
+  `tracks` patch on every open page
 - **The calendar is not here.** It used to be — `schedule/models.py`,
   `schedule/autostart.py`, `api/schedule.py`, `schedules.json`, all gone. It is
   the media server's now: a track cannot be deleted while a flow still names
