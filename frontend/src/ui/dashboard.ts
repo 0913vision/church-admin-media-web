@@ -199,7 +199,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     const body = el("p", { class: "ask", textContent: "본당 음향을 예배와 동일하게 변경합니다. 진행할까요?" });
     const no = el("button", { class: "btn", type: "button", textContent: "닫기" });
     no.addEventListener("click", () => confirm.close());
-    const yes = el("button", { class: "btn btn--go", type: "button", textContent: "네" });
+    const yes = el("button", { class: "btn btn--go", type: "button", textContent: "변경" });
     yes.addEventListener("click", () => {
       confirm.close();
       guard(deviceApi.invoke({ command: "initializeConsole", args: {} }));
