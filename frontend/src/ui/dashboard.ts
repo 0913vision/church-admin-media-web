@@ -9,10 +9,13 @@ import { Store } from "../state/store.js";
 import type { Dashboard, Link } from "../state/store.js";
 import { BLANK, el } from "../util/dom.js";
 import { throttle } from "../util/rate.js";
+import { objectParticle } from "../util/korean.js";
 import { ConsolePanel } from "./components/ConsolePanel.js";
 import { levelText, meter, unmuteButton } from "./components/meter.js";
 import { holdToFire } from "./components/hold.js";
 import { Modal } from "./components/Modal.js";
+import { Alert } from "./components/Alert.js";
+import { TrackAdd } from "./components/TrackAdd.js";
 import { Fader } from "./components/Fader.js";
 import { SchedulePanel } from "./components/SchedulePanel.js";
 import { SystemPanel, formatUptime } from "./components/SystemPanel.js";
@@ -76,6 +79,12 @@ const REJECT_LABEL: Record<string, string> = {
   noFlow: "도는 자동 진행이 없어요",
   windowPassed: "이미 지난 시각이에요",
   musicOutsideLock: "곡이 잠금 시간을 벗어나요",
+  deckSong: "앱에서 고르는 곡이에요",
+  trackInUse: "쓰고 있는 곡이에요",
+  unknownUpload: "재생기에 올리지 못했어요",
+  tooLarge: "300MB를 넘어요",
+  fetchFailed: "영상을 받지 못했어요",
+  fetchBusy: "다른 곡을 받고 있어요",
   unknownTarget: "서버가 모르는 요청이에요",
   protocolMismatch: "버전이 맞지 않아요. 업데이트가 필요해요",
 };
@@ -153,7 +162,16 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
 
   /** What the library holds, kept for the settings dialog to open onto. */
   let libraryTracks: Track[] = [];
+  let tracksKnown = false;
   let deckSongIds = new Set<string>();
+  /** Whether this server renames and deletes tracks: ready says, and the controls follow. */
+  let canEditTracks = false;
+  /** Tracks this screen asked to delete, so the one that asked is the one told it happened. */
+  const deleting = new Set<string>();
+  /** The settings dialog's rows while it is open, so a deletion takes its row with it. */
+  const settingsRows = new Map<string, HTMLElement>();
+  /** A fetch this screen started, so the one that asked is the one told it arrived. */
+  let fetchAsked = false;
 
   /**
    * Drives one console input to its own level.
@@ -231,12 +249,27 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     onInitialize: () => initializeConsole(),
   });
   // Note(yoochan.kim): one dialog for the whole page's questions, so a second one
-  // can never open behind the first.
+  // can never open behind the first. The alert is the exception that proves it: it
+  // asks about something inside that dialog, so it has to stand over it.
   const confirm = new Modal();
+  const askFirst = new Alert();
+  const trackAdd = new TrackAdd({
+    onAdd: (title, source) => guard(deviceApi.invoke({ command: "addTrack", args: { title, source } })),
+    onAdded: () => {
+      confirm.close();
+      showNotice("추가했어요", true);
+    },
+    onFetching: () => {
+      fetchAsked = true;
+      confirm.close();
+    },
+    onUnauthorized: () => leave(),
+  });
   const libraryPanel = new LibraryPanel({
     onSelectSong: (id) => write("song", id),
     onPlayTrack: (id) => guard(deviceApi.invoke({ command: "selectTrack", args: { id } })),
     onSettings: () => openLibrarySettings(),
+    onAdd: () => openTrackAdd(),
     onLoop: (loop) => {
       write("loop", loop);
       // Asked at the moment it is switched on: repeating audio has no end of its
@@ -247,45 +280,76 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     onSetMusicEnd: () => openMusicEnd(),
   });
   /**
-   * The library's settings: every track and the level it comes back at.
+   * The library's settings: every track, the level it comes back at, and — for
+   * the tracks the panel does not offer — its name and 삭제.
    *
    * Note(yoochan.kim): one dialog for the whole library rather than one per track. These
    * are read against each other — a level only means something next to the
-   * others — and adding and removing tracks will land here too.
+   * others. Adding is a dialog of its own: it happens at once, where this one
+   * waits for 저장.
    */
   const openLibrarySettings = (): void => {
-    // Note(yoochan.kim): each box keeps the level this dialog opened onto. Compared against
-    // the live list, a level somebody moved on another screen while this was open
+    // Note(yoochan.kim): each box keeps the value this dialog opened onto. Compared against
+    // the live list, a value somebody changed on another screen while this was open
     // would make an edit here look unchanged, and the write would be dropped without a word.
-    const fields = new Map<string, { input: HTMLInputElement; opened: number }>();
+    const fields = new Map<string, { volume: HTMLInputElement; level: number; name: HTMLInputElement | null; title: string }>();
+    const device = store.dashboard.device;
+    // Note(yoochan.kim): said up front rather than learned from a refusal. The server
+    // still decides, and refuses what this missed — a run in flight, say.
+    const usedBy = (id: string): string => {
+      if (device.deck?.source === "track" && device.deck.id === id) return "재생 중";
+      const flows = (device.schedule ?? []).filter((entry) =>
+        entry.parts.some((part) => part.tracks.some((cue) => cue.id === id)));
+      return flows.map((entry) => entry.name).join(", ");
+    };
     // Note(yoochan.kim): a table with named columns, so a number says what it is and a
     // setting added later is one more column rather than a redrawing.
-    const body = el("div", { class: "setlist" }, [
+    const body = el("div", { class: "setlist setlist--edit" }, [
       el("div", { class: "setlist__r setlist__r--h" }, [
         el("span", {}),
         el("span", { textContent: "곡" }),
         el("span", { textContent: "길이" }),
         el("span", { textContent: "볼륨" }),
+        el("span", {}),
       ]),
     ]);
 
+    settingsRows.clear();
     let index = 0;
     const row = (track: Track): HTMLElement => {
-      const input = el("input", {
+      const volume = el("input", {
         class: "editor__input",
         type: "number",
         value: String(track.volume),
       }) as HTMLInputElement;
-      input.min = "0";
-      input.max = "100";
-      fields.set(track.id, { input, opened: track.volume });
+      volume.min = "0";
+      volume.max = "100";
+
+      // Note(yoochan.kim): the panel's own songs are named once, in ready, and keep their place.
+      const editable = canEditTracks && !deckSongIds.has(track.id);
+      const name = editable
+        ? el("input", { class: "editor__input editor__input--name", value: track.title }) as HTMLInputElement
+        : null;
+      name?.addEventListener("input", () => name.classList.remove("is-bad"));
+      fields.set(track.id, { volume, level: track.volume, name, title: track.title });
+
+      const use = editable ? usedBy(track.id) : "";
+      const remove = el("button", { class: "textbtn textbtn--bad", type: "button", textContent: "삭제" });
+      remove.addEventListener("click", () => askToDelete(track));
+
       index += 1;
-      return el("div", { class: "setlist__r" }, [
+      const line = el("div", { class: "setlist__r" }, [
         el("span", { class: "setlist__i num", textContent: String(index) }),
-        el("span", { class: "setlist__n", textContent: track.title }),
+        el("div", { class: "setlist__t" }, [
+          name ?? el("span", { class: "setlist__n", textContent: track.title }),
+          ...(use ? [el("span", { class: "setlist__use", textContent: use, title: use })] : []),
+        ]),
         el("span", { class: "setlist__d num", textContent: lengthOf(track.durationSec) }),
-        input,
+        volume,
+        editable && !use ? remove : el("span", {}),
       ]);
+      settingsRows.set(track.id, line);
+      return line;
     };
 
     // Note(yoochan.kim): the same two groups the list is drawn in. Eight flat rows say the
@@ -301,21 +365,53 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
       body.append(...gated.map(row));
     }
 
-    const cancel = el("button", { class: "btn", type: "button", textContent: "취소" });
-    cancel.addEventListener("click", () => confirm.close());
+    const close = el("button", { class: "btn", type: "button", textContent: "닫기" });
+    close.addEventListener("click", () => confirm.close());
     const save = el("button", { class: "btn btn--go", type: "button", textContent: "저장" });
     save.addEventListener("click", () => {
+      // Note(yoochan.kim): a name left empty is marked where it is, and nothing is sent.
+      const unnamed = [...fields.values()].filter(({ name }) => name !== null && name.value.trim() === "");
+      unnamed.forEach(({ name }) => name!.classList.add("is-bad"));
+      if (unnamed.length > 0) return;
+
       confirm.close();
       // Only what actually moved: an untouched track needs no write, and every
-      // write is a broadcast to every screen.
-      for (const [id, { input, opened }] of fields) {
-        const asked = Math.round(Number(input.value));
-        if (!Number.isFinite(asked) || asked < 0 || asked > 100) continue;
-        if (asked === opened) continue;
-        guard(deviceApi.invoke({ command: "setTrackVolume", args: { id, volume: asked } }));
+      // write is a broadcast to every screen. A track deleted meanwhile is skipped.
+      for (const [id, { volume, level, name, title }] of fields) {
+        if (!libraryTracks.some((track) => track.id === id)) continue;
+        const asked = Math.round(Number(volume.value));
+        if (Number.isFinite(asked) && asked >= 0 && asked <= 100 && asked !== level) {
+          guard(deviceApi.invoke({ command: "setTrackVolume", args: { id, volume: asked } }));
+        }
+        const renamed = name?.value.trim();
+        if (renamed && renamed !== title) {
+          guard(deviceApi.invoke({ command: "renameTrack", args: { id, title: renamed } }));
+        }
       }
     });
-    confirm.open("곡 설정", body, () => {}, [cancel, save]);
+    confirm.open("곡 설정", body, () => settingsRows.clear(), [close, save]);
+  };
+
+  /** Deleting one track, asked over the settings dialog in the words Apple and Material use. */
+  const askToDelete = (track: Track): void => {
+    askFirst.open({
+      title: `‘${track.title}’${objectParticle(track.title)} 삭제할까요?`,
+      message: "음원 파일도 함께 지워져요. 삭제한 곡은 되돌릴 수 없어요.",
+      action: "삭제",
+      onAction: () => {
+        deleting.add(track.id);
+        guard(deviceApi.invoke({ command: "deleteTrack", args: { id: track.id } }));
+      },
+    });
+  };
+
+  /** The dialog that adds a track, from a file or from YouTube. */
+  const openTrackAdd = (): void => {
+    trackAdd.reset();
+    trackAdd.setKnown(libraryTracks.map((track) => track.id));
+    const close = el("button", { class: "btn", type: "button", textContent: "닫기" });
+    close.addEventListener("click", () => confirm.close());
+    confirm.open("곡 추가", trackAdd.el, () => trackAdd.reset(), [close, trackAdd.addKey]);
   };
 
   /**
@@ -599,6 +695,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
         el("main", { class: "page" }, Object.values(views)),
       ]),
       confirm.el,
+      askFirst.el,
     ]),
     // Note(yoochan.kim): last, and outside the shell. A dialog opens deeper in the
     // tree than this sat, and later siblings win however high a z-index the
@@ -648,6 +745,9 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     songTitles = new Map(link.songs.map((song) => [song.id, song.title]));
     deckSongIds = new Set(link.songs.map((song) => song.id));
     libraryPanel.setTracks(libraryTracks, [...deckSongIds]);
+    // Note(yoochan.kim): a server that does not implement these shows no key for them.
+    libraryPanel.setCanAdd(link.commands.includes("addTrack"));
+    canEditTracks = link.commands.includes("renameTrack") && link.commands.includes("deleteTrack");
   };
 
   let songTitles = new Map<string, string>();
@@ -655,6 +755,22 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
 
   /** The library as last reported. Tracks come and go while the page is open. */
   const applyTracks = (tracks: Track[]): void => {
+    const before = new Set(libraryTracks.map((track) => track.id));
+    const added = tracks.filter((track) => !before.has(track.id));
+    const gone = [...before].filter((id) => !tracks.some((track) => track.id === id));
+    if (tracksKnown) {
+      // Note(yoochan.kim): told on the screen that asked, and only there.
+      if (!trackAdd.onTracks(added) && added.length > 0 && fetchAsked) {
+        fetchAsked = false;
+        showNotice("추가했어요", true);
+      }
+      for (const id of gone) {
+        settingsRows.get(id)?.remove();
+        settingsRows.delete(id);
+        if (deleting.delete(id)) showNotice("삭제했어요", true);
+      }
+    }
+    tracksKnown = true;
     libraryTracks = tracks;
     trackTitles = new Map(tracks.map((track) => [track.id, track.title]));
     libraryPanel.setTracks(tracks, [...deckSongIds]);
@@ -719,6 +835,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     flowPanel.setFlows(flows);
     renderSongRadios(state);
     libraryPanel.setState(state);
+    trackAdd.onFetch(state.trackFetch);
     clockPanel.setOffset(state.clockOffsetSec);
     // Note(yoochan.kim): A run always holds the gate, so this is also "no clock changes while
     // music is playing".
@@ -769,7 +886,13 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   const stopEvents = subscribeEvents({
     onLink: (link) => store.setLink(link),
     onState: (patch) => store.mergeState(patch),
-    onRejected: showRejection,
+    onRejected: (rejection) => {
+      // Note(yoochan.kim): a refusal the add dialog is waiting on is shown by its field.
+      if (trackAdd.onRejected(rejection)) return;
+      if (rejection.target === "addTrack") fetchAsked = false;
+      if (rejection.target === "deleteTrack") deleting.clear();
+      showRejection(rejection);
+    },
     onSystem: renderSystem,
     onPing: (beat) => church.sync(beat.at, beat.offsetSec),
   });

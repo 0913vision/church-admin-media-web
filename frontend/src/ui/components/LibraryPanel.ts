@@ -10,6 +10,8 @@ export interface LibraryPanelOptions {
   onPlayTrack: (trackId: string) => void;
   /** Opens the library's settings, where levels are edited. */
   onSettings: () => void;
+  /** Opens the dialog that adds a track. */
+  onAdd: () => void;
   onLoop: (loop: boolean) => void;
   onUnlockWhenDone: (on: boolean) => void;
   /** Asks when the music should stop; the panel only says that it must be asked. */
@@ -39,12 +41,19 @@ export class LibraryPanel {
   private tracks: Track[] = [];
   private deckSongs = new Set<string>();
   private state: State | null = null;
+  /** Whether this server takes new tracks at all: ready says, and the key follows. */
+  private canAdd = false;
 
   constructor(private readonly options: LibraryPanelOptions) {}
 
   setTracks(tracks: Track[], deckSongIds: string[]): void {
     this.tracks = tracks;
     this.deckSongs = new Set(deckSongIds);
+    this.render();
+  }
+
+  setCanAdd(canAdd: boolean): void {
+    this.canAdd = canAdd;
     this.render();
   }
 
@@ -66,7 +75,11 @@ export class LibraryPanel {
     const gated = this.tracks.filter((track) => !this.deckSongs.has(track.id));
 
     this.el.replaceChildren(
-      el("div", { class: "lib__h" }, [el("b", { textContent: "곡 목록" }), this.settingsKey()]),
+      el("div", { class: "lib__h" }, [
+        el("b", { textContent: "곡 목록" }),
+        ...(this.canAdd ? [this.addKey()] : []),
+        this.settingsKey(),
+      ]),
       el("div", { class: "lib__rows" }, panel.map((track) => {
         const on = state?.deck.source === "song" && state.song === track.id;
         return this.row(track, panel.indexOf(track) + 1, on, runOwnsDeck, () => this.options.onSelectSong(track.id));
@@ -75,10 +88,13 @@ export class LibraryPanel {
         el("span", { class: "icon" }, [icon("lock", 13)]),
         el("span", { textContent: "잠금 필요" }),
       ]),
-      el("div", { class: "lib__rows" }, gated.map((track, at) =>
-        // Numbered straight on from the panel songs: it says which of them all this is.
-        this.row(track, panel.length + at + 1, track.id === playingTrack, !held, () => this.options.onPlayTrack(track.id)),
-      )),
+      el("div", { class: "lib__rows" }, [
+        ...gated.map((track, at) =>
+          // Numbered straight on from the panel songs: it says which of them all this is.
+          this.row(track, panel.length + at + 1, track.id === playingTrack, !held, () => this.options.onPlayTrack(track.id)),
+        ),
+        ...this.coming(state, this.tracks.length + 1),
+      ]),
       ...this.runNote(state, runOwnsDeck),
       el("div", { class: "lib__opts" }, [
         this.toggle("반복", state?.loop === true, held, (next) => this.options.onLoop(next)),
@@ -126,6 +142,41 @@ export class LibraryPanel {
       ? "자동 진행이 음악을 틀고 있어요. 끝나야 고를 수 있어요"
       : "자동 진행 중이에요. 지금 고른 곡은 자동 진행 음악이 시작되면 멈춰요";
     return [el("div", { class: "lib__note" }, [el("span", { textContent: says })])];
+  }
+
+  /**
+   * A track on its way from YouTube: a row of its own at the end of the list,
+   * with how far it has got where its length will be.
+   *
+   * Note(yoochan.kim): the percentage is shown, not kept for a hover. The tablet and
+   * the phones have no pointer to hover with.
+   */
+  private coming(state: State | null, index: number): HTMLElement[] {
+    const fetch = state?.trackFetch;
+    if (fetch?.kind !== "fetching") return [];
+
+    const progress = fetch.progress;
+    const wait: (Node | string)[] =
+      progress.stage === "downloading"
+        ? [el("i", { class: "ring", style: `--p:${progress.percent}` }), el("span", { class: "num", textContent: `${progress.percent}%` })]
+        : progress.stage === "converting" ? [el("i", { class: "spin" }), "바꾸는 중"]
+        : progress.stage === "starting" ? [el("i", { class: "spin" }), "받는 중"]
+        : ["알 수 없는 상태"];
+
+    const pick = el("button", { class: "lib__pick", type: "button" }, [
+      el("span", { class: "lib__i num", textContent: String(index) }),
+      el("span", { class: "lib__n", textContent: fetch.title }),
+      el("span", { class: "lib__wait" }, wait),
+    ]) as HTMLButtonElement;
+    pick.disabled = true;
+    return [el("div", { class: "lib__r is-coming" }, [pick])];
+  }
+
+  /** Opens the dialog that adds a track. */
+  private addKey(): HTMLElement {
+    const key = el("button", { class: "lib__cog", type: "button", title: "곡 추가" }, [icon("plus", 16)]);
+    key.addEventListener("click", () => this.options.onAdd());
+    return key;
   }
 
   /** Opens the whole library's settings. One dialog, not a control per row. */

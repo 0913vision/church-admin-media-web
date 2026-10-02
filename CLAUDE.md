@@ -79,8 +79,19 @@ repo speaks that model end to end rather than translating it.
   the dashboard only renders once every attribute has arrived — filling gaps
   with defaults would show values the device never reported
 - `api/device.ts` writes attributes and invokes commands, mirroring the wire
-- Components take the protocol's `State`; catalogues (songs, tracks) come from
-  `ready`, so **no display name for a song is written in this repo**
+- Components take the protocol's `State`. The panel's songs come from `ready`
+  and the library from the `tracks` attribute, so **no display name for a song is
+  written in this repo**
+- **Tracks are managed from the library's head.** [+] opens 곡 추가
+  (`components/TrackAdd.ts`): a file goes through `api/uploads.ts` (XMLHttpRequest,
+  for upload progress) and then `addTrack`; a YouTube address goes straight to
+  `addTrack`. The dialog closes on the server's word — a new id in `tracks`, or
+  `trackFetch` turning to fetching — and a refusal arriving meanwhile is shown by
+  its field. A fetch in progress is a row of its own at the end of the list, its
+  percentage always shown (tablets have no hover). 곡 설정 renames and deletes;
+  deleting asks first through `components/Alert.ts`, a layer above the one Modal
+  (question as title, result in a sentence, keys bottom right). The [+] and the
+  name and 삭제 controls appear only when `ready.commands` lists them
 - **Church time, never the browser's clock.** `util/churchClock.ts` keeps the
   skew from `ping.at` and everything on screen is drawn against that — the
   whole point of the offset is that local clocks disagree

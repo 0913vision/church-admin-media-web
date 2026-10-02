@@ -431,6 +431,19 @@ button { white-space: nowrap; }
              text-decoration: underline; text-decoration-color: var(--line);
              text-underline-offset: 3px; cursor: pointer; }
 .lib__when:hover { color: var(--c-ink); text-decoration-color: var(--c-fnt); }
+/* Two keys in the list's head: the first takes the push to the right. */
+.lib__h .lib__cog + .lib__cog { margin-left: 0; }
+/* A track on its way is a row of its own, and says how far it has got where its
+   length will be. Nothing spans the whole list: the wait belongs to one song. */
+.lib__r.is-coming .lib__n { color: var(--c-mut); }
+.lib__wait { flex: none; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--c-fnt); }
+.lib__wait .num { font-variant-numeric: tabular-nums; min-width: 3ch; text-align: right; }
+.lib__wait .spin { width: 13px; height: 13px; flex: none; }
+/* How much has arrived: the ring fills. */
+.ring { width: 13px; height: 13px; flex: none; border-radius: 50%;
+        background: conic-gradient(var(--c-mut) calc(var(--p) * 1%), var(--slot) 0);
+        -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
+                mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px)); }
 .btn--wide { flex-basis: 100%; }
 .deck { background: var(--panel); border-radius: 12px; padding: 16px 18px; position: relative; }
 .deck__top { display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: center; }
@@ -924,8 +937,10 @@ body.has-modal { overflow: hidden; }
    column are the loudest thing on a page that exists to be read down.
    The stepper is dropped: it reserves its width whether or not it is showing,
    which pushes a right-aligned number off the column it belongs to. */
+/* The 2px at the bottom lifts the words onto the middle of the box: measured, this
+   face paints its ink about 1.4px below the middle of its line. */
 .setlist .editor__input {
-  height: 30px; padding: 0 8px; text-align: right; font-size: 15px;
+  height: 30px; padding: 0 8px 2px; text-align: right; font-size: 15px;
   background: transparent; border-color: transparent; box-shadow: none;
   font-variant-numeric: tabular-nums; appearance: textfield; -moz-appearance: textfield;
 }
@@ -933,6 +948,19 @@ body.has-modal { overflow: hidden; }
 .setlist .editor__input:focus { background: var(--panel); border-color: var(--go); }
 .setlist .editor__input::-webkit-inner-spin-button,
 .setlist .editor__input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+/* Once tracks can be renamed and deleted: one more column, for 삭제. The panel's
+   own songs leave it empty. */
+.setlist--edit .setlist__r { grid-template-columns: 22px 1fr 60px 54px 44px; }
+.setlist--edit .setlist__r > :nth-child(5) { text-align: right; }
+/* A name that reads as a name until it is touched, like the level beside it. */
+.setlist .editor__input--name { text-align: left; font-variant-numeric: normal; padding-left: 8px; margin-left: -8px; }
+.setlist .editor__input.is-bad { border-color: var(--bad); }
+.setlist__t { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.setlist__t > .editor__input, .setlist__t > .setlist__n { flex: 1; min-width: 0; }
+/* What still uses a track, said where 삭제 would have been offered. Words, not a shape. */
+.setlist__use { flex: none; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+                font-size: 12.5px; color: var(--c-fnt); }
+.setlist__r .textbtn { font-size: 14px; padding: 4px 2px; }
 /* How much longer, offered as durations — the question is never "at what o'clock". */
 .whens { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 0 4px; }
 .whens .btn { flex: 1; min-width: 84px; }
@@ -1015,6 +1043,55 @@ body.has-modal { overflow: hidden; }
 .editor__srow { display: flex; gap: 12px; }
 .editor__srow > span:first-child { width: 34px; color: var(--c-fnt); flex: none; }
 .editor__warn { color: var(--bad); font-weight: 600; }
+
+/* ================= alert ================= */
+/* A question that has to be answered first, over whatever dialog asked it. Read top
+   to bottom and answered at the bottom right, the one that acts nearest the edge —
+   the way Apple's alerts and Material's dialogs both lay it out. */
+.alert-layer {
+  position: fixed; inset: 0; z-index: 50; display: grid; place-items: center;
+  padding: 24px; background: rgba(15, 18, 22, 0.45);
+}
+.alert { width: min(400px, 100%); background: var(--panel); border-radius: 14px;
+         box-shadow: 0 24px 60px rgba(15, 18, 22, 0.28); padding: 22px 22px 18px;
+         display: flex; flex-direction: column; }
+.alert:focus { outline: none; }
+.alert__t { margin: 0; font-size: 17px; font-weight: 700; line-height: 1.45; text-wrap: balance; }
+.alert__m { margin: 8px 0 0; font-size: 14.5px; line-height: 1.6; color: var(--c-mut); }
+.alert__a { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
+.alert__a .btn { padding: 8px 16px; }
+
+/* ================= adding a track ================= */
+/* Every control in this dialog is a square bar of the same height; only the dialog
+   and the keys in its head are rounded. */
+.addtrack { display: flex; flex-direction: column; padding-top: 4px; }
+.addtrack .editor__row { align-items: flex-start; }
+.addtrack .editor__label { line-height: var(--field); }
+/* Lifted onto the middle of the bar, as the settings table is. */
+.addtrack .editor__input, .addtrack .segctl > button { padding-bottom: 2px; }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+/* The file field: a bar like any other, with the choosing key joined on the left. */
+.filebar { position: relative; display: flex; align-items: stretch; height: var(--field); min-width: 0;
+           background: var(--cap); border: 1px solid var(--cap-line); box-shadow: 0 1px 2px var(--key-dn); overflow: hidden; }
+.filebar__k { flex: none; font: inherit; font-size: 14px; font-weight: 600; color: var(--c-ink); cursor: pointer;
+              background: var(--raised); border: 0; border-right: 1px solid var(--cap-line); padding: 0 14px 2px; }
+.filebar__k:hover:not(:disabled) { background: var(--slot); }
+.filebar__k:disabled { color: var(--c-fnt); cursor: default; }
+/* A button paints its words about a pixel lower than a plain box does, so this
+   lift is 4px where the fields' is 2px: measured, +0.5px at 1x and +0.25px at 2x. */
+.filebar__n { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px;
+              padding: 0 12px 4px; background: none; border: 0; font: inherit; color: var(--c-ink); text-align: left; cursor: pointer; }
+.filebar__n:disabled { cursor: default; }
+.filebar__n > span, .filebar__n > small { position: relative; }
+.filebar__n > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.filebar__n > small { flex: none; font-size: 13px; color: var(--c-fnt); font-variant-numeric: tabular-nums; }
+.filebar__n.is-empty > span { color: var(--c-fnt); }
+/* How far an upload has got: the bar fills behind the name. Not green, which says
+   something is sounding. */
+.filebar__fill { position: absolute; inset: 0 auto 0 0; background: var(--well); }
+.field.is-bad .filebar, .field.is-bad .editor__input { border-color: var(--bad); }
+/* What is wrong with a field, under it. Only the reason. */
+.field__msg { margin: 0; font-size: 13px; color: var(--bad); }
 
 /* ================= login ================= */
 .login { height: 100%; display: grid; place-items: center; background: var(--bg); }
