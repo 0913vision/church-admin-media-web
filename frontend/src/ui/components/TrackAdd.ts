@@ -23,8 +23,10 @@ type Phase =
   | { kind: "uploading"; percent: number }
   | { kind: "waiting"; on: "upload" | "fetch" };
 
+type Field = "file" | "url" | "title";
+
 /** What is wrong, and by which field it is said. */
-type Problem = { kind: "none" } | { kind: "field"; field: "file" | "url"; text: string };
+type Problem = { kind: "none" } | { kind: "field"; field: Field; text: string };
 
 const EDITING: Phase = { kind: "editing" };
 const FINE: Problem = { kind: "none" };
@@ -62,6 +64,11 @@ export class TrackAdd {
   private problem: Problem = FINE;
   private known = new Set<string>();
   private upload: Upload | undefined;
+  /**
+   * A file the server already holds. A title refused as taken leaves it there, so
+   * pressing 추가 again with another name does not send it twice.
+   */
+  private uploaded: { file: File; upload: string } | undefined;
   /** Bumped on every reset, so an upload finishing after the dialog closed is ignored. */
   private round = 0;
 
@@ -76,6 +83,7 @@ export class TrackAdd {
   private readonly urlField = el("div", { class: "field" });
   private readonly urlRow: HTMLElement;
   private readonly title = el("input", { class: "editor__input" }) as HTMLInputElement;
+  private readonly titleField = el("div", { class: "field" });
 
   constructor(private readonly options: TrackAddOptions) {
     this.picker.hidden = true;
@@ -85,6 +93,7 @@ export class TrackAdd {
     this.fileName.addEventListener("click", () => this.picker.click());
     this.picker.addEventListener("change", () => {
       this.file = this.picker.files?.[0];
+      this.uploaded = undefined;
       this.problem = FINE;
       this.refresh();
     });
@@ -92,7 +101,10 @@ export class TrackAdd {
       this.problem = FINE;
       this.refresh();
     });
-    this.title.addEventListener("input", () => this.refresh());
+    this.title.addEventListener("input", () => {
+      if (this.problemAt("title")) this.problem = FINE;
+      this.refresh();
+    });
     this.addKey.addEventListener("click", () => this.add());
 
     this.fileRow = this.row("파일", this.fileField);
@@ -101,7 +113,7 @@ export class TrackAdd {
       this.row("가져오기", el("div", { class: "segctl" }, [this.fromFile, this.fromYoutube])),
       this.fileRow,
       this.urlRow,
-      this.row("제목", el("div", { class: "field" }, [this.title])),
+      this.row("제목", this.titleField),
       this.picker,
     );
   }
@@ -111,6 +123,7 @@ export class TrackAdd {
     this.round += 1;
     this.upload?.abort();
     this.upload = undefined;
+    this.uploaded = undefined;
     this.source = "file";
     this.file = undefined;
     this.phase = EDITING;
@@ -145,11 +158,16 @@ export class TrackAdd {
     if (this.phase.kind !== "waiting" || rejection.target !== "addTrack") return false;
     const onFile = this.phase.on === "upload";
     this.phase = EDITING;
-    this.problem = {
-      kind: "field",
-      field: onFile ? "file" : "url",
-      text: onFile ? REFUSED.unknownUpload! : (REFUSED[rejection.reason] ?? "추가하지 못했어요"),
-    };
+    if (rejection.reason === "titleTaken") {
+      this.problem = { kind: "field", field: "title", text: "같은 제목이 있어요" };
+    } else {
+      if (onFile) this.uploaded = undefined;
+      this.problem = {
+        kind: "field",
+        field: onFile ? "file" : "url",
+        text: onFile ? REFUSED.unknownUpload! : (REFUSED[rejection.reason] ?? "추가하지 못했어요"),
+      };
+    }
     this.refresh();
     return true;
   }
@@ -182,6 +200,13 @@ export class TrackAdd {
       return;
     }
 
+    if (this.uploaded && this.uploaded.file === this.file) {
+      this.phase = { kind: "waiting", on: "upload" };
+      this.refresh();
+      this.options.onAdd(title, { kind: "upload", upload: this.uploaded.upload });
+      return;
+    }
+
     const round = this.round;
     this.phase = { kind: "uploading", percent: 0 };
     this.refresh();
@@ -206,6 +231,7 @@ export class TrackAdd {
           this.refresh();
           return;
         }
+        this.uploaded = { file: this.file!, upload: outcome.upload };
         this.phase = { kind: "waiting", on: "upload" };
         this.options.onAdd(title, { kind: "upload", upload: outcome.upload });
       })
@@ -243,14 +269,16 @@ export class TrackAdd {
     this.urlField.classList.toggle("is-bad", this.problemAt("url"));
 
     this.title.disabled = busy;
+    this.titleField.replaceChildren(this.title, ...this.message("title"));
+    this.titleField.classList.toggle("is-bad", this.problemAt("title"));
     this.addKey.disabled = !this.ready();
   }
 
-  private problemAt(field: "file" | "url"): boolean {
+  private problemAt(field: Field): boolean {
     return this.problem.kind === "field" && this.problem.field === field;
   }
 
-  private message(field: "file" | "url"): HTMLElement[] {
+  private message(field: Field): HTMLElement[] {
     return this.problem.kind === "field" && this.problem.field === field
       ? [el("p", { class: "field__msg", textContent: this.problem.text })]
       : [];

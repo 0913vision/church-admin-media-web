@@ -85,6 +85,7 @@ const REJECT_LABEL: Record<string, string> = {
   tooLarge: "300MB를 넘어요",
   fetchFailed: "영상을 받지 못했어요",
   fetchBusy: "다른 곡을 받고 있어요",
+  titleTaken: "같은 제목이 있어요",
   unknownTarget: "서버가 모르는 요청이에요",
   protocolMismatch: "버전이 맞지 않아요. 업데이트가 필요해요",
 };
