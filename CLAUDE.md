@@ -92,6 +92,7 @@ repo speaks that model end to end rather than translating it.
   deleting asks first through `components/Alert.ts`, a layer above the one Modal
   (question as title, result in a sentence, keys bottom right). The [+] and the
   name and 삭제 controls appear only when `ready.commands` lists them
+- Every dialog's dismiss key says **닫기** (Toss's rule: 취소 reads as undoing the work)
 - **Church time, never the browser's clock.** `util/churchClock.ts` keeps the
   skew from `ping.at` and everything on screen is drawn against that — the
   whole point of the offset is that local clocks disagree

@@ -387,7 +387,7 @@ export class FlowEditor {
    * apart on a keypad and one of them cannot be taken back.
    */
   actions(): HTMLElement[] {
-    const cancel = el("button", { class: "btn", type: "button", textContent: "취소" });
+    const cancel = el("button", { class: "btn", type: "button", textContent: "닫기" });
     cancel.addEventListener("click", () => this.options.onCancel());
 
     const save = el("button", { class: "btn btn--go", type: "button", textContent: "저장" }) as HTMLButtonElement;
@@ -409,7 +409,7 @@ export class FlowEditor {
     };
 
     const ask = (): void => {
-      const keep = el("button", { class: "btn btn--small", type: "button", textContent: "아니오" });
+      const keep = el("button", { class: "btn btn--small", type: "button", textContent: "닫기" });
       keep.addEventListener("click", offer);
       const yes = el("button", { class: "btn btn--stop btn--small", type: "button", textContent: "삭제" });
       yes.addEventListener("click", () => this.options.onDelete(this.id));
