@@ -21,7 +21,7 @@ import { SchedulePanel } from "./components/SchedulePanel.js";
 import { SystemPanel, formatUptime } from "./components/SystemPanel.js";
 import { ClockPanel } from "./components/ClockPanel.js";
 import { FlowPanel } from "./components/FlowPanel.js";
-import { ChurchClock, driftOf, hhmmOf, instantOf, ssOf } from "../util/churchClock.js";
+import { ChurchClock, driftOf, hhmmOf, instantOf, noOffset, ssOf } from "../util/churchClock.js";
 import { TransportControls } from "./components/TransportControls.js";
 import { icon } from "./icons.js";
 import { flowOwnsDeck } from "../util/flow.js";
@@ -848,7 +848,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     // music is playing".
     clockPanel.setGated(state.adminLock);
     clockDrift.textContent = driftOf(state.clockOffsetSec);
-    clockDrift.className = `clock__d${state.clockOffsetSec !== 0 ? " is-off" : ""}`;
+    clockDrift.className = `clock__d${noOffset(state.clockOffsetSec) ? "" : " is-off"}`;
   };
 
   const renderSystem = (stats: SystemStats): void => {

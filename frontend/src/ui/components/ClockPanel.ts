@@ -1,5 +1,5 @@
 import { el } from "../../util/dom.js";
-import { ChurchClock, driftOf, hhmmOf, signedOf, ssOf } from "../../util/churchClock.js";
+import { ChurchClock, driftOf, hhmmOf, noOffset, signedOf, ssOf } from "../../util/churchClock.js";
 
 interface ClockPanelOptions {
   clock: ChurchClock;
@@ -86,9 +86,9 @@ export class ClockPanel {
   /** The offset as the device reports it, plus whether the gate is holding. */
   setOffset(offsetSec: number): void {
     this.offsetSec = offsetSec;
-    this.value.textContent = offsetSec === 0 ? "0초" : signedOf(offsetSec);
+    this.value.textContent = noOffset(offsetSec) ? "0초" : signedOf(offsetSec);
     this.drift.textContent = driftOf(offsetSec);
-    this.drift.classList.toggle("is-off", offsetSec !== 0);
+    this.drift.classList.toggle("is-off", !noOffset(offsetSec));
   }
 
   setGated(gated: boolean): void {
@@ -119,15 +119,16 @@ export class ClockPanel {
   /**
    * Sets the seconds from a keypress: the moment pressed becomes the top of the
    * nearest minute. Only ever moves within ±30s, so the minutes stay whatever
-   * the step buttons made them.
+   * the step buttons made them. Kept to the millisecond: rounded to a second,
+   * the press could land half a second either side of the flip it was made on.
    */
   private markNow(): void {
     const now = this.clock.now();
     const secondsIntoMinute = now.getSeconds() + now.getMilliseconds() / 1000;
     const correction = secondsIntoMinute > 30 ? 60 - secondsIntoMinute : -secondsIntoMinute;
-    const next = Math.round(this.offsetSec + correction);
+    const next = Math.round((this.offsetSec + correction) * 1000) / 1000;
     this.armed = false;
-    this.last.textContent = `마지막 보정 ${hhmmOf(now)}  ${signedOf(Math.round(correction))}`;
+    this.last.textContent = `마지막 보정 ${hhmmOf(now)}  ${signedOf(correction)}`;
     this.renderTap();
     this.apply(next);
   }

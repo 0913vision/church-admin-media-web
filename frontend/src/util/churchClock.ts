@@ -7,6 +7,9 @@
  * church time; the difference from `performance`-anchored local time is kept
  * and applied between beats.
  */
+/** How far past a second's turn a tick lands, so the second it reads is the new one. */
+const TICK_PAST_MS = 10;
+
 export class ChurchClock {
   private skewMs = 0;
   private offsetSec = 0;
@@ -30,6 +33,8 @@ export class ChurchClock {
     // Note(yoochan.kim): drawn at once on the first beat rather than at the next
     // tick, so the placeholder is on screen for as briefly as it can be.
     if (first) this.announce();
+    // The skew moves where a second turns over, so the next tick is aimed again.
+    this.schedule();
   }
 
   /**
@@ -39,7 +44,12 @@ export class ChurchClock {
    * show this browser's own time on every reload.
    */
   setOffset(offsetSec: number): void {
+    if (offsetSec === this.offsetSec) return;
     this.offsetSec = offsetSec;
+    // Note(yoochan.kim): drawn at once. A correction pressed on the wall clock's flip has
+    // to show now, not at whatever moment the next tick was due.
+    this.announce();
+    this.schedule();
   }
 
   /** Standard time as the server keeps it, which is the same instant everywhere. */
@@ -64,17 +74,34 @@ export class ChurchClock {
    */
   start(listener: (now: Date) => void): () => void {
     this.listeners.add(listener);
-    if (!this.timer) {
-      this.timer = window.setInterval(() => this.announce(), 1000);
-    }
+    if (!this.timer) this.schedule();
     if (this.synced) listener(this.now());
     return () => {
       this.listeners.delete(listener);
       if (this.listeners.size === 0) {
-        window.clearInterval(this.timer);
+        window.clearTimeout(this.timer);
         this.timer = 0;
       }
     };
+  }
+
+  /**
+   * Aims the next tick at the moment church time turns over a second, so a
+   * second on screen changes when the wall clock's does. A plain one-second
+   * interval turns at whatever fraction it happened to start on — up to a
+   * second behind the clock it is meant to match.
+   */
+  private schedule(): void {
+    window.clearTimeout(this.timer);
+    if (this.listeners.size === 0) {
+      this.timer = 0;
+      return;
+    }
+    const intoSecond = ((this.now().getTime() % 1000) + 1000) % 1000;
+    this.timer = window.setTimeout(() => {
+      this.announce();
+      this.schedule();
+    }, 1000 - intoSecond + TICK_PAST_MS);
   }
 
   private announce(): void {
@@ -94,15 +121,35 @@ export function durationOf(totalSec: number): string {
   return `${minutes}분 ${rest}초`;
 }
 
+/**
+ * An offset to a tenth of a second, "1분 2.4초". Never signed. A correction set
+ * on the wall clock's flip is rarely whole seconds, and rounding it for show
+ * would print "+0초" for one that is there.
+ */
+function amountOf(totalSec: number): string {
+  const tenths = Math.round(Math.abs(totalSec) * 10);
+  const minutes = Math.floor(tenths / 600);
+  const rest = (tenths - minutes * 600) / 10;
+  const seconds = Number.isInteger(rest) ? String(rest) : rest.toFixed(1);
+  if (minutes === 0) return `${seconds}초`;
+  if (rest === 0) return `${minutes}분`;
+  return `${minutes}분 ${seconds}초`;
+}
+
+/** Whether an offset is none at all, as far as a tenth of a second can say. */
+export function noOffset(offsetSec: number): boolean {
+  return Math.round(offsetSec * 10) === 0;
+}
+
 /** How the church clock differs from standard time, said the way people say it. */
 export function driftOf(offsetSec: number): string {
-  if (offsetSec === 0) return "보정 없음";
-  return `표준 시각보다 ${durationOf(offsetSec)} ${offsetSec > 0 ? "빨라요" : "느려요"}`;
+  if (noOffset(offsetSec)) return "보정 없음";
+  return `표준 시각보다 ${amountOf(offsetSec)} ${offsetSec > 0 ? "빨라요" : "느려요"}`;
 }
 
 /** Signed seconds, for a log of what a correction did. */
 export function signedOf(sec: number): string {
-  return `${sec >= 0 ? "+" : "−"}${durationOf(sec)}`;
+  return `${sec >= 0 ? "+" : "−"}${amountOf(sec)}`;
 }
 
 export function hhmmOf(at: Date): string {
