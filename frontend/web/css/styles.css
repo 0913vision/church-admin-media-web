@@ -522,17 +522,19 @@ button { white-space: nowrap; }
 .ckset { display: flex; align-items: center; gap: 7px; }
 .ckset.is-off { opacity: 0.35; pointer-events: none; }
 .ckset__clear { margin-left: auto; }
+/* Which way a group of steps moves the clock, set before its keys. */
+.ckset__g { font-size: 13.5px; color: var(--c-mut); margin-right: 3px; }
+.ckset__g:not(:first-child) { margin-left: 18px; }
+.ckset__now { margin-left: auto; font-size: 14.5px; color: var(--c-mut); font-variant-numeric: tabular-nums; }
+.ckset__last { margin-top: 12px; font-size: 13px; color: var(--c-fnt); }
+.ckset__last:empty { display: none; }
 .tap { display: flex; align-items: center; gap: 15px; margin-top: 14px; padding-top: 13px;
        border-top: 1px solid var(--line); }
 .tap.is-off { opacity: 0.35; pointer-events: none; }
 .tap.is-armed { border-top-color: var(--hold); }
 .tap__t { display: block; font-size: 13.5px; color: var(--c-mut); }
 .tap__t b { color: var(--c-ink); font-weight: 600; }
-.tap__last { margin-left: auto; font-size: 13px; color: var(--c-fnt); }
-.tap__last b { color: var(--c-mut); font-weight: 600; }
 .tap > .pick:last-child { margin-left: auto; }
-.ckset__v { font-size: 17px; font-weight: 700; padding: 0 16px; min-width: 96px; text-align: center;
-            font-variant-numeric: tabular-nums; }
 
 /* ================= timeline: the whole schedule in one picture ================= */
 .tl { background: var(--panel); border-radius: 12px; padding: 14px 18px 18px; }

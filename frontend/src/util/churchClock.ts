@@ -147,9 +147,23 @@ export function driftOf(offsetSec: number): string {
   return `표준 시각보다 ${amountOf(offsetSec)} ${offsetSec > 0 ? "빨라요" : "느려요"}`;
 }
 
-/** Signed seconds, for a log of what a correction did. */
-export function signedOf(sec: number): string {
-  return `${sec >= 0 ? "+" : "−"}${amountOf(sec)}`;
+function signOf(sec: number): string {
+  return sec > 0 ? "+" : "−";
+}
+
+/**
+ * Where the church clock stands: "+12초 빠름". The sign is for reading numbers
+ * against each other; the word says what is twelve seconds ahead of what.
+ */
+export function standingOf(offsetSec: number): string {
+  if (noOffset(offsetSec)) return "보정 없음";
+  return `${signOf(offsetSec)}${amountOf(offsetSec)} ${offsetSec > 0 ? "빠름" : "느림"}`;
+}
+
+/** What one correction did to the church clock: "+3초 빠르게". */
+export function changeOf(deltaSec: number): string {
+  if (noOffset(deltaSec)) return "그대로";
+  return `${signOf(deltaSec)}${amountOf(deltaSec)} ${deltaSec > 0 ? "빠르게" : "느리게"}`;
 }
 
 export function hhmmOf(at: Date): string {

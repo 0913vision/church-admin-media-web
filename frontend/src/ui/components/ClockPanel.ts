@@ -1,12 +1,18 @@
 import { el } from "../../util/dom.js";
-import { ChurchClock, driftOf, hhmmOf, noOffset, signedOf, ssOf } from "../../util/churchClock.js";
+import { ChurchClock, changeOf, driftOf, hhmmOf, noOffset, ssOf, standingOf } from "../../util/churchClock.js";
 
 interface ClockPanelOptions {
   clock: ChurchClock;
   onOffset: (offsetSec: number) => void;
 }
 
-const STEPS = [-60, -10, -1, 1, 10, 60];
+/** Each group's steps, largest first on the slow side so both run outward from the middle. */
+const SLOWER = [60, 10, 1];
+const FASTER = [1, 10, 60];
+
+function stepLabel(stepSec: number): string {
+  return stepSec === 60 ? "1분" : `${stepSec}초`;
+}
 
 /**
  * The clock tab: what time this building is on, and how to correct it.
@@ -23,8 +29,8 @@ export class ClockPanel {
   private readonly church = el("div", { class: "ck__big", textContent: "--:--" });
   private readonly standard = el("div", { class: "ck__ref", textContent: "--:--:--" });
   private readonly drift = el("div", { class: "ck__off" });
-  private readonly value = el("span", { class: "ckset__v" });
-  private readonly last = el("span", { class: "tap__last" });
+  private readonly standing = el("span", { class: "ckset__now" });
+  private readonly last = el("div", { class: "ckset__last" });
   private readonly steps = el("div", { class: "ckset" });
   private readonly tap = el("div", { class: "tap" });
   private readonly locked = el("span", { class: "gate on is-hidden" }, [
@@ -42,16 +48,22 @@ export class ClockPanel {
     this.clock = options.clock;
     this.onOffset = options.onOffset;
 
-    for (const step of STEPS) {
-      const button = el("button", {
-        class: "pick",
-        type: "button",
-        textContent: `${step > 0 ? "+" : "−"}${Math.abs(step) === 60 ? "1분" : `${Math.abs(step)}초`}`,
-      });
-      button.addEventListener("click", () => this.nudge(step));
-      this.steps.append(button);
-      if (step === -1) this.steps.append(this.value);
-    }
+    // Note(yoochan.kim): said the way a clock is talked about, 빠르게 and 느리게, with the
+    // sign kept on each key. A bare "+1초" left open what was a second ahead of what.
+    const group = (label: string, steps: number[], sign: number): void => {
+      this.steps.append(el("span", { class: "ckset__g", textContent: label }));
+      for (const step of steps) {
+        const button = el("button", {
+          class: "pick",
+          type: "button",
+          textContent: `${sign > 0 ? "+" : "−"}${stepLabel(step)}`,
+        });
+        button.addEventListener("click", () => this.nudge(sign * step));
+        this.steps.append(button);
+      }
+    };
+    group("느리게", SLOWER, -1);
+    group("빠르게", FASTER, 1);
     const clear = el("button", { class: "pick ckset__clear", type: "button", textContent: "보정 제거" });
     clear.addEventListener("click", () => this.apply(0));
     this.steps.append(clear);
@@ -70,11 +82,12 @@ export class ClockPanel {
       el("div", { class: "tl" }, [
         el("div", { class: "tl__head" }, [
           el("b", { textContent: "보정" }),
-          this.last,
+          this.standing,
           this.locked,
         ]),
         this.steps,
         this.tap,
+        this.last,
       ]),
     ]);
 
@@ -86,7 +99,7 @@ export class ClockPanel {
   /** The offset as the device reports it, plus whether the gate is holding. */
   setOffset(offsetSec: number): void {
     this.offsetSec = offsetSec;
-    this.value.textContent = noOffset(offsetSec) ? "0초" : signedOf(offsetSec);
+    this.standing.textContent = `지금: ${standingOf(offsetSec)}`;
     this.drift.textContent = driftOf(offsetSec);
     this.drift.classList.toggle("is-off", !noOffset(offsetSec));
   }
@@ -128,7 +141,10 @@ export class ClockPanel {
     const correction = secondsIntoMinute > 30 ? 60 - secondsIntoMinute : -secondsIntoMinute;
     const next = Math.round((this.offsetSec + correction) * 1000) / 1000;
     this.armed = false;
-    this.last.textContent = `마지막 보정 ${hhmmOf(now)}  ${signedOf(correction)}`;
+    // Note(yoochan.kim): the minute it was set to, not the one it was pressed in — pressed at
+    // 22:23:59.6, the clock now says 22:24.
+    const setTo = new Date(now.getTime() + correction * 1000);
+    this.last.textContent = `마지막 보정 ${hhmmOf(setTo)}에 ${changeOf(correction)}`;
     this.renderTap();
     this.apply(next);
   }
