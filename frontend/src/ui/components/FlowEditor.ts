@@ -398,26 +398,11 @@ export class FlowEditor {
     return this.existing ? [this.danger(), cancel, save] : [cancel, save];
   }
 
-  /** Deleting, asked once in its own slot so the press that deletes is a second press. */
+  /** Deleting. The question that makes it a second press is asked over this dialog. */
   private danger(): HTMLElement {
-    const slot = el("div", { class: "editor__danger" });
-
-    const offer = (): void => {
-      const remove = el("button", { class: "textbtn textbtn--bad", type: "button", textContent: "삭제" });
-      remove.addEventListener("click", ask);
-      slot.replaceChildren(remove);
-    };
-
-    const ask = (): void => {
-      const keep = el("button", { class: "btn btn--small", type: "button", textContent: "닫기" });
-      keep.addEventListener("click", offer);
-      const yes = el("button", { class: "btn btn--stop btn--small", type: "button", textContent: "삭제" });
-      yes.addEventListener("click", () => this.options.onDelete(this.id));
-      slot.replaceChildren(el("span", { class: "editor__warn", textContent: "되돌릴 수 없어요" }), keep, yes);
-    };
-
-    offer();
-    return slot;
+    const remove = el("button", { class: "textbtn textbtn--bad", type: "button", textContent: "삭제" });
+    remove.addEventListener("click", () => this.options.onDelete(this.id));
+    return el("div", { class: "editor__danger" }, [remove]);
   }
 
   private entry(): FlowEntry {

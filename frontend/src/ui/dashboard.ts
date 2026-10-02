@@ -242,7 +242,13 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
       written(scheduleApi.save(id, entry), "저장했어요", "저장하지 못했어요");
     },
     onDelete: (id) => {
-      written(scheduleApi.remove(id), "삭제했어요", "삭제하지 못했어요");
+      const name = (store.dashboard.device.schedule ?? []).find((entry) => entry.id === id)?.name;
+      askFirst.open({
+        title: name ? `‘${name}’${objectParticle(name)} 삭제할까요?` : "이 자동 진행을 삭제할까요?",
+        message: "삭제한 자동 진행은 되돌릴 수 없어요.",
+        action: "삭제",
+        onAction: () => written(scheduleApi.remove(id), "삭제했어요", "삭제하지 못했어요"),
+      });
     },
   });
   const consolePanel = new ConsolePanel({
