@@ -407,7 +407,6 @@ button { white-space: nowrap; }
         background: conic-gradient(var(--c-mut) calc(var(--p) * 1%), var(--slot) 0);
         -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
                 mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px)); }
-.btn--wide { flex-basis: 100%; }
 .deck { background: var(--panel); border-radius: 12px; padding: 16px 18px; position: relative; }
 .deck__top { display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: center; }
 .deck > .goto { position: absolute; top: 14px; right: 18px; }
@@ -852,21 +851,29 @@ body.has-modal { overflow: hidden; }
   padding: 72px 24px 24px; background: rgba(15, 18, 22, 0.45);
 }
 .modal__box {
-  width: min(760px, 100%); max-height: calc(100vh - 96px);
+  max-height: calc(100vh - 96px);
   display: flex; flex-direction: column; overflow: hidden;
   background: var(--panel); border-radius: 14px; box-shadow: 0 24px 60px rgba(15, 18, 22, 0.28);
 }
+/* Note(yoochan.kim): as wide as what it holds. One width for every dialog stretched a time
+   field to 740px and left a one-line question in a window built for a table. */
+.modal__box--sm { width: min(400px, 100%); }
+.modal__box--md { width: min(560px, 100%); }
+.modal__box--lg { width: min(720px, 100%); }
 .modal__box:focus { outline: none; }
-.modal__h {
-  flex: none; display: flex; align-items: center; gap: 12px;
-  padding: 16px 20px; border-bottom: 1px solid var(--line);
-}
+/* The title and ✕, nothing else: one way to close from the top, the answers at the bottom. */
+.modal__h { flex: none; display: flex; align-items: center; gap: 12px; padding: 16px 14px 4px 24px; }
 .modal__t { flex: 1; min-width: 0; font-size: 16.5px; font-weight: 700; }
-.modal__a { display: flex; align-items: center; gap: 8px; }
+/* The keys that answer it, bottom right, where an alert keeps them too. */
+.modal__a { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+            padding: 12px 24px 20px; }
+.modal__a[hidden] { display: none; }
+.modal__box.is-overflowing .modal__a { border-top: 1px solid var(--line); padding-top: 14px; }
 .modal__a .btn { padding: 8px 16px; }
-/* Deleting sits in the head with the rest, but stood well off from 저장 — they
-   are one press apart on a keypad and one of them cannot be taken back. */
-.editor__danger { display: flex; align-items: center; gap: 8px; margin-right: 20px; }
+/* Deleting goes to the far left, as far from 저장 as the dialog allows — they are
+   one press apart on a keypad and one of them cannot be taken back. */
+.editor__danger { display: flex; align-items: center; gap: 8px; margin-right: auto; }
+.editor__danger .textbtn { padding-left: 0; }
 .editor__danger .editor__warn { font-size: 13.5px; }
 /* One setting in a dialog: what it is called, the field, and what it means. */
 /* A table, not a list of boxes: the column says what the number is, and a
@@ -922,27 +929,29 @@ body.has-modal { overflow: hidden; }
 .setlist__use { flex: none; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
                 font-size: 13.5px; color: var(--c-fnt); }
 .setlist__r .textbtn { font-size: 13.5px; padding: 4px 2px; }
-/* How much longer, offered as durations — the question is never "at what o'clock". */
-.whens { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 0 4px; }
-.whens .btn { flex: 1; min-width: 84px; }
+/* How much longer, offered as durations — the question is never "at what o'clock".
+   Four to a row, and the answer that is not a duration takes a row of its own. */
+.whens { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding-top: 6px; }
+.whens .btn { padding: 10px 0; }
+.whens .btn--wide { grid-column: 1 / -1; }
 .modal__x {
   flex: none; width: 32px; height: 32px; border-radius: 8px; cursor: pointer;
   display: grid; place-items: center; padding: 0;
   background: none; border: 0; color: var(--c-mut);
 }
 .modal__x:hover { background: var(--raised); color: var(--c-ink); }
-.modal__b { flex: 1; min-height: 0; overflow: auto; padding: 6px 20px 20px; }
-/* A question the dialog asks, at reading size. The keys that answer it are in
-   the head, so nothing here competes with them. */
-.ask { margin: 0; padding: 10px 0 6px; font-size: 15.5px; line-height: 1.6; color: var(--c-ink); }
+.modal__b { flex: 1; min-height: 0; overflow: auto; padding: 8px 24px; word-break: keep-all; }
+.modal__box:has(> .modal__a[hidden]) .modal__b { padding-bottom: 24px; }
 
 /* ================= flow editor ================= */
 .editor { display: flex; flex-direction: column; }
-/* Wide enough here for the name to stand beside what it names, which is what
-   the column next to the calendar never had room for. */
-.editor__row { display: flex; align-items: center; gap: 18px; padding: 10px 0; }
-.editor__label { width: 108px; flex: none; color: var(--c-fnt); font-size: 13.5px; }
-.editor__row > :not(.editor__label) { flex: 1; min-width: 0; }
+/* The name above what it names, read top to bottom. Beside it, a 108px column of
+   small grey words stood a long way off from fields stretched to the far edge. */
+.editor__row { display: flex; flex-direction: column; gap: 7px; padding: 8px 0; }
+.editor__label { color: var(--c-mut); font-size: 13.5px; }
+.editor__row > * { min-width: 0; }
+/* A time is eight characters; a field the dialog's width says nothing more. */
+.editor__input[type="time"] { width: 168px; }
 /* A field is a bar with different insides: same border, fill and height. The
    height is set, or a time input and a day cell come out 38 and 31 tall. */
 .editor__input {
@@ -981,6 +990,8 @@ body.has-modal { overflow: hidden; }
 .editor__track-vol:focus { outline: none; }
 .editor__track .textbtn { padding: 5px 8px; font-size: 16.5px; line-height: 1; }
 .editor__adders { position: relative; display: flex; align-items: flex-start; margin-top: 4px; }
+/* Starts on the line the label and the numbered rows start on. */
+.editor__adders .textbtn--add { padding-left: 0; }
 /* The library, open only while somebody is choosing from it. It hangs over what
    is below rather than pushing it down — a menu that moves the rest of the form
    out of the way takes the thing you were reading with it. */
@@ -1014,9 +1025,10 @@ body.has-modal { overflow: hidden; }
   position: fixed; inset: 0; z-index: 50; display: grid; place-items: start center;
   padding: 120px 24px 24px; background: rgba(15, 18, 22, 0.45);
 }
+/* Lines break between words: broken anywhere, 바뀌어요 came out as 바 and 뀌어요. */
 .alert { width: min(400px, 100%); background: var(--panel); border-radius: 14px;
          box-shadow: 0 24px 60px rgba(15, 18, 22, 0.28); padding: 22px 22px 18px;
-         display: flex; flex-direction: column; }
+         display: flex; flex-direction: column; word-break: keep-all; }
 .alert:focus { outline: none; }
 .alert__t { margin: 0; font-size: 16.5px; font-weight: 700; line-height: 1.45; text-wrap: balance; }
 .alert__m { margin: 8px 0 0; font-size: 15.5px; line-height: 1.6; color: var(--c-mut); }
@@ -1025,10 +1037,8 @@ body.has-modal { overflow: hidden; }
 
 /* ================= adding a track ================= */
 /* Every control in this dialog is a square bar of the same height; only the dialog
-   and the keys in its head are rounded. */
-.addtrack { display: flex; flex-direction: column; padding-top: 4px; }
-.addtrack .editor__row { align-items: flex-start; }
-.addtrack .editor__label { line-height: var(--field); }
+   and the keys that answer it are rounded. */
+.addtrack { display: flex; flex-direction: column; }
 .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 /* The file field: a bar like any other, with the choosing key joined on the left. */
 .filebar { position: relative; display: flex; align-items: stretch; height: var(--field); min-width: 0;

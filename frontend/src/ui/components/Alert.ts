@@ -7,11 +7,14 @@ export interface AlertOptions {
   message: string;
   /** The key that acts, named for what it does */
   action: string;
+  /** Red for what cannot be taken back, green for a change that can be made again */
+  tone: "danger" | "go";
   onAction: () => void;
 }
 
 /**
- * A question over whatever dialog asked it, for something that cannot be taken back.
+ * A question asked before something that reaches past this screen — a deletion, or
+ * the desk in the room — over whatever dialog asked it.
  *
  * Note(yoochan.kim): laid out the way Apple's alerts and Material's dialogs both are —
  * the question as the title, the result in a sentence, the keys at the bottom
@@ -34,7 +37,7 @@ export class Alert {
     this.opener = document.activeElement;
     const dismiss = el("button", { class: "btn", type: "button", textContent: "닫기" });
     dismiss.addEventListener("click", () => this.close());
-    const act = el("button", { class: "btn btn--stop", type: "button", textContent: options.action });
+    const act = el("button", { class: `btn ${options.tone === "danger" ? "btn--stop" : "btn--go"}`, type: "button", textContent: options.action });
     act.addEventListener("click", () => {
       this.close();
       options.onAction();

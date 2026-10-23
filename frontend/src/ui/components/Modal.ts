@@ -1,8 +1,12 @@
 import { el } from "../../util/dom.js";
 import { icon } from "../icons.js";
 
+/** How wide a dialog is: set by what it holds, not one width for all of them. */
+export type ModalSize = "sm" | "md" | "lg";
+
 /**
- * A dialog over a dimmed page.
+ * A dialog over a dimmed page: the title and ✕ at the top, what it is about, and
+ * the keys that answer it at the bottom right.
  *
  * Closing is the part worth being careful about: the backdrop, Escape and the
  * ✕ all mean the same thing, and each has to leave the page exactly as it found
@@ -13,7 +17,7 @@ export class Modal {
   private readonly box: HTMLElement;
   private readonly title: HTMLElement;
   private readonly body: HTMLElement;
-  /** What the dialog is for, kept in the head where it is found without scrolling. */
+  /** The keys that answer it, at the bottom right, where an alert keeps them too. */
   private readonly actions: HTMLElement;
   private onClose: () => void = () => {};
   private opener: Element | null = null;
@@ -23,6 +27,13 @@ export class Modal {
    * not someone asking to close.
    */
   private pressedOn: EventTarget | null = null;
+  /**
+   * Whether the content runs past the dialog. Only then is a rule drawn over the keys:
+   * without one, a row cut off at the bottom looked like the end of the form.
+   */
+  private readonly fits = new ResizeObserver(() => {
+    this.box.classList.toggle("is-overflowing", this.body.scrollHeight > this.body.clientHeight);
+  });
 
   constructor() {
     this.title = el("b", { class: "modal__t" });
@@ -33,8 +44,9 @@ export class Modal {
 
     this.actions = el("div", { class: "modal__a" });
     this.box = el("div", { class: "modal__box" }, [
-      el("div", { class: "modal__h" }, [this.title, this.actions, shut]),
+      el("div", { class: "modal__h" }, [this.title, shut]),
       this.body,
+      this.actions,
     ]);
     this.box.setAttribute("role", "dialog");
     this.box.setAttribute("aria-modal", "true");
@@ -50,12 +62,16 @@ export class Modal {
     return !this.el.classList.contains("is-hidden");
   }
 
-  open(title: string, content: HTMLElement, onClose: () => void, actions: HTMLElement[] = []): void {
+  open(title: string, content: HTMLElement, onClose: () => void, actions: HTMLElement[], size: ModalSize): void {
     this.onClose = onClose;
     this.opener = document.activeElement;
     this.title.textContent = title;
+    this.box.className = `modal__box modal__box--${size}`;
     this.actions.replaceChildren(...actions);
+    this.actions.hidden = actions.length === 0;
     this.body.replaceChildren(content);
+    this.fits.observe(this.body);
+    this.fits.observe(content);
     this.el.classList.remove("is-hidden");
     document.body.classList.add("has-modal");
     document.addEventListener("keydown", this.onKey);
@@ -69,6 +85,8 @@ export class Modal {
   close(): void {
     if (!this.isOpen) return;
     this.el.classList.add("is-hidden");
+    this.fits.disconnect();
+    this.box.classList.remove("is-overflowing");
     this.body.replaceChildren();
     this.actions.replaceChildren();
     document.body.classList.remove("has-modal");

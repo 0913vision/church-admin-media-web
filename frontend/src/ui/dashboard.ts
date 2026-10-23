@@ -196,16 +196,16 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
    * masters, so the room hears it the moment it lands.
    */
   const initializeConsole = (): void => {
-    const body = el("p", { class: "ask", textContent: "본당 음향을 예배와 동일하게 변경합니다. 진행할까요?" });
-    const no = el("button", { class: "btn", type: "button", textContent: "닫기" });
-    no.addEventListener("click", () => confirm.close());
-    const yes = el("button", { class: "btn btn--go", type: "button", textContent: "변경" });
-    yes.addEventListener("click", () => {
-      confirm.close();
-      guard(deviceApi.invoke({ command: "initializeConsole", args: {} }));
-      showNotice("본당 음향을 예배와 동일하게 맞췄어요", true);
+    askFirst.open({
+      title: "본당 음향을 예배와 동일하게 변경할까요?",
+      message: "모든 입력이 켜지고, 메인과 매트릭스가 예배 레벨로 바뀌어요.",
+      action: "변경",
+      tone: "go",
+      onAction: () => {
+        guard(deviceApi.invoke({ command: "initializeConsole", args: {} }));
+        showNotice("본당 음향을 예배와 동일하게 맞췄어요", true);
+      },
     });
-    confirm.open("주의", body, () => {}, [no, yes]);
   };
 
   /**
@@ -247,6 +247,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
         title: name ? `‘${name}’${objectParticle(name)} 삭제할까요?` : "이 자동 진행을 삭제할까요?",
         message: "삭제한 자동 진행은 되돌릴 수 없어요.",
         action: "삭제",
+        tone: "danger",
         onAction: () => written(scheduleApi.remove(id), "삭제했어요", "삭제하지 못했어요"),
       });
     },
@@ -396,7 +397,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
         }
       }
     });
-    confirm.open("곡 설정", body, () => settingsRows.clear(), [close, save]);
+    confirm.open("곡 설정", body, () => settingsRows.clear(), [close, save], "lg");
   };
 
   /** Deleting one track, asked over the settings dialog in the words Apple and Material use. */
@@ -405,6 +406,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
       title: `‘${track.title}’${objectParticle(track.title)} 삭제할까요?`,
       message: "음원 파일도 함께 지워져요. 삭제한 곡은 되돌릴 수 없어요.",
       action: "삭제",
+      tone: "danger",
       onAction: () => {
         deleting.add(track.id);
         guard(deviceApi.invoke({ command: "deleteTrack", args: { id: track.id } }));
@@ -418,7 +420,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     trackAdd.setKnown(libraryTracks.map((track) => track.id));
     const close = el("button", { class: "btn", type: "button", textContent: "닫기" });
     close.addEventListener("click", () => confirm.close());
-    confirm.open("곡 추가", trackAdd.el, () => trackAdd.reset(), [close, trackAdd.addKey]);
+    confirm.open("곡 추가", trackAdd.el, () => trackAdd.reset(), [close, trackAdd.addKey], "md");
   };
 
   /**
@@ -447,11 +449,11 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
       write("musicEndsAt", { kind: "withHold" });
     });
     body.append(untilGate);
-    confirm.open("음악을 언제 멈출까요", body, () => {});
+    confirm.open("음악을 언제 멈출까요", body, () => {}, [], "sm");
   };
 
   const systemPanel = new SystemPanel({
-    onOpenFile: (title, body) => confirm.open(title, body, () => {}),
+    onOpenFile: (title, body) => confirm.open(title, body, () => {}, [], "lg"),
   });
   const church = new ChurchClock();
   const clockPanel = new ClockPanel({

@@ -78,7 +78,7 @@ export class SchedulePanel {
     this.editor.open(flow);
     // Note(yoochan.kim): whichever way it is dismissed — the ✕, the backdrop, Escape
     // — the draft has to come off the calendar, so that is the modal's own close.
-    this.modal.open(flow ? flow.name : "새 자동 진행", this.editor.el, () => this.editor.close(), this.editor.actions());
+    this.modal.open(flow ? flow.name : "새 자동 진행", this.editor.el, () => this.editor.close(), this.editor.actions(), "md");
   }
 
   /** Church time, so today and the now-line follow the same clock as the rest. */

@@ -49,8 +49,10 @@ export class FlowEditor {
    * redrawing the editor replaced the box being typed into and lost its focus.
    */
   private readonly summaryEl = el("div", { class: "editor__summary num" });
-  /** Lives in the dialog's head, so it is held rather than redrawn with the form. */
-  private saveButton: HTMLButtonElement | null = null;
+  /** Whether 저장 has been pressed: until then an empty field is not yet a mistake. */
+  private tried = false;
+  /** Whether the draft holds anything the server would refuse. */
+  private blocked = false;
 
   constructor(private readonly options: FlowEditorOptions) {
     this.el = el("div", { class: "editor is-hidden" });
@@ -92,6 +94,7 @@ export class FlowEditor {
     this.endsAt = music?.endsAt ?? "20:00";
 
     this.existing = flow !== null;
+    this.tried = false;
     this.el.classList.remove("is-hidden");
     this.render();
     this.emit();
@@ -356,16 +359,16 @@ export class FlowEditor {
         warnings.push("음악이 잠금 해제보다 늦게 끝나요");
       }
     }
-    if (this.weekdays.size === 0) warnings.push("요일이 비어 있어요");
-    if (!this.name.trim()) warnings.push("이름이 비어 있어요");
     if (asSeconds(closesAt) <= asSeconds(this.lockAt)) {
       warnings.push("잠금 해제가 잠금 시작보다 빨라요");
     }
-
-    // Note(yoochan.kim): every one of these is something the server refuses, so a
-    // draft carrying any of them cannot be saved — the button says so rather
-    // than sending a request that comes back 400 and shows nothing.
-    if (this.saveButton) this.saveButton.disabled = warnings.length > 0;
+    // Note(yoochan.kim): a blank form is not a wrong one. Empty fields are said once
+    // 저장 has been pressed; a schedule that contradicts itself is said at once.
+    const empty: string[] = [];
+    if (this.weekdays.size === 0) empty.push("요일이 비어 있어요");
+    if (!this.name.trim()) empty.push("이름이 비어 있어요");
+    this.blocked = warnings.length + empty.length > 0;
+    if (this.tried) warnings.push(...empty);
 
     return [
       ...lines.map(([label, value]) =>
@@ -379,21 +382,28 @@ export class FlowEditor {
   }
 
   /**
-   * Every key this dialog has, for its head to carry. They read the draft when
+   * Every key this dialog has, for its foot to carry. They read the draft when
    * pressed, so they can be made once while the form below is redrawn.
    *
-   * Note(yoochan.kim): deleting rides here too, rather than at the foot where it
-   * used to sit — one dialog answered in two places is a dialog you have to
-   * look twice at. It keeps its distance from 저장 instead: they are one press
-   * apart on a keypad and one of them cannot be taken back.
+   * Note(yoochan.kim): deleting rides here too — one dialog answered in two places is
+   * a dialog you have to look twice at. It sits at the far left, away from 저장:
+   * they are one press apart on a keypad and one of them cannot be taken back.
    */
   actions(): HTMLElement[] {
     const cancel = el("button", { class: "btn", type: "button", textContent: "닫기" });
     cancel.addEventListener("click", () => this.options.onCancel());
 
     const save = el("button", { class: "btn btn--go", type: "button", textContent: "저장" }) as HTMLButtonElement;
-    save.addEventListener("click", () => this.options.onSave(this.id, this.entry()));
-    this.saveButton = save;
+    // Note(yoochan.kim): everything listed is something the server refuses, so a draft
+    // carrying any of it is not sent; pressing 저장 shows what is missing instead.
+    save.addEventListener("click", () => {
+      if (this.blocked) {
+        this.tried = true;
+        this.refresh();
+        return;
+      }
+      this.options.onSave(this.id, this.entry());
+    });
     this.refresh();
 
     return this.existing ? [this.danger(), cancel, save] : [cancel, save];
