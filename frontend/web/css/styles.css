@@ -236,7 +236,6 @@ button { white-space: nowrap; }
 .textbtn { background: none; border: 0; padding: 4px 6px; color: var(--c-ink); font-size: 15.5px; cursor: pointer; }
 .textbtn:hover { text-decoration: underline; }
 .textbtn--bad { color: var(--bad); }
-.textbtn--add { color: var(--go); font-weight: 600; }
 .textbtn--icon { display: inline-grid; place-items: center; padding: 4px; }
 
 /* ---- radio rows: the deck's song list ---- */
@@ -957,10 +956,9 @@ body.has-modal { overflow: hidden; }
                min-height: 54px; padding: 9px 0; border-bottom: 1px solid var(--line); }
 .editor__label { flex: none; color: var(--c-ink); font-size: 15.5px; line-height: var(--field); }
 .editor__row > :not(.editor__label) { flex: none; width: 300px; }
-/* A list takes the whole width under its name. */
-.editor__row--block { flex-direction: column; align-items: stretch; gap: 4px; }
-.editor__row--block > .editor__label { line-height: inherit; }
-.editor__row--block > :not(.editor__label) { width: auto; }
+/* A list takes the whole width, and names itself in its own head. */
+.editor__row--block { display: block; }
+.editor__row.editor__row--block > * { width: auto; }
 /* Between what it is and when it runs. */
 .editor__gap { height: 18px; }
 /* Only the chosen thing is heavy: no shadows on fields, and a cell nobody chose at an
@@ -981,41 +979,40 @@ body.has-modal { overflow: hidden; }
   height: var(--field); padding: 0 10px; min-width: 0; width: 100%;
 }
 .editor__input:focus { outline: none; border-color: var(--go); }
+/* Laid out like 곡 설정: fixed columns, so the lengths and levels stand under each other
+   whatever the names, and every row is the same height. */
 .editor__tracks { display: flex; flex-direction: column; }
-.editor__track { display: flex; align-items: center; gap: 10px; font-size: 15.5px; color: var(--c-mut); padding: 8px 0; }
-.editor__track-no { color: var(--c-fnt); width: 20px; flex: none; font-variant-numeric: tabular-nums; }
+.editor__track { display: grid; grid-template-columns: 22px minmax(0, 1fr) 76px 54px repeat(3, 32px);
+                 column-gap: 8px; align-items: center; min-height: 38px; margin: 0 -10px; padding: 0 10px;
+                 border-radius: 8px; font-size: 15.5px; }
+.editor__track:not(.editor__track--head):hover { background: var(--raised); }
+.editor__track-no { font-size: 13.5px; color: var(--c-fnt); text-align: right; font-variant-numeric: tabular-nums; }
 /* One line: a title folded in half reads as two songs. */
-.editor__track-name { flex: 1; min-width: 0; color: var(--c-ink); font-weight: 500;
-                      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.editor__track-len { color: var(--c-fnt); font-size: 13.5px; font-variant-numeric: tabular-nums; flex: none; }
-/* The column names, sitting where the values they name will sit. */
-.editor__track--head { padding: 2px 0 0; font-size: 11px; color: var(--c-fnt); }
-.editor__track--head .editor__track-name { color: var(--c-fnt); font-weight: 400; font-size: 11px; }
-.editor__track--head .editor__track-len { font-family: inherit; font-size: 11px; }
-.editor__track-volh { width: 42px; flex: none; text-align: center;
-                      /* the three buttons the rows carry, so the name lands over the box */
-                      margin-right: 108px; }
-/* The level, in a well under a named column. No spinner: it walks the value
-   past the limits it is given. */
-.vol { display: inline-flex; background: var(--well); border-radius: 7px; padding: 4px 8px; }
-.vol:focus-within { box-shadow: inset 0 0 0 1px var(--go); }
+.editor__track-name { color: var(--c-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.editor__track-len { font-size: 13.5px; color: var(--c-fnt); text-align: right; font-variant-numeric: tabular-nums; }
+/* The list's name on the line the other settings' names sit on, its column names beside it. */
+.editor__track--head { min-height: var(--field); }
+.editor__track-title { grid-column: 1 / 3; color: var(--c-ink); }
+.editor__track--head .editor__track-len, .editor__track-volh { font-size: 13.5px; color: var(--c-mut); text-align: right; }
+/* Over the digits, not over the field's edge. */
+.editor__track-volh { padding-right: 9px; }
+/* A number that reads as a number until its row is pointed at, as in 곡 설정. No spinner:
+   it walks the value past the limits it is given. */
 .editor__track-vol {
-  width: 26px; font: inherit; font-size: 13.5px; text-align: right;
-  color: var(--c-ink); background: transparent; border: 0; padding: 0;
+  height: 30px; padding: 0 8px; text-align: right; background: transparent; border-color: transparent;
   font-variant-numeric: tabular-nums; appearance: textfield; -moz-appearance: textfield;
 }
+.editor__track:hover .editor__track-vol { background: var(--well); border-color: var(--line); }
+.editor__track .editor__track-vol:focus { background: var(--panel); border-color: var(--go); }
 .editor__track-vol::-webkit-inner-spin-button,
 .editor__track-vol::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-.editor__track-vol:focus { outline: none; }
-.editor__track .textbtn { padding: 5px 8px; font-size: 16.5px; line-height: 1; }
+.editor__track .textbtn { justify-self: center; padding: 5px 8px; font-size: 16.5px; line-height: 1; }
 /* Three keys on every song: grey until pointed at, and 빼기 turns red only then. A red
    mark on every row made the list read as a list of errors. */
 .editor__track .textbtn, .editor__track .textbtn--bad { color: var(--c-fnt); }
 .editor__track .textbtn:hover { color: var(--c-ink); }
 .editor__track .textbtn--bad:hover { color: var(--bad); }
-.editor__adders { position: relative; display: flex; align-items: flex-start; margin-top: 4px; }
-/* Starts on the line the label and the numbered rows start on. */
-.editor__adders .textbtn--add { padding-left: 0; }
+.editor__adders { position: relative; display: flex; align-items: flex-start; margin-top: 6px; }
 /* The library, open only while somebody is choosing from it. It hangs over what
    is below rather than pushing it down — a menu that moves the rest of the form
    out of the way takes the thing you were reading with it. */

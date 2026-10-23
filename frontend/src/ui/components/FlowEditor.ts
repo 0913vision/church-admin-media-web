@@ -109,7 +109,7 @@ export class FlowEditor {
       this.field("시작", this.autoRow()),
       el("div", { class: "editor__gap" }),
       this.field("잠금 시작", this.time(this.lockAt, (value) => { this.lockAt = value; this.emit(); })),
-      this.field("곡", this.trackList(), true),
+      el("div", { class: "editor__row editor__row--block" }, [this.trackList()]),
       ...(this.cues.length > 0
         ? [this.field("음악 마치는 시각", this.time(this.endsAt, (value) => { this.endsAt = value; this.emit(); this.refresh(); }))]
         : []),
@@ -130,15 +130,14 @@ export class FlowEditor {
   // --- fields ---
 
   /**
-   * One setting: its name at the left, its control at the right, or the whole width
-   * under the name for a list.
+   * One setting: its name at the left, its control at the right.
    *
    * Note(yoochan.kim): a <label> only around a single field. Around a row of keys, a press
    * anywhere in the row's empty middle pressed its first key — 요일 switched 일요일 on.
    */
-  private field(label: string, control: HTMLElement, block = false): HTMLElement {
+  private field(label: string, control: HTMLElement): HTMLElement {
     const tag = control instanceof HTMLInputElement ? "label" : "div";
-    return el(tag, { class: block ? "editor__row editor__row--block" : "editor__row" }, [
+    return el(tag, { class: "editor__row" }, [
       el("span", { class: "editor__label", textContent: label }),
       control,
     ]);
@@ -206,7 +205,7 @@ export class FlowEditor {
       const track = this.tracks.find((candidate) => candidate.id === cue.id);
       const label = track ? track.title : `${cue.id} (등록되지 않은 곡)`;
       return el("div", { class: "editor__track" }, [
-        el("span", { class: "editor__track-no", textContent: `${index + 1}.` }),
+        el("span", { class: "editor__track-no", textContent: String(index + 1) }),
         el("span", { class: "editor__track-name", textContent: label }),
         el("span", { class: "editor__track-len", textContent: track ? length(track.durationSec) : "" }),
         this.volumeInput(cue),
@@ -243,7 +242,7 @@ export class FlowEditor {
       });
     });
 
-    const open = el("button", { class: "textbtn textbtn--add", type: "button", textContent: "+ 추가" });
+    const open = el("button", { class: "btn btn--small", type: "button", textContent: "곡 추가" });
     const adders = el("div", { class: "editor__adders" }, [open, menu]);
 
     // Note(yoochan.kim): a press anywhere else puts it away, which is what an open
@@ -263,28 +262,25 @@ export class FlowEditor {
       else document.removeEventListener("mousedown", shut);
     });
 
-    // Note(yoochan.kim): named once above the list; a label per row costs the width
-    // the song's own name needs.
-    const head =
-      rows.length === 0
+    // Note(yoochan.kim): the list's name and the names of its number columns share one line,
+    // as a table's head does; a label per row costs the width the song's own name needs.
+    const head = el("div", { class: "editor__track editor__track--head" }, [
+      el("span", { class: "editor__track-title", textContent: "곡" }),
+      ...(rows.length === 0
         ? []
         : [
-            el("div", { class: "editor__track editor__track--head" }, [
-              el("span", { class: "editor__track-no" }),
-              // The field is already called 곡; only the two numbers need naming.
-              el("span", { class: "editor__track-name" }),
-              el("span", { class: "editor__track-len", textContent: "길이" }),
-              el("span", { class: "editor__track-volh", textContent: "볼륨" }),
-            ]),
-          ];
+            el("span", { class: "editor__track-len", textContent: "길이" }),
+            el("span", { class: "editor__track-volh", textContent: "볼륨" }),
+          ]),
+    ]);
 
-    return el("div", { class: "editor__tracks" }, [...head, ...rows, adders]);
+    return el("div", { class: "editor__tracks" }, [head, ...rows, adders]);
   }
 
   /** How loud this song plays in this order, kept in 0-100 like the panel's. */
   private volumeInput(cue: ScheduledTrack): HTMLElement {
     const input = el("input", {
-      class: "editor__track-vol",
+      class: "editor__input editor__track-vol",
       type: "number",
       value: String(cue.volume),
       ariaLabel: "이 순서에서의 볼륨",
@@ -308,7 +304,7 @@ export class FlowEditor {
       this.refresh();
     });
 
-    return el("span", { class: "vol" }, [input]);
+    return input;
   }
 
   /** The gate closes with the music, or at a time of its own — a choice. The time is a row of its own. */
@@ -352,7 +348,7 @@ export class FlowEditor {
     if (this.cues.length > 0) {
       const startsAt = asClock(asSeconds(this.endsAt) - totalSec);
       const cut = asSeconds(startsAt) < asSeconds(this.lockAt) ? ", 앞 잘림" : "";
-      lines.push(["음악", `${startsAt} → ${this.endsAt} (${this.cues.length}곡${cut})`]);
+      lines.push(["음악", `${startsAt} → ${asClock(asSeconds(this.endsAt))} (${this.cues.length}곡${cut})`]);
       // Note(yoochan.kim): the media server refuses a track with no level, so a
       // blank box stops the save here rather than at the moment someone starts it.
       if (this.cues.some((cue) => !Number.isInteger(cue.volume) || cue.volume < 0 || cue.volume > 100)) {
