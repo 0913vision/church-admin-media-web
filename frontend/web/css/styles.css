@@ -858,7 +858,7 @@ body.has-modal { overflow: hidden; }
 /* Note(yoochan.kim): as wide as what it holds. One width for every dialog stretched a time
    field to 740px and left a one-line question in a window built for a table. */
 .modal__box--sm { width: min(400px, 100%); }
-.modal__box--md { width: min(560px, 100%); }
+.modal__box--md { width: min(600px, 100%); }
 .modal__box--lg { width: min(720px, 100%); }
 .modal__box:focus { outline: none; }
 /* The title and ✕, nothing else: one way to close from the top, the answers at the bottom. */
@@ -929,6 +929,9 @@ body.has-modal { overflow: hidden; }
 .setlist__use { flex: none; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
                 font-size: 13.5px; color: var(--c-fnt); }
 .setlist__r .textbtn { font-size: 13.5px; padding: 4px 2px; }
+/* 삭제 on every row, grey until pointed at — the same rule as the flow editor's songs. */
+.setlist__r .textbtn--bad { color: var(--c-fnt); }
+.setlist__r .textbtn--bad:hover { color: var(--bad); }
 /* How much longer, offered as durations — the question is never "at what o'clock".
    Four to a row, and the answer that is not a duration takes a row of its own. */
 .whens { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding-top: 6px; }
@@ -945,13 +948,30 @@ body.has-modal { overflow: hidden; }
 
 /* ================= flow editor ================= */
 .editor { display: flex; flex-direction: column; }
-/* The name above what it names, read top to bottom. Beside it, a 108px column of
-   small grey words stood a long way off from fields stretched to the far edge. */
-.editor__row { display: flex; flex-direction: column; gap: 7px; padding: 8px 0; }
-.editor__label { color: var(--c-mut); font-size: 13.5px; }
-.editor__row > * { min-width: 0; }
-/* A time is eight characters; a field the dialog's width says nothing more. */
-.editor__input[type="time"] { width: 168px; }
+/* One setting per row: the name at the left, the control at the right, a rule under
+   each, the way desktop settings are laid out. Every control is one width, so both
+   its edges run straight down the dialog and the painted choices land in one column.
+   The name sits on the control's middle line, so a message under a field does not
+   pull it down. */
+.editor__row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+               min-height: 54px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.editor__label { flex: none; color: var(--c-ink); font-size: 15.5px; line-height: var(--field); }
+.editor__row > :not(.editor__label) { flex: none; width: 300px; }
+/* A list takes the whole width under its name. */
+.editor__row--block { flex-direction: column; align-items: stretch; gap: 4px; }
+.editor__row--block > .editor__label { line-height: inherit; }
+.editor__row--block > :not(.editor__label) { width: auto; }
+/* Between what it is and when it runs. */
+.editor__gap { height: 18px; }
+/* Only the chosen thing is heavy: no shadows on fields, and a cell nobody chose at an
+   ordinary weight, so the painted one is what the eye lands on. */
+.modal .editor__input, .modal .segctl, .modal .filebar { box-shadow: none; }
+.modal .segctl > button:not(.on) { font-weight: 400; color: var(--c-mut); }
+.modal .segctl > button.on { font-weight: 600; }
+.modal .filebar__k { font-weight: 500; }
+.modal .editor__input::-webkit-calendar-picker-indicator { opacity: 0.35; }
+/* The browser draws the clock black whatever the theme. */
+:root[data-theme="dark"] .modal .editor__input::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.5; }
 /* A field is a bar with different insides: same border, fill and height. The
    height is set, or a time input and a day cell come out 38 and 31 tall. */
 .editor__input {
@@ -961,12 +981,11 @@ body.has-modal { overflow: hidden; }
   height: var(--field); padding: 0 10px; min-width: 0; width: 100%;
 }
 .editor__input:focus { outline: none; border-color: var(--go); }
-.editor__unlock { display: flex; flex-direction: column; gap: 9px; }
 .editor__tracks { display: flex; flex-direction: column; }
 .editor__track { display: flex; align-items: center; gap: 10px; font-size: 15.5px; color: var(--c-mut); padding: 8px 0; }
 .editor__track-no { color: var(--c-fnt); width: 20px; flex: none; font-variant-numeric: tabular-nums; }
 /* One line: a title folded in half reads as two songs. */
-.editor__track-name { flex: 1; min-width: 0; color: var(--c-ink); font-weight: 600;
+.editor__track-name { flex: 1; min-width: 0; color: var(--c-ink); font-weight: 500;
                       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .editor__track-len { color: var(--c-fnt); font-size: 13.5px; font-variant-numeric: tabular-nums; flex: none; }
 /* The column names, sitting where the values they name will sit. */
@@ -981,7 +1000,7 @@ body.has-modal { overflow: hidden; }
 .vol { display: inline-flex; background: var(--well); border-radius: 7px; padding: 4px 8px; }
 .vol:focus-within { box-shadow: inset 0 0 0 1px var(--go); }
 .editor__track-vol {
-  width: 26px; font: inherit; font-size: 13.5px; font-family: var(--mono); text-align: right;
+  width: 26px; font: inherit; font-size: 13.5px; text-align: right;
   color: var(--c-ink); background: transparent; border: 0; padding: 0;
   font-variant-numeric: tabular-nums; appearance: textfield; -moz-appearance: textfield;
 }
@@ -989,6 +1008,11 @@ body.has-modal { overflow: hidden; }
 .editor__track-vol::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .editor__track-vol:focus { outline: none; }
 .editor__track .textbtn { padding: 5px 8px; font-size: 16.5px; line-height: 1; }
+/* Three keys on every song: grey until pointed at, and 빼기 turns red only then. A red
+   mark on every row made the list read as a list of errors. */
+.editor__track .textbtn, .editor__track .textbtn--bad { color: var(--c-fnt); }
+.editor__track .textbtn:hover { color: var(--c-ink); }
+.editor__track .textbtn--bad:hover { color: var(--bad); }
 .editor__adders { position: relative; display: flex; align-items: flex-start; margin-top: 4px; }
 /* Starts on the line the label and the numbered rows start on. */
 .editor__adders .textbtn--add { padding-left: 0; }
@@ -1012,7 +1036,7 @@ body.has-modal { overflow: hidden; }
 .picker__n { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .picker__d { color: var(--c-fnt); font-size: 13.5px; font-variant-numeric: tabular-nums; }
 .editor__summary { display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; color: var(--c-mut);
-                   border-top: 1px solid var(--line); padding: 13px 0; }
+                   padding: 12px 0; }
 .editor__srow { display: flex; gap: 12px; }
 .editor__srow > span:first-child { width: 34px; color: var(--c-fnt); flex: none; }
 .editor__warn { color: var(--bad); font-weight: 600; }

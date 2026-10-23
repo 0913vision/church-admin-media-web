@@ -100,17 +100,23 @@ export class FlowEditor {
     this.emit();
   }
 
+  /** What it is and how it starts, then the times in the order they happen. */
   private render(): void {
+    const follows = this.followsMusic && this.cues.length > 0;
     this.el.replaceChildren(
       this.field("이름", this.text(this.name, (value) => { this.name = value; })),
       this.field("요일", this.weekdayRow()),
+      this.field("시작", this.autoRow()),
+      el("div", { class: "editor__gap" }),
       this.field("잠금 시작", this.time(this.lockAt, (value) => { this.lockAt = value; this.emit(); })),
-      this.field("곡", this.trackList()),
+      this.field("곡", this.trackList(), true),
       ...(this.cues.length > 0
         ? [this.field("음악 마치는 시각", this.time(this.endsAt, (value) => { this.endsAt = value; this.emit(); this.refresh(); }))]
         : []),
       this.field("잠금 해제", this.unlockRow()),
-      this.field("시작", this.autoRow()),
+      ...(follows
+        ? []
+        : [this.field("해제 시각", this.time(this.lockUntil, (value) => { this.lockUntil = value; this.emit(); this.refresh(); }))]),
       this.summaryEl,
     );
     this.refresh();
@@ -123,8 +129,16 @@ export class FlowEditor {
 
   // --- fields ---
 
-  private field(label: string, control: HTMLElement): HTMLElement {
-    return el("label", { class: "editor__row" }, [
+  /**
+   * One setting: its name at the left, its control at the right, or the whole width
+   * under the name for a list.
+   *
+   * Note(yoochan.kim): a <label> only around a single field. Around a row of keys, a press
+   * anywhere in the row's empty middle pressed its first key — 요일 switched 일요일 on.
+   */
+  private field(label: string, control: HTMLElement, block = false): HTMLElement {
+    const tag = control instanceof HTMLInputElement ? "label" : "div";
+    return el(tag, { class: block ? "editor__row editor__row--block" : "editor__row" }, [
       el("span", { class: "editor__label", textContent: label }),
       control,
     ]);
@@ -297,7 +311,7 @@ export class FlowEditor {
     return el("span", { class: "vol" }, [input]);
   }
 
-  /** The gate closes with the music, or at a time of its own — a choice. */
+  /** The gate closes with the music, or at a time of its own — a choice. The time is a row of its own. */
   private unlockRow(): HTMLElement {
     const follows = this.followsMusic && this.cues.length > 0;
     const choice = (label: string, value: boolean, disabled = false): HTMLElement => {
@@ -311,16 +325,10 @@ export class FlowEditor {
       return button;
     };
 
-    const children: HTMLElement[] = [
-      el("div", { class: "segctl" }, [
-        choice("음악이 끝나면", true, this.cues.length === 0),
-        choice("시각을 정해서", false),
-      ]),
-    ];
-    if (!follows) {
-      children.push(this.time(this.lockUntil, (value) => { this.lockUntil = value; this.emit(); this.refresh(); }));
-    }
-    return el("div", { class: "editor__unlock" }, children);
+    return el("div", { class: "segctl" }, [
+      choice("음악이 끝나면", true, this.cues.length === 0),
+      choice("시각을 정해서", false),
+    ]);
   }
 
   // --- summary ---
