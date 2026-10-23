@@ -77,7 +77,7 @@ body {
   background: var(--bg);
   color: var(--c-ink);
   font-family: var(--kr);
-  font-size: 16px;
+  font-size: 15.5px;
   -webkit-font-smoothing: antialiased;
 }
 button { font: inherit; }
@@ -122,7 +122,7 @@ button { font: inherit; }
   padding: 8px 21px;
   border-radius: 0;
   color: var(--c-mut);
-  font-size: 15px;
+  font-size: 15.5px;
   background: none;
   border: 0;
   text-align: left;
@@ -136,13 +136,13 @@ button { font: inherit; }
 .side__gap { flex: 1; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
 .side > button:not(.gate):not(.nav__tab) {
   background: none; border: 0; padding: 8px 11px; border-radius: 7px;
-  color: var(--c-mut); font-size: 14px; text-align: left; cursor: pointer;
+  color: var(--c-mut); font-size: 13.5px; text-align: left; cursor: pointer;
 }
 .side > button:not(.gate):not(.nav__tab):hover { background: var(--raised); color: var(--c-ink); }
 .side > .nav { margin-top: 14px; }
 /* The date under the clock. It reads as part of the time, so it is written in
    ink — in grey it was the one line on the card nobody could make out. */
-.clock__date { text-align: center; font-size: 14.5px; color: var(--c-ink); margin-bottom: 4px; }
+.clock__date { text-align: center; font-size: 15.5px; color: var(--c-ink); margin-bottom: 4px; }
 /* Drops in from above and leaves, rather than holding a bar open all day. */
 /* Above the dialog: what a refusal most often answers is a press made inside
    one, and a message hidden behind the thing that caused it says nothing. */
@@ -179,9 +179,9 @@ button { font: inherit; }
 /* ================= atoms ================= */
 /* The chevron is centred by the row rather than by the font. Left to sit in the
    text it rode above the words — a glyph's own box is not its ink. */
-.goto { display: inline-flex; align-items: center; gap: 5px; font-size: 14px; color: var(--c-fnt);
+.goto { display: inline-flex; align-items: center; gap: 5px; font-size: 13.5px; color: var(--c-fnt);
         white-space: nowrap; background: none; border: 0; padding: 0; cursor: pointer; }
-.goto::after { content: "›"; font-size: 17px; line-height: 1; }
+.goto::after { content: "›"; font-size: 16.5px; line-height: 1; }
 .goto:hover { color: var(--c-mut); }
 
 /* ---- keycap: a button that visibly presses ---- */
@@ -191,7 +191,7 @@ button { font: inherit; }
 button { white-space: nowrap; }
 
 .pick, .btn {
-  font-size: 15px; font-weight: 600; padding: 10px 18px; border-radius: 8px;
+  font-size: 15.5px; font-weight: 600; padding: 10px 18px; border-radius: 8px;
   background: var(--cap); color: var(--cap-ink); border: 1px solid var(--cap-line);
   box-shadow: 0 1px 2px var(--key-dn); cursor: pointer;
   transition: background-color 0.16s ease, color 0.16s ease, border-color 0.16s ease, box-shadow 0.12s ease;
@@ -213,14 +213,14 @@ button { white-space: nowrap; }
   background: var(--raised); color: var(--c-fnt); border-color: transparent;
   box-shadow: none; cursor: default; transform: none;
 }
-.btn--small { font-size: 13px; padding: 8px 13px; }
+.btn--small { font-size: 13.5px; padding: 8px 13px; }
 .btn--ghost { background: var(--cap); }
 
 /* ---- the bar: joined cells, the chosen cell is painted ---- */
 .segctl { display: flex; height: var(--field); border: 1px solid var(--cap-line); border-radius: 0;
           background: var(--cap); box-shadow: 0 1px 2px var(--key-dn); }
 .segctl > button {
-  flex: 1; font-size: 15px; font-weight: 600; padding: 0 6px; background: transparent; border: 0;
+  flex: 1; font-size: 15.5px; font-weight: 600; padding: 0 6px; background: transparent; border: 0;
   border-left: 1px solid var(--cap-line); color: var(--cap-ink); cursor: pointer;
   display: flex; align-items: center; justify-content: center; gap: 8px;
   transition: background-color 0.16s ease, color 0.16s ease;
@@ -233,7 +233,7 @@ button { white-space: nowrap; }
 .segctl > button:disabled { opacity: 0.38; cursor: default; }
 
 /* ---- bare text buttons: reorder, remove, add ---- */
-.textbtn { background: none; border: 0; padding: 4px 6px; color: var(--c-ink); font-size: 15px; cursor: pointer; }
+.textbtn { background: none; border: 0; padding: 4px 6px; color: var(--c-ink); font-size: 15.5px; cursor: pointer; }
 .textbtn:hover { text-decoration: underline; }
 .textbtn--bad { color: var(--bad); }
 .textbtn--add { color: var(--go); font-weight: 600; }
@@ -257,10 +257,10 @@ button { white-space: nowrap; }
 .radios > button.on .r { border-color: var(--go); }
 .radios > button.on .r::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--go); }
 
-.chip { font-size: 12.5px; padding: 2px 8px; border-radius: 999px; background: var(--raised); color: var(--c-mut); }
+.chip { font-size: 13.5px; padding: 2px 8px; border-radius: 999px; background: var(--raised); color: var(--c-mut); }
 .chip--go { background: var(--go-soft); color: var(--go); }
 .kbd {
-  display: inline-block; font-family: var(--mono); font-size: 12.5px;
+  display: inline-block; font-family: var(--mono); font-size: 13.5px;
   padding: 3px 10px; border-radius: 6px; background: var(--raised); color: var(--c-ink);
   font-weight: 600; box-shadow: inset 0 -2px 0 var(--line); margin: 0 3px 0 9px;
 }
@@ -268,7 +268,7 @@ button { white-space: nowrap; }
 /* ---- lock: the one place the gate is toggled. It sits over the tabs and is
    shaped like them — a pill among flat rows read as a stray control. The hold
    to arm it is unchanged; only its outline is. ---- */
-.gate { display: flex; align-items: center; gap: 7px; font-size: 15px; font-weight: 600; padding: 8px 21px;
+.gate { display: flex; align-items: center; gap: 7px; font-size: 15.5px; font-weight: 600; padding: 8px 21px;
         border-radius: 0; background: var(--raised); color: var(--c-ink);
         border: 0; box-shadow: none; cursor: pointer; text-align: left;
         transition: background-color 0.16s ease, color 0.16s ease; }
@@ -288,9 +288,9 @@ button { white-space: nowrap; }
    already short of time is one nobody has learned the position of. */
 .side > .hold { display: flex; align-items: center; gap: 8px; margin: 0;
                 padding: 7px 21px 9px; background: var(--raised); }
-.hold__l { flex: 1; font-size: 13px; color: var(--c-mut); font-variant-numeric: tabular-nums; }
+.hold__l { flex: 1; font-size: 13.5px; color: var(--c-mut); font-variant-numeric: tabular-nums; }
 .hold.is-soon .hold__l { color: var(--hold); font-weight: 700; }
-.hold .btn { padding: 4px 10px; font-size: 12.5px; }
+.hold .btn { padding: 4px 10px; font-size: 13.5px; }
 .gate { position: relative; overflow: hidden; }
 .gate > * { position: relative; }
 /* The gauge is what makes a hold visible, so it is a solid wash rather than a
@@ -318,12 +318,12 @@ button { white-space: nowrap; }
 /* ================= dashboard: deck + church clock ================= */
 .head { display: grid; grid-template-columns: 1fr 290px; gap: 14px; align-items: stretch; }
 .clock { background: var(--panel); border-radius: 12px; padding: 13px 16px 15px; display: flex; flex-direction: column; }
-.clock__t { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 14.5px; color: var(--c-fnt); }
+.clock__t { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 15.5px; color: var(--c-fnt); }
 .clock__b { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.clock__v { font-size: 68px; font-weight: 700; letter-spacing: -0.04em; line-height: 0.92;
+.clock__v { font-size: 70px; font-weight: 700; letter-spacing: -0.04em; line-height: 0.92;
             font-variant-numeric: tabular-nums; white-space: nowrap; }
-.clock__v s { text-decoration: none; font-size: 34px; color: var(--c-mut); }
-.clock__d { font-size: 14.5px; color: var(--c-mut); text-align: center; }
+.clock__v s { text-decoration: none; font-size: 36px; color: var(--c-mut); }
+.clock__d { font-size: 15.5px; color: var(--c-mut); text-align: center; }
 .clock__d.is-off { color: var(--hold); }
 
 /* The deck is one element that moves between the pages showing it, so each page
@@ -337,10 +337,10 @@ button { white-space: nowrap; }
 
 .lib { background: var(--panel); border-radius: 12px; padding: 14px 18px 16px; display: flex; flex-direction: column; gap: 12px; }
 .lib__h { display: flex; align-items: center; gap: 12px; }
-.lib__h b { font-size: 16px; font-weight: 700; }
+.lib__h b { font-size: 16.5px; font-weight: 700; }
 /* Names the group below it: these need the gate, whether or not it is held now. */
 .lib__g { display: flex; align-items: center; gap: 6px; margin-top: 6px; padding-top: 10px;
-          border-top: 1px solid var(--line); font-size: 12.5px; color: var(--c-fnt); }
+          border-top: 1px solid var(--line); font-size: 13.5px; color: var(--c-fnt); }
 .lib__rows { display: flex; flex-direction: column; }
 .lib__r { display: flex; align-items: center; gap: 8px; margin: 0 -10px; padding: 0 10px; border-radius: 8px; }
 .lib__r:has(.lib__pick:not(:disabled)):hover { background: var(--raised); }
@@ -348,7 +348,7 @@ button { white-space: nowrap; }
 .lib__pick {
   flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px;
   padding: 10px 0; border: 0; background: none;
-  font: inherit; font-size: 15px; color: var(--c-ink); text-align: left; cursor: pointer;
+  font: inherit; font-size: 15.5px; color: var(--c-ink); text-align: left; cursor: pointer;
 }
 .lib__pick:disabled { color: var(--c-fnt); cursor: default; }
 .lib__r.on .lib__pick { color: #fff; font-weight: 700; }
@@ -359,20 +359,20 @@ button { white-space: nowrap; }
 .lib__cog { margin-left: auto; display: grid; place-items: center; width: 30px; height: 30px;
             border: 0; border-radius: 8px; background: none; color: var(--c-fnt); cursor: pointer; }
 .lib__cog:hover { background: var(--raised); color: var(--c-ink); }
-.lib__i { flex: none; width: 16px; text-align: right; font-size: 12.5px; color: var(--c-fnt);
+.lib__i { flex: none; width: 16px; text-align: right; font-size: 13.5px; color: var(--c-fnt);
           font-variant-numeric: tabular-nums; }
 .lib__r.on .lib__i { color: rgba(255, 255, 255, 0.75); }
 .lib__n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Marks the two a person can also reach from the wall. */
-.lib__tag { flex: none; font-size: 11.5px; color: var(--c-fnt); }
+.lib__tag { flex: none; font-size: 11px; color: var(--c-fnt); }
 .lib__r.on .lib__tag, .lib__r.on .lib__d { color: rgba(255, 255, 255, 0.8); }
-.lib__d { flex: none; font-size: 13px; color: var(--c-fnt); font-family: var(--mono); }
+.lib__d { flex: none; font-size: 13.5px; color: var(--c-fnt); font-family: var(--mono); }
 
 .lib__opts { display: flex; flex-direction: column; gap: 4px; padding-top: 10px; border-top: 1px solid var(--line); }
 .lib__t {
   display: flex; align-items: center; gap: 9px; padding: 7px 10px; margin: 0 -10px;
   background: none; border: 0; border-radius: 8px;
-  font: inherit; font-size: 14.5px; color: var(--c-ink); text-align: left; cursor: pointer;
+  font: inherit; font-size: 15.5px; color: var(--c-ink); text-align: left; cursor: pointer;
 }
 .lib__t:hover:not(:disabled) { background: var(--raised); }
 .lib__t:disabled { color: var(--c-fnt); cursor: default; }
@@ -398,7 +398,7 @@ button { white-space: nowrap; }
 /* A track on its way is a row of its own, and says how far it has got where its
    length will be. Nothing spans the whole list: the wait belongs to one song. */
 .lib__r.is-coming .lib__n { color: var(--c-mut); }
-.lib__wait { flex: none; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--c-fnt); }
+.lib__wait { flex: none; display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; color: var(--c-fnt); }
 .lib__wait .num { font-variant-numeric: tabular-nums; min-width: 3ch; text-align: right; }
 .lib__wait .spin { width: 13px; height: 13px; flex: none; }
 /* How much has arrived: the ring fills. */
@@ -420,11 +420,11 @@ button { white-space: nowrap; }
 /* The glyph fills its key: at 26px in a 66px circle it read as a mark, not a control. */
 .play svg { width: 34px; height: 34px; }
 .play:disabled { opacity: 0.45; cursor: default; }
-.deck__song { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+.deck__song { font-size: 25px; font-weight: 700; letter-spacing: -0.02em; }
 /* Note(yoochan.kim): gone entirely when it has nothing to say, rather than an empty row
    with a margin. Left standing it made the block beside the play key two lines
    tall, and the key centred on the pair — so the song title rode well above it. */
-.deck__meta { display: flex; align-items: center; gap: 8px; margin-top: 6px; color: var(--c-mut); font-size: 15px; }
+.deck__meta { display: flex; align-items: center; gap: 8px; margin-top: 6px; color: var(--c-mut); font-size: 15.5px; }
 .deck__meta:not(:has(> :not(.is-hidden))) { display: none; }
 .deck__songs { margin-top: 14px; padding-top: 9px; border-top: 1px solid var(--line); }
 
@@ -433,7 +433,7 @@ button { white-space: nowrap; }
 /* One width whichever way it reads: the deck's fader sits beside it, and a key
    that grows by two characters shortens the fader every time it is pressed. */
 .mute { display: flex; align-items: center; justify-content: center; gap: 7px; min-width: 118px;
-        font-size: 15px; font-weight: 600; padding: 10px 18px;
+        font-size: 15.5px; font-weight: 600; padding: 10px 18px;
         border-radius: 8px; background: var(--cap); color: var(--cap-ink);
         border: 1px solid var(--cap-line); box-shadow: 0 1px 2px var(--key-dn); cursor: pointer;
         transition: background-color 0.16s ease, color 0.16s ease; }
@@ -451,7 +451,7 @@ button { white-space: nowrap; }
    than left to sit on a text baseline — an icon has no baseline, so it rode high
    and to the left of the column it names. */
 .volrow__l { display: flex; align-items: center; justify-content: center; color: var(--c-mut); }
-.volrow__n { font-size: 26px; font-weight: 700; text-align: right; letter-spacing: -0.02em; line-height: 1; }
+.volrow__n { font-size: 25px; font-weight: 700; text-align: right; letter-spacing: -0.02em; line-height: 1; }
 .slider { position: relative; height: 10px; border-radius: 3px; background: var(--track); cursor: pointer;
           touch-action: none; user-select: none; -webkit-user-select: none; -webkit-user-drag: none; }
 .slider i { position: absolute; inset: 0 auto 0 0; border-radius: 3px 0 0 3px; background: var(--go); }
@@ -475,10 +475,10 @@ button { white-space: nowrap; }
 /* ================= clock tab ================= */
 .clockpanel { display: contents; }
 .ck { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.ck__l { font-size: 12.5px; color: var(--c-fnt); margin-bottom: 8px; }
-.ck__big { font-size: 46px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
-.ck__big s { text-decoration: none; font-size: 26px; color: var(--c-mut); }
-.ck__ref { font-size: 24px; font-weight: 600; color: var(--c-mut); line-height: 1; font-variant-numeric: tabular-nums; }
+.ck__l { font-size: 13.5px; color: var(--c-fnt); margin-bottom: 8px; }
+.ck__big { font-size: 44px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+.ck__big s { text-decoration: none; font-size: 25px; color: var(--c-mut); }
+.ck__ref { font-size: 25px; font-weight: 600; color: var(--c-mut); line-height: 1; font-variant-numeric: tabular-nums; }
 .ck__off { margin-top: 9px; font-size: 13.5px; color: var(--c-mut); }
 .ck__off.is-off { color: var(--hold); }
 .ckset { display: flex; align-items: center; gap: 7px; }
@@ -487,8 +487,8 @@ button { white-space: nowrap; }
 /* Which way a group of steps moves the clock, set before its keys. */
 .ckset__g { font-size: 13.5px; color: var(--c-mut); margin-right: 3px; }
 .ckset__g:not(:first-child) { margin-left: 18px; }
-.ckset__now { margin-left: auto; font-size: 14.5px; color: var(--c-mut); font-variant-numeric: tabular-nums; }
-.ckset__last { margin-top: 12px; font-size: 13px; color: var(--c-fnt); }
+.ckset__now { margin-left: auto; font-size: 15.5px; color: var(--c-mut); font-variant-numeric: tabular-nums; }
+.ckset__last { margin-top: 12px; font-size: 13.5px; color: var(--c-fnt); }
 .ckset__last:empty { display: none; }
 .tap { display: flex; align-items: center; gap: 15px; margin-top: 14px; padding-top: 13px;
        border-top: 1px solid var(--line); }
@@ -503,8 +503,8 @@ button { white-space: nowrap; }
 .tl__head:only-child { margin-bottom: 0; }
 /* A lamp needs more room beside a heading than beside a small grey word, so
    these two rows sit wider than the 8px the plainer ones use. */
-.tl__head { display: flex; align-items: center; gap: 11px; font-size: 14.5px; color: var(--c-mut); margin-bottom: 12px; }
-.tl__head b { color: var(--c-ink); font-size: 16px; font-weight: 700; }
+.tl__head { display: flex; align-items: center; gap: 11px; font-size: 15.5px; color: var(--c-mut); margin-bottom: 12px; }
+.tl__head b { color: var(--c-ink); font-size: 16.5px; font-weight: 700; }
 .tl__facts { display: flex; align-items: center; }
 .tl__facts > span { padding: 0 13px; }
 .tl__facts > span:first-child { padding-left: 0; }
@@ -526,7 +526,7 @@ button { white-space: nowrap; }
    no writing it cannot fit; one song is told from the next by the gap between
    them, and the one playing by its colour. */
 .seg { position: relative; height: 100%; display: flex; align-items: center; overflow: hidden;
-       min-width: 0; padding: 0 8px; font-size: 13px; font-weight: 600; white-space: nowrap;
+       min-width: 0; padding: 0 8px; font-size: 13.5px; font-weight: 600; white-space: nowrap;
        background: var(--seg-idle); color: var(--c-ink);
        box-shadow: inset -1px 0 0 var(--panel); border-radius: 3px; }
 .seg.is-now { background: var(--go); color: #fff; box-shadow: none; }
@@ -540,7 +540,7 @@ button { white-space: nowrap; }
                border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 7px solid var(--c-ink); }
 /* The scale under the bar. The two ends are the lock window and sit at the
    edges; a music time is placed where it falls, centred on its own instant. */
-.tl__ticks { position: relative; height: 17px; margin-top: 7px; font-size: 12.5px;
+.tl__ticks { position: relative; height: 17px; margin-top: 7px; font-size: 13.5px;
              color: var(--c-mut); font-variant-numeric: tabular-nums; }
 .tick { position: absolute; top: 0; white-space: nowrap; }
 .tick.is-edge { left: 0; }
@@ -586,14 +586,14 @@ button { white-space: nowrap; }
    the space under the bottom row was wider than the space between rows, and the
    card read as having something missing from the end of it. */
 .x32 { background: var(--panel); border-radius: 12px; padding: 14px 18px 7px; }
-.x32__h { display: flex; align-items: center; gap: 11px; font-size: 14.5px; color: var(--c-mut); margin-bottom: 9px; }
+.x32__h { display: flex; align-items: center; gap: 11px; font-size: 15.5px; color: var(--c-mut); margin-bottom: 9px; }
 /* The lamp belongs to the word beside it, not to the title. */
 .x32__link { display: flex; align-items: center; gap: 8px; }
 /* The one press that moves the masters, held at the far end away from the rows.
    It wears an ordinary face: the dialog it opens carries the warning, and a red
    key here would claim the room is at stake before anyone has agreed to it. */
 .x32__init { margin-left: auto; min-width: 96px; }
-.x32__h b { color: var(--c-ink); font-size: 16px; font-weight: 700; }
+.x32__h b { color: var(--c-ink); font-size: 16.5px; font-weight: 700; }
 /* The name and the button both hold words the media server chooses — an input
    can be renamed, and the button says either 켜기 or 켜져 있음. Both columns are
    sized for the longest of those rather than the shortest, so a row never
@@ -613,13 +613,13 @@ button { white-space: nowrap; }
    an empty column took the rest. */
 .chrow { display: grid; grid-template-columns: minmax(110px, max-content) minmax(220px, 1fr) 128px minmax(0, 0.5fr) max-content;
          gap: 14px; align-items: center;
-         padding: 11px 0; border-top: 1px solid var(--line); font-size: 15px; }
+         padding: 11px 0; border-top: 1px solid var(--line); font-size: 15.5px; }
 /* A name does not change with the state of the thing it names; the level and
    the key say what is happening. */
 .chrow__n { color: var(--c-ink); font-weight: 600; }
 /* The word follows its lamp: red while the input is held silent, green while it
    sounds, grey only when the desk has said nothing. */
-.chrow__s { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700;
+.chrow__s { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 700;
             letter-spacing: 0.04em; color: var(--bad); }
 .chrow__s:has(.led--off) { color: var(--c-fnt); }
 .chrow.on .chrow__s { color: var(--go); }
@@ -651,10 +651,10 @@ button { white-space: nowrap; }
 .chrow__bar.is-off i { background: var(--hold); }
 /* The reading turns red when the input is muted: the number and the meter say
    it together, which is why the row needs no lamp of its own. */
-.chrow__db { display: flex; align-items: center; gap: 6px; color: var(--c-ink); font-size: 15px;
+.chrow__db { display: flex; align-items: center; gap: 6px; color: var(--c-ink); font-size: 15.5px;
              font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .chrow__db.is-muted { color: var(--bad); }
-.chrow__muted { font-size: 13px; font-weight: 700; }
+.chrow__muted { font-size: 13.5px; font-weight: 700; }
 .chrow__bar.is-muted i { background: var(--bad); }
 /* The key keeps one width whichever way it reads: a row that reflows when the
    desk answers moves the meter beside it. */
@@ -669,7 +669,7 @@ button { white-space: nowrap; }
 .iconbtn:hover:not(:disabled) { color: var(--c-ink); }
 .iconbtn:active:not(:disabled) { transform: translateY(1px); }
 .iconbtn:disabled { background: var(--raised); color: var(--c-fnt); border-color: transparent; cursor: default; }
-.chrow .pick { font-size: 13px; padding: 8px 10px; text-align: center; white-space: nowrap; }
+.chrow .pick { font-size: 13.5px; padding: 8px 10px; text-align: center; white-space: nowrap; }
 
 /* ================= dashboard summary: the system tab in miniature ================= */
 .sum { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-top: 1px solid var(--line); padding-top: 12px; }
@@ -678,12 +678,12 @@ button { white-space: nowrap; }
 .sum > div { min-width: 0; }
 .sum > div + div { padding-left: 20px; border-left: 1px solid var(--line); }
 /* These name whole blocks, so they are sized like the headings they are. */
-.sum__t { display: flex; align-items: center; justify-content: space-between; font-size: 14.5px;
+.sum__t { display: flex; align-items: center; justify-content: space-between; font-size: 15.5px;
           font-weight: 600; color: var(--c-mut); margin-bottom: 10px; }
 .sum__row { display: grid; grid-template-columns: 56px 1fr 48px; gap: 9px; align-items: center;
-            font-size: 13px; color: var(--c-mut); line-height: 2; }
+            font-size: 13.5px; color: var(--c-mut); line-height: 2; }
 .sum__row .htop__b { height: 7px; }
-.sum__plain { font-size: 11.5px; color: var(--c-mut); display: flex; align-items: center; }
+.sum__plain { font-size: 11px; color: var(--c-mut); display: flex; align-items: center; }
 .log--sum { line-height: 1.95; }
 .log--sum b { width: 38px; }
 
@@ -699,7 +699,7 @@ button { white-space: nowrap; }
 /* Note: this tab is read from a chair, not glanced at. Its type was sized for
    the dashboard's miniature of it and came out too small to read here — the
    columns widen with it, or a wider glyph runs into the bar beside it. */
-.sys__t { display: flex; align-items: center; gap: 13px; font-size: 14.5px; font-weight: 600;
+.sys__t { display: flex; align-items: center; gap: 13px; font-size: 15.5px; font-weight: 600;
           color: var(--c-mut); margin-bottom: 10px; }
 /* A second heading inside a panel, standing off what came before it. */
 .sys__t--sub { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
@@ -709,7 +709,7 @@ button { white-space: nowrap; }
 .logtabs { display: flex; gap: 16px; margin-left: auto; }
 .logtabs > button {
   background: none; border: 0; padding: 0 0 3px; cursor: pointer;
-  font: inherit; font-size: 13px; color: var(--c-fnt); border-bottom: 2px solid transparent;
+  font: inherit; font-size: 13.5px; color: var(--c-fnt); border-bottom: 2px solid transparent;
 }
 .logtabs > button:hover { color: var(--c-mut); }
 .logtabs > button.on { color: var(--c-ink); font-weight: 700; border-bottom-color: var(--c-ink); }
@@ -720,7 +720,7 @@ button { white-space: nowrap; }
    pushed right by it, which is why this has to come after. */
 .logtabs--page { margin: 0 auto 0 0; gap: 3px; padding: 0; }
 .logtabs--page > button {
-  padding: 9px 20px; font-size: 15px; border: 0; border-radius: 10px 10px 0 0;
+  padding: 9px 20px; font-size: 15.5px; border: 0; border-radius: 10px 10px 0 0;
   background: transparent; color: var(--c-fnt);
 }
 .logtabs--page > button:hover { background: var(--ink-tint); color: var(--c-mut); }
@@ -734,11 +734,11 @@ button { white-space: nowrap; }
 }
 .cron__r:hover { background: var(--raised); }
 .cron__w { color: var(--c-ink); font-weight: 600; }
-.cron__c { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--mono); font-size: 12.5px; }
+.cron__c { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--mono); font-size: 13.5px; }
 /* A file shown as it is on disk. */
-.file { margin: 0; font-family: var(--mono); font-size: 13px; line-height: 1.75; color: var(--c-ink);
+.file { margin: 0; font-family: var(--mono); font-size: 13.5px; line-height: 1.75; color: var(--c-ink);
         white-space: pre; overflow-x: auto; background: var(--well); border-radius: 8px; padding: 12px 14px; }
-.htop { font-family: var(--mono); font-size: 14px; line-height: 1.8; }
+.htop { font-family: var(--mono); font-size: 13.5px; line-height: 1.8; }
 /* Wide enough for "Core 0", so every label in the column reads whole. */
 .htop__r { display: grid; grid-template-columns: 62px 1fr 86px; gap: 9px; align-items: center; }
 .htop__l { color: var(--c-fnt); }
@@ -762,10 +762,10 @@ button { white-space: nowrap; }
 .htop__h { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; user-select: none; }
 .htop__h:hover { color: var(--c-mut); }
 .htop__h.on { color: var(--c-ink); font-weight: 700; }
-.htop__h i { font-style: normal; font-size: 13px; line-height: 1; }
+.htop__h i { font-style: normal; font-size: 13.5px; line-height: 1; }
 .htop__proc div span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .log { flex: 1; min-height: 0; overflow: auto; font-family: var(--mono);
-       font-size: 12.5px; line-height: 1.85; }
+       font-size: 13.5px; line-height: 1.85; }
 .log div { display: flex; gap: 8px; white-space: nowrap; }
 .log time { color: var(--c-fnt); flex: none; }
 .log b { flex: none; width: 42px; font-weight: 700; }
@@ -788,16 +788,16 @@ button { white-space: nowrap; }
         border: 2px solid var(--slot); border-top-color: var(--c-mut); animation: spin 0.75s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .log__none { color: var(--c-fnt); display: flex; flex-direction: column; gap: 4px; }
-.log__none code { font-family: var(--mono); font-size: 11.5px; word-break: break-all; }
+.log__none code { font-family: var(--mono); font-size: 11px; word-break: break-all; }
 
 /* ================= week grid: the schedule drawn as a week ================= */
 .week { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 360px; gap: 16px; }
 .cal { background: var(--panel); border-radius: 12px; padding: 12px 14px 14px; display: flex; flex-direction: column; min-height: 0; }
-.cal__days { display: grid; grid-template-columns: 42px repeat(7, 1fr); font-size: 13px; color: var(--c-fnt); padding-bottom: 7px; }
+.cal__days { display: grid; grid-template-columns: 42px repeat(7, 1fr); font-size: 13.5px; color: var(--c-fnt); padding-bottom: 7px; }
 .cal__days span { text-align: center; }
 .cal__days span.wk { color: var(--go); font-weight: 700; }
 .cal__grid { position: relative; flex: 1; min-height: 380px; display: grid; grid-template-columns: 42px repeat(7, 1fr); }
-.cal__hours { position: relative; font-size: 12px; color: var(--c-fnt); }
+.cal__hours { position: relative; font-size: 13.5px; color: var(--c-fnt); }
 .cal__hours span { position: absolute; right: 8px; transform: translateY(-50%); }
 .cal__col { position: relative; border-left: 1px solid var(--line); }
 .cal__line { position: absolute; left: 42px; right: 0; border-top: 1px solid var(--line); }
@@ -805,27 +805,27 @@ button { white-space: nowrap; }
 .cal__now { position: absolute; left: 42px; right: 0; height: 0; border-top: 2px solid var(--go); z-index: 3; }
 .cal__now::before { content: ""; position: absolute; left: -4px; top: -4px; width: 7px; height: 7px;
                     border-radius: 50%; background: var(--go); }
-.cal__now span { position: absolute; right: 2px; top: -16px; font-size: 11.5px; font-weight: 700; color: var(--go); }
+.cal__now span { position: absolute; right: 2px; top: -16px; font-size: 11px; font-weight: 700; color: var(--go); }
 .blk { position: absolute; left: 3px; right: 3px; border-radius: 6px; overflow: hidden;
        display: block; background: var(--panel); border: 1px solid var(--c-mut); cursor: pointer; padding: 0;
        text-align: center; color: inherit; font: inherit; }
 /* Picked = painted, like the chosen cell of a bar. */
 .blk.sel { background: var(--go); border-color: var(--go); }
 .blk.sel .blk__n { color: #fff; }
-.blk__n { font-size: 12.5px; font-weight: 700; padding: 4px 6px 0; white-space: nowrap; overflow: hidden; position: relative; }
+.blk__n { font-size: 13.5px; font-weight: 700; padding: 4px 6px 0; white-space: nowrap; overflow: hidden; position: relative; }
 .blk__n i.auto { display: inline-block; width: 0; height: 0; margin-right: 5px; vertical-align: middle;
                  border-left: 5px solid currentColor; border-top: 3.5px solid transparent;
                  border-bottom: 3.5px solid transparent; }
 
 .detail { background: var(--panel); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
-.detail__n { font-size: 18px; font-weight: 700; margin-bottom: 2px; }
-.detail__r { display: flex; align-items: center; gap: 10px; font-size: 15px; }
+.detail__n { font-size: 16.5px; font-weight: 700; margin-bottom: 2px; }
+.detail__r { display: flex; align-items: center; gap: 10px; font-size: 15.5px; }
 .detail__r span:first-child { width: 68px; color: var(--c-fnt); flex: none; }
-.detail__songs { display: flex; flex-direction: column; gap: 5px; font-size: 15px; }
+.detail__songs { display: flex; flex-direction: column; gap: 5px; font-size: 15.5px; }
 .detail__songs > div { display: flex; justify-content: space-between; color: var(--c-mut); }
 /* When it starts and how loud it plays are two readings, kept apart by a rule. */
 .detail__cue { display: flex; align-items: center; gap: 9px; }
-.detail__vol { position: relative; padding-left: 9px; color: var(--c-fnt); font-size: 13px; }
+.detail__vol { position: relative; padding-left: 9px; color: var(--c-fnt); font-size: 13.5px; }
 .detail__vol::before { content: ""; position: absolute; left: 0; top: calc(50% + 1px); transform: translateY(-50%);
                        width: 1px; height: 13px; background: var(--line); }
 .detail__b { display: flex; gap: 7px; align-items: center; margin-top: auto; }
@@ -833,23 +833,25 @@ button { white-space: nowrap; }
 /* ================= the run box (unknown phase fault only) ================= */
 .run { background: var(--panel); border-radius: 12px; padding: 14px 18px; box-shadow: inset 3px 0 0 var(--bad); }
 .run__head { display: flex; align-items: center; gap: 10px; }
-.run__name { font-size: 14px; font-weight: 700; }
-.run__meta { margin-top: 6px; font-size: 12.5px; color: var(--c-mut); display: flex; gap: 12px; }
-.badge { font-size: 12.5px; padding: 2px 9px; border-radius: 999px; background: var(--raised); color: var(--c-mut); }
+.run__name { font-size: 13.5px; font-weight: 700; }
+.run__meta { margin-top: 6px; font-size: 13.5px; color: var(--c-mut); display: flex; gap: 12px; }
+.badge { font-size: 13.5px; padding: 2px 9px; border-radius: 999px; background: var(--raised); color: var(--c-mut); }
 .badge.is-bad { background: var(--bad-soft); color: var(--bad); font-weight: 700; }
 .badge.is-live { background: var(--go-soft); color: var(--go); font-weight: 700; }
 .badge.is-warn { background: var(--hold-soft); color: var(--hold); font-weight: 700; }
-.sched-msg { margin: 0; font-size: 15px; color: var(--c-mut); }
+.sched-msg { margin: 0; font-size: 15.5px; color: var(--c-mut); }
 .sched-msg:empty { display: none; }
 
 /* ================= modal ================= */
 body.has-modal { overflow: hidden; }
+/* Note(yoochan.kim): hung a fixed distance from the top, not centred. A box of odd height
+   centred on the screen lands on a half pixel, and every word inside it snaps half a pixel off. */
 .modal {
-  position: fixed; inset: 0; z-index: 40; display: grid; place-items: center;
-  padding: 24px; background: rgba(15, 18, 22, 0.45);
+  position: fixed; inset: 0; z-index: 40; display: grid; place-items: start center;
+  padding: 72px 24px 24px; background: rgba(15, 18, 22, 0.45);
 }
 .modal__box {
-  width: min(760px, 100%); max-height: calc(100vh - 48px);
+  width: min(760px, 100%); max-height: calc(100vh - 96px);
   display: flex; flex-direction: column; overflow: hidden;
   background: var(--panel); border-radius: 14px; box-shadow: 0 24px 60px rgba(15, 18, 22, 0.28);
 }
@@ -864,7 +866,7 @@ body.has-modal { overflow: hidden; }
 /* Deleting sits in the head with the rest, but stood well off from 저장 — they
    are one press apart on a keypad and one of them cannot be taken back. */
 .editor__danger { display: flex; align-items: center; gap: 8px; margin-right: 20px; }
-.editor__danger .editor__warn { font-size: 13px; }
+.editor__danger .editor__warn { font-size: 13.5px; }
 /* One setting in a dialog: what it is called, the field, and what it means. */
 /* A table, not a list of boxes: the column says what the number is, and a
    setting added later is one more column. The levels sit under each other so
@@ -879,26 +881,26 @@ body.has-modal { overflow: hidden; }
               padding: 3px 10px; margin: 0 -10px; border-radius: 8px; }
 .setlist__r > :nth-child(3), .setlist__r > :nth-child(4) { text-align: right; }
 /* Numbered straight through, both groups: it says which of the eight this is. */
-.setlist__i { font-size: 12.5px; color: var(--c-fnt); text-align: right; font-variant-numeric: tabular-nums; }
+.setlist__i { font-size: 13.5px; color: var(--c-fnt); text-align: right; font-variant-numeric: tabular-nums; }
 /* One rule, under the headings. Between every row as well, the table read as a
    stack of separate things rather than one list. */
 .setlist__r--h { padding-bottom: 8px; margin-bottom: 4px; border-bottom: 1px solid var(--line);
-                 font-size: 13px; color: var(--c-mut); }
+                 font-size: 13.5px; color: var(--c-mut); }
 /* The heading stands over the digits, not over the field's edge — the field
    holds 8px of padding the heading does not. */
 .setlist__r--h > :nth-child(4) { padding-right: 8px; }
 /* Names the group under it, the way the library list does. */
 .setlist__g { display: flex; align-items: center; gap: 6px; margin: 12px 0 4px;
-              padding-top: 10px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--c-fnt); }
+              padding-top: 10px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--c-fnt); }
 .setlist__r:not(.setlist__r--h):hover { background: var(--raised); }
-.setlist__n { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.setlist__n { font-size: 15.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .setlist__d { font-size: 13.5px; color: var(--c-fnt); font-variant-numeric: tabular-nums; }
 /* A number that reads as a number until it is touched. Eight bordered boxes in a
    column are the loudest thing on a page that exists to be read down.
    The stepper is dropped: it reserves its width whether or not it is showing,
    which pushes a right-aligned number off the column it belongs to. */
 .setlist .editor__input {
-  height: 30px; padding: 0 8px; text-align: right; font-size: 15px;
+  height: 30px; padding: 0 8px; text-align: right; font-size: 15.5px;
   background: transparent; border-color: transparent; box-shadow: none;
   font-variant-numeric: tabular-nums; appearance: textfield; -moz-appearance: textfield;
 }
@@ -917,8 +919,8 @@ body.has-modal { overflow: hidden; }
 .setlist__t > .editor__input, .setlist__t > .setlist__n { flex: 1; min-width: 0; }
 /* What still uses a track, said where 삭제 would have been offered. Words, not a shape. */
 .setlist__use { flex: none; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-                font-size: 12.5px; color: var(--c-fnt); }
-.setlist__r .textbtn { font-size: 14px; padding: 4px 2px; }
+                font-size: 13.5px; color: var(--c-fnt); }
+.setlist__r .textbtn { font-size: 13.5px; padding: 4px 2px; }
 /* How much longer, offered as durations — the question is never "at what o'clock". */
 .whens { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 0 4px; }
 .whens .btn { flex: 1; min-width: 84px; }
@@ -943,7 +945,7 @@ body.has-modal { overflow: hidden; }
 /* A field is a bar with different insides: same border, fill and height. The
    height is set, or a time input and a day cell come out 38 and 31 tall. */
 .editor__input {
-  font: inherit; font-size: 15px; color: var(--c-ink);
+  font: inherit; font-size: 15.5px; color: var(--c-ink);
   background: var(--cap); border: 1px solid var(--cap-line); border-radius: 0;
   box-shadow: 0 1px 2px var(--key-dn);
   height: var(--field); padding: 0 10px; min-width: 0; width: 100%;
@@ -951,16 +953,16 @@ body.has-modal { overflow: hidden; }
 .editor__input:focus { outline: none; border-color: var(--go); }
 .editor__unlock { display: flex; flex-direction: column; gap: 9px; }
 .editor__tracks { display: flex; flex-direction: column; }
-.editor__track { display: flex; align-items: center; gap: 10px; font-size: 15px; color: var(--c-mut); padding: 8px 0; }
+.editor__track { display: flex; align-items: center; gap: 10px; font-size: 15.5px; color: var(--c-mut); padding: 8px 0; }
 .editor__track-no { color: var(--c-fnt); width: 20px; flex: none; font-variant-numeric: tabular-nums; }
 /* One line: a title folded in half reads as two songs. */
 .editor__track-name { flex: 1; min-width: 0; color: var(--c-ink); font-weight: 600;
                       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.editor__track-len { color: var(--c-fnt); font-size: 13px; font-family: var(--mono); flex: none; }
+.editor__track-len { color: var(--c-fnt); font-size: 13.5px; font-family: var(--mono); flex: none; }
 /* The column names, sitting where the values they name will sit. */
-.editor__track--head { padding: 2px 0 0; font-size: 11.5px; color: var(--c-fnt); }
-.editor__track--head .editor__track-name { color: var(--c-fnt); font-weight: 400; font-size: 11.5px; }
-.editor__track--head .editor__track-len { font-family: inherit; font-size: 11.5px; }
+.editor__track--head { padding: 2px 0 0; font-size: 11px; color: var(--c-fnt); }
+.editor__track--head .editor__track-name { color: var(--c-fnt); font-weight: 400; font-size: 11px; }
+.editor__track--head .editor__track-len { font-family: inherit; font-size: 11px; }
 .editor__track-volh { width: 42px; flex: none; text-align: center;
                       /* the three buttons the rows carry, so the name lands over the box */
                       margin-right: 108px; }
@@ -969,7 +971,7 @@ body.has-modal { overflow: hidden; }
 .vol { display: inline-flex; background: var(--well); border-radius: 7px; padding: 4px 8px; }
 .vol:focus-within { box-shadow: inset 0 0 0 1px var(--go); }
 .editor__track-vol {
-  width: 26px; font: inherit; font-size: 14px; font-family: var(--mono); text-align: right;
+  width: 26px; font: inherit; font-size: 13.5px; font-family: var(--mono); text-align: right;
   color: var(--c-ink); background: transparent; border: 0; padding: 0;
   font-variant-numeric: tabular-nums; appearance: textfield; -moz-appearance: textfield;
 }
@@ -991,12 +993,12 @@ body.has-modal { overflow: hidden; }
 .picker__row {
   display: flex; align-items: center; gap: 10px; width: 100%;
   padding: 8px 12px; background: transparent; border: 0; border-top: 1px solid var(--line);
-  font: inherit; font-size: 14.5px; color: var(--c-ink); text-align: left; cursor: pointer;
+  font: inherit; font-size: 15.5px; color: var(--c-ink); text-align: left; cursor: pointer;
 }
 .picker__row:first-child { border-top: 0; }
 .picker__row:hover { background: var(--ink-tint); }
 .picker__n { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.picker__d { color: var(--c-fnt); font-size: 13px; font-family: var(--mono); }
+.picker__d { color: var(--c-fnt); font-size: 13.5px; font-family: var(--mono); }
 .editor__summary { display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; color: var(--c-mut);
                    border-top: 1px solid var(--line); padding: 13px 0; }
 .editor__srow { display: flex; gap: 12px; }
@@ -1008,15 +1010,15 @@ body.has-modal { overflow: hidden; }
    to bottom and answered at the bottom right, the one that acts nearest the edge —
    the way Apple's alerts and Material's dialogs both lay it out. */
 .alert-layer {
-  position: fixed; inset: 0; z-index: 50; display: grid; place-items: center;
-  padding: 24px; background: rgba(15, 18, 22, 0.45);
+  position: fixed; inset: 0; z-index: 50; display: grid; place-items: start center;
+  padding: 120px 24px 24px; background: rgba(15, 18, 22, 0.45);
 }
 .alert { width: min(400px, 100%); background: var(--panel); border-radius: 14px;
          box-shadow: 0 24px 60px rgba(15, 18, 22, 0.28); padding: 22px 22px 18px;
          display: flex; flex-direction: column; }
 .alert:focus { outline: none; }
-.alert__t { margin: 0; font-size: 17px; font-weight: 700; line-height: 1.45; text-wrap: balance; }
-.alert__m { margin: 8px 0 0; font-size: 14.5px; line-height: 1.6; color: var(--c-mut); }
+.alert__t { margin: 0; font-size: 16.5px; font-weight: 700; line-height: 1.45; text-wrap: balance; }
+.alert__m { margin: 8px 0 0; font-size: 15.5px; line-height: 1.6; color: var(--c-mut); }
 .alert__a { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
 .alert__a .btn { padding: 8px 16px; }
 
@@ -1030,7 +1032,7 @@ body.has-modal { overflow: hidden; }
 /* The file field: a bar like any other, with the choosing key joined on the left. */
 .filebar { position: relative; display: flex; align-items: stretch; height: var(--field); min-width: 0;
            background: var(--cap); border: 1px solid var(--cap-line); box-shadow: 0 1px 2px var(--key-dn); overflow: hidden; }
-.filebar__k { flex: none; font: inherit; font-size: 14px; font-weight: 600; color: var(--c-ink); cursor: pointer;
+.filebar__k { flex: none; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--c-ink); cursor: pointer;
               background: var(--raised); border: 0; border-right: 1px solid var(--cap-line); padding: 0 14px; }
 .filebar__k:hover:not(:disabled) { background: var(--slot); }
 .filebar__k:disabled { color: var(--c-fnt); cursor: default; }
@@ -1039,25 +1041,25 @@ body.has-modal { overflow: hidden; }
 .filebar__n:disabled { cursor: default; }
 .filebar__n > span, .filebar__n > small { position: relative; }
 .filebar__n > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.filebar__n > small { flex: none; font-size: 13px; color: var(--c-fnt); font-variant-numeric: tabular-nums; }
+.filebar__n > small { flex: none; font-size: 13.5px; color: var(--c-fnt); font-variant-numeric: tabular-nums; }
 .filebar__n.is-empty > span { color: var(--c-fnt); }
 /* How far an upload has got: the bar fills behind the name. Not green, which says
    something is sounding. */
 .filebar__fill { position: absolute; inset: 0 auto 0 0; background: var(--well); }
 .field.is-bad .filebar, .field.is-bad .editor__input { border-color: var(--bad); }
 /* What is wrong with a field, under it. Only the reason. */
-.field__msg { margin: 0; font-size: 13px; color: var(--bad); }
+.field__msg { margin: 0; font-size: 13.5px; color: var(--bad); }
 
 /* ================= login ================= */
 .login { height: 100%; display: grid; place-items: center; background: var(--bg); }
 .login__form { width: 320px; background: var(--panel); border-radius: 12px; padding: 26px 24px; display: flex; flex-direction: column; gap: 12px; }
-.login__title { margin: 0 0 4px; font-size: 16px; font-weight: 700; }
+.login__title { margin: 0 0 4px; font-size: 16.5px; font-weight: 700; }
 .login__input {
   font: inherit; color: var(--c-ink); background: var(--well);
   border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px;
 }
 .login__input:focus { outline: none; border-color: var(--go); }
-.login__error { margin: 0; min-height: 16px; font-size: 13px; color: var(--bad); }
+.login__error { margin: 0; min-height: 16px; font-size: 13.5px; color: var(--bad); }
 .login__submit { padding: 10px 12px; }
 
 /* ================= additions the user asked for on top of the mockup ================= */
