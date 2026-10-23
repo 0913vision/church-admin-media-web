@@ -31,3 +31,4 @@ local = re.sub(r'https://[^)]*/([^/)]+\.woff2)', r'../fonts/noto-sans-kr/\1', cs
     encoding='utf-8')
 print('font refreshed')
 PY
+"$ROOT/scripts/.venv/bin/python" "$ROOT/scripts/fix-font-metrics.py" "$ROOT"
