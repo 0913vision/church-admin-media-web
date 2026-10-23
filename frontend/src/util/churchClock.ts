@@ -10,12 +10,17 @@
 /** How far past a second's turn a tick lands, so the second it reads is the new one. */
 const TICK_PAST_MS = 10;
 
+/** Which clock a tick follows: church time, or the standard time it is corrected from. */
+export type Basis = "church" | "standard";
+
+const BASES: Basis[] = ["church", "standard"];
+
 export class ChurchClock {
   private skewMs = 0;
   private offsetSec = 0;
   private synced = false;
-  private readonly listeners = new Set<(now: Date) => void>();
-  private timer = 0;
+  private readonly listeners: Record<Basis, Set<(now: Date) => void>> = { church: new Set(), standard: new Set() };
+  private readonly timers: Record<Basis, number> = { church: 0, standard: 0 };
 
   /**
    * Feeds a heartbeat. Anything unparseable is ignored rather than trusted.
@@ -30,11 +35,13 @@ export class ChurchClock {
     this.skewMs = stamp - offsetSec * 1000 - Date.now();
     const first = !this.synced;
     this.synced = true;
-    // Note(yoochan.kim): drawn at once on the first beat rather than at the next
-    // tick, so the placeholder is on screen for as briefly as it can be.
-    if (first) this.announce();
-    // The skew moves where a second turns over, so the next tick is aimed again.
-    this.schedule();
+    for (const basis of BASES) {
+      // Note(yoochan.kim): drawn at once on the first beat rather than at the next
+      // tick, so the placeholder is on screen for as briefly as it can be.
+      if (first) this.announce(basis);
+      // The skew moves where a second turns over, so the next tick is aimed again.
+      this.schedule(basis);
+    }
   }
 
   /**
@@ -48,8 +55,8 @@ export class ChurchClock {
     this.offsetSec = offsetSec;
     // Note(yoochan.kim): drawn at once. A correction pressed on the wall clock's flip has
     // to show now, not at whatever moment the next tick was due.
-    this.announce();
-    this.schedule();
+    this.announce("church");
+    this.schedule("church");
   }
 
   /** Standard time as the server keeps it, which is the same instant everywhere. */
@@ -67,47 +74,53 @@ export class ChurchClock {
   }
 
   /**
-   * Calls back once a second with church time, and not at all before the first
-   * beat. Until then the only answer available is this browser's own clock, and
-   * showing it for a moment is worse than showing nothing: it is wrong, it looks
-   * right, and it is the exact reading this class exists to avoid.
+   * Calls back once a second with church time, or standard time if asked, and
+   * not at all before the first beat. Until then the only answer available is
+   * this browser's own clock, and showing it for a moment is worse than showing
+   * nothing: it is wrong, it looks right, and it is the exact reading this class
+   * exists to avoid.
    */
-  start(listener: (now: Date) => void): () => void {
-    this.listeners.add(listener);
-    if (!this.timer) this.schedule();
-    if (this.synced) listener(this.now());
+  start(listener: (now: Date) => void, basis: Basis = "church"): () => void {
+    const listeners = this.listeners[basis];
+    listeners.add(listener);
+    if (!this.timers[basis]) this.schedule(basis);
+    if (this.synced) listener(this.read(basis));
     return () => {
-      this.listeners.delete(listener);
-      if (this.listeners.size === 0) {
-        window.clearTimeout(this.timer);
-        this.timer = 0;
+      listeners.delete(listener);
+      if (listeners.size === 0) {
+        window.clearTimeout(this.timers[basis]);
+        this.timers[basis] = 0;
       }
     };
   }
 
+  private read(basis: Basis): Date {
+    return basis === "church" ? this.now() : this.standardNow();
+  }
+
   /**
-   * Aims the next tick at the moment church time turns over a second, so a
+   * Aims the next tick at the moment that clock turns over a second, so a
    * second on screen changes when the wall clock's does. A plain one-second
    * interval turns at whatever fraction it happened to start on — up to a
    * second behind the clock it is meant to match.
    */
-  private schedule(): void {
-    window.clearTimeout(this.timer);
-    if (this.listeners.size === 0) {
-      this.timer = 0;
+  private schedule(basis: Basis): void {
+    window.clearTimeout(this.timers[basis]);
+    if (this.listeners[basis].size === 0) {
+      this.timers[basis] = 0;
       return;
     }
-    const intoSecond = ((this.now().getTime() % 1000) + 1000) % 1000;
-    this.timer = window.setTimeout(() => {
-      this.announce();
-      this.schedule();
+    const intoSecond = ((this.read(basis).getTime() % 1000) + 1000) % 1000;
+    this.timers[basis] = window.setTimeout(() => {
+      this.announce(basis);
+      this.schedule(basis);
     }, 1000 - intoSecond + TICK_PAST_MS);
   }
 
-  private announce(): void {
+  private announce(basis: Basis): void {
     if (!this.synced) return;
-    const now = this.now();
-    for (const each of this.listeners) each(now);
+    const now = this.read(basis);
+    for (const each of this.listeners[basis]) each(now);
   }
 }
 

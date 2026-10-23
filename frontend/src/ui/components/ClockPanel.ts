@@ -92,7 +92,9 @@ export class ClockPanel {
     ]);
 
     this.renderTap();
-    this.clock.start((now) => this.tick(now));
+    // Note(yoochan.kim): each clock turns on its own second; drawn together, +0.2s read as +1s.
+    this.clock.start((now) => this.drawChurch(now));
+    this.clock.start((now) => this.drawStandard(now), "standard");
     document.addEventListener("keydown", (event) => this.onKey(event));
   }
 
@@ -113,11 +115,12 @@ export class ClockPanel {
     this.renderTap();
   }
 
-  /** Each clock from its own source, so neither is derived from a stale other. */
-  private tick(now: Date): void {
-    const standard = this.clock.standardNow();
-    this.standard.textContent = `${hhmmOf(standard)}:${ssOf(standard)}`;
+  private drawChurch(now: Date): void {
     this.church.replaceChildren(hhmmOf(now), el("s", { textContent: `:${ssOf(now)}` }));
+  }
+
+  private drawStandard(now: Date): void {
+    this.standard.textContent = `${hhmmOf(now)}:${ssOf(now)}`;
   }
 
   private nudge(stepSec: number): void {
