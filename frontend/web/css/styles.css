@@ -366,7 +366,8 @@ button { white-space: nowrap; }
 /* Marks the two a person can also reach from the wall. */
 .lib__tag { flex: none; font-size: 11px; color: var(--c-fnt); }
 .lib__r.on .lib__tag, .lib__r.on .lib__d { color: rgba(255, 255, 255, 0.8); }
-.lib__d { flex: none; font-size: 13.5px; color: var(--c-fnt); font-family: var(--mono); }
+/* Note(yoochan.kim): not the monospace face. It has no Hangul, so 분 and 초 came from another font. */
+.lib__d { flex: none; font-size: 13.5px; color: var(--c-fnt); font-variant-numeric: tabular-nums; }
 
 .lib__opts { display: flex; flex-direction: column; gap: 4px; padding-top: 10px; border-top: 1px solid var(--line); }
 .lib__t {
@@ -958,7 +959,7 @@ body.has-modal { overflow: hidden; }
 /* One line: a title folded in half reads as two songs. */
 .editor__track-name { flex: 1; min-width: 0; color: var(--c-ink); font-weight: 600;
                       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.editor__track-len { color: var(--c-fnt); font-size: 13.5px; font-family: var(--mono); flex: none; }
+.editor__track-len { color: var(--c-fnt); font-size: 13.5px; font-variant-numeric: tabular-nums; flex: none; }
 /* The column names, sitting where the values they name will sit. */
 .editor__track--head { padding: 2px 0 0; font-size: 11px; color: var(--c-fnt); }
 .editor__track--head .editor__track-name { color: var(--c-fnt); font-weight: 400; font-size: 11px; }
@@ -998,7 +999,7 @@ body.has-modal { overflow: hidden; }
 .picker__row:first-child { border-top: 0; }
 .picker__row:hover { background: var(--ink-tint); }
 .picker__n { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.picker__d { color: var(--c-fnt); font-size: 13.5px; font-family: var(--mono); }
+.picker__d { color: var(--c-fnt); font-size: 13.5px; font-variant-numeric: tabular-nums; }
 .editor__summary { display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; color: var(--c-mut);
                    border-top: 1px solid var(--line); padding: 13px 0; }
 .editor__srow { display: flex; gap: 12px; }
