@@ -847,10 +847,10 @@ body.has-modal { overflow: hidden; }
    centred on the screen lands on a half pixel, and every word inside it snaps half a pixel off. */
 .modal {
   position: fixed; inset: 0; z-index: 40; display: grid; place-items: start center;
-  padding: 72px 24px 24px; background: rgba(15, 18, 22, 0.45);
+  padding: 48px 24px 24px; background: rgba(15, 18, 22, 0.45);
 }
 .modal__box {
-  max-height: calc(100vh - 96px);
+  max-height: calc(100vh - 72px);
   display: flex; flex-direction: column; overflow: hidden;
   background: var(--panel); border-radius: 14px; box-shadow: 0 24px 60px rgba(15, 18, 22, 0.28);
 }
@@ -953,14 +953,12 @@ body.has-modal { overflow: hidden; }
    The name sits on the control's middle line, so a message under a field does not
    pull it down. */
 .editor__row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
-               min-height: 54px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+               min-height: 48px; padding: 6px 0; border-bottom: 1px solid var(--line); }
 .editor__label { flex: none; color: var(--c-ink); font-size: 15.5px; line-height: var(--field); }
 .editor__row > :not(.editor__label) { flex: none; width: 300px; }
 /* A list takes the whole width, and names itself in its own head. */
 .editor__row--block { display: block; }
 .editor__row.editor__row--block > * { width: auto; }
-/* Between what it is and when it runs. */
-.editor__gap { height: 18px; }
 /* Only the chosen thing is heavy: no shadows on fields, and a cell nobody chose at an
    ordinary weight, so the painted one is what the eye lands on. */
 .modal .editor__input, .modal .segctl, .modal .filebar { box-shadow: none; }
@@ -1032,8 +1030,9 @@ body.has-modal { overflow: hidden; }
 .picker__row:hover { background: var(--ink-tint); }
 .picker__n { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .picker__d { color: var(--c-fnt); font-size: 13.5px; font-variant-numeric: tabular-nums; }
+/* Held at the bottom while the rows scroll: what is wrong with the draft stays beside 저장. */
 .editor__summary { display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; color: var(--c-mut);
-                   padding: 12px 0; }
+                   padding: 12px 0 4px; position: sticky; bottom: 0; background: var(--panel); }
 .editor__srow { display: flex; gap: 12px; }
 .editor__srow > span:first-child { width: 34px; color: var(--c-fnt); flex: none; }
 .editor__warn { color: var(--bad); font-weight: 600; }

@@ -107,7 +107,6 @@ export class FlowEditor {
       this.field("이름", this.text(this.name, (value) => { this.name = value; })),
       this.field("요일", this.weekdayRow()),
       this.field("시작", this.autoRow()),
-      el("div", { class: "editor__gap" }),
       this.field("잠금 시작", this.time(this.lockAt, (value) => { this.lockAt = value; this.emit(); })),
       el("div", { class: "editor__row editor__row--block" }, [this.trackList()]),
       ...(this.cues.length > 0
