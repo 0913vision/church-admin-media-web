@@ -237,6 +237,7 @@ button { white-space: nowrap; }
 .textbtn:hover { text-decoration: underline; }
 .textbtn--bad { color: var(--bad); }
 .textbtn--add { color: var(--go); font-weight: 600; }
+.textbtn--icon { display: inline-grid; place-items: center; padding: 4px; }
 
 /* ---- radio rows: the deck's song list ---- */
 .radios { display: flex; flex-direction: column; gap: 3px; }
@@ -923,7 +924,8 @@ body.has-modal { overflow: hidden; }
 .whens .btn { flex: 1; min-width: 84px; }
 .modal__x {
   flex: none; width: 32px; height: 32px; border-radius: 8px; cursor: pointer;
-  background: none; border: 0; color: var(--c-mut); font-size: 15px;
+  display: grid; place-items: center; padding: 0;
+  background: none; border: 0; color: var(--c-mut);
 }
 .modal__x:hover { background: var(--raised); color: var(--c-ink); }
 .modal__b { flex: 1; min-height: 0; overflow: auto; padding: 6px 20px 20px; }

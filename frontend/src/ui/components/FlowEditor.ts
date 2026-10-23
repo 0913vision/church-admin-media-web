@@ -1,4 +1,5 @@
 import { el } from "../../util/dom.js";
+import { icon } from "../icons.js";
 import type { ScheduledTrack, Track } from "../../protocol.js";
 import type { FlowEntry, ScheduledFlow } from "../../api/device.js";
 import type { FlowDraft } from "./WeekView.js";
@@ -192,9 +193,9 @@ export class FlowEditor {
         el("span", { class: "editor__track-name", textContent: label }),
         el("span", { class: "editor__track-len", textContent: track ? length(track.durationSec) : "" }),
         this.volumeInput(cue),
-        this.smallButton("↑", "위로", () => this.move(index, -1)),
-        this.smallButton("↓", "아래로", () => this.move(index, 1)),
-        this.smallButton("✕", "빼기", () => {
+        this.smallButton("up", "위로", () => this.move(index, -1)),
+        this.smallButton("down", "아래로", () => this.move(index, 1)),
+        this.smallButton("close", "빼기", () => {
           this.cues.splice(index, 1);
           this.emit();
           this.render();
@@ -438,9 +439,9 @@ export class FlowEditor {
     this.render();
   }
 
-  private smallButton(glyph: string, title: string, onClick: () => void): HTMLElement {
-    const tone = glyph === "✕" ? " textbtn--bad" : "";
-    const button = el("button", { class: `textbtn${tone}`, type: "button", title, textContent: glyph });
+  private smallButton(name: string, title: string, onClick: () => void): HTMLElement {
+    const tone = name === "close" ? " textbtn--bad" : "";
+    const button = el("button", { class: `textbtn textbtn--icon${tone}`, type: "button", title }, [icon(name, 15)]);
     button.addEventListener("click", onClick);
     return button;
   }

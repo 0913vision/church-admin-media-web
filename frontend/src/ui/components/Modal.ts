@@ -1,4 +1,5 @@
 import { el } from "../../util/dom.js";
+import { icon } from "../icons.js";
 
 /**
  * A dialog over a dimmed page.
@@ -26,7 +27,7 @@ export class Modal {
   constructor() {
     this.title = el("b", { class: "modal__t" });
     this.body = el("div", { class: "modal__b" });
-    const shut = el("button", { class: "modal__x", type: "button", textContent: "✕" });
+    const shut = el("button", { class: "modal__x", type: "button" }, [icon("close", 16)]);
     shut.title = "닫기";
     shut.addEventListener("click", () => this.close());
 
