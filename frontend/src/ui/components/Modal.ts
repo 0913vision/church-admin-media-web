@@ -27,13 +27,6 @@ export class Modal {
    * not someone asking to close.
    */
   private pressedOn: EventTarget | null = null;
-  /**
-   * Whether the content runs past the dialog. Only then is a rule drawn over the keys:
-   * without one, a row cut off at the bottom looked like the end of the form.
-   */
-  private readonly fits = new ResizeObserver(() => {
-    this.box.classList.toggle("is-overflowing", this.body.scrollHeight > this.body.clientHeight);
-  });
 
   constructor() {
     this.title = el("b", { class: "modal__t" });
@@ -70,8 +63,6 @@ export class Modal {
     this.actions.replaceChildren(...actions);
     this.actions.hidden = actions.length === 0;
     this.body.replaceChildren(content);
-    this.fits.observe(this.body);
-    this.fits.observe(content);
     this.el.classList.remove("is-hidden");
     document.body.classList.add("has-modal");
     document.addEventListener("keydown", this.onKey);
@@ -85,8 +76,6 @@ export class Modal {
   close(): void {
     if (!this.isOpen) return;
     this.el.classList.add("is-hidden");
-    this.fits.disconnect();
-    this.box.classList.remove("is-overflowing");
     this.body.replaceChildren();
     this.actions.replaceChildren();
     document.body.classList.remove("has-modal");
