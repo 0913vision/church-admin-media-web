@@ -36,17 +36,18 @@ The server is modelled as a device that describes itself: it exposes attributes 
 
 | 속성 | 타입 | 접근 | 권한 | 설명 |
 | --- | --- | --- | --- | --- |
-| `playback` | `PlaybackState` | 읽기/쓰기 | any | Whether the deck is playing. Writing it fades in or out and holds the audio lock for the length of the fade. Refused with flowActive while a flow's music is sounding: the run was handed the deck and puts it back itself. A flow that only holds the gate is keeping the panel out, not using the deck, so this stays writable then. |
-| `volume` | `number` (0–100) | 읽기/쓰기 | any | Output volume, 0-100, whole numbers — a value with a fraction is rounded rather than refused, since a dragged fader sends the ratio of a pixel to a width. Reports what is *sounding*: while a run plays, this is the level that run was written with, not the one the panel was left at, and the panel's own level comes back with its song. Applies immediately, so it is safe to write continuously while dragging a fader. Refused with flowActive while a flow's music is sounding: the run was handed the deck and puts it back itself. A flow that only holds the gate is keeping the panel out, not using the deck, so this stays writable then. |
-| `mute` | `MuteState` | 읽기/쓰기 | any | Whether output is muted. Refused with flowActive while a flow's music is sounding: the run was handed the deck and puts it back itself. A flow that only holds the gate is keeping the panel out, not using the deck, so this stays writable then. |
-| `loop` | `boolean` | 읽기/쓰기 | admin | Whether what is on the deck repeats. Always true unless the gate is held: the panel's two songs are meant to run under a service without ending, and nobody at the panel should be able to stop that. Writable only while the gate is held, and refused with flowActive while a run's music is sounding — it describes what is on the deck, and a run's track made to repeat is a timeline that never finishes. A run merely holding the gate is not using the deck, so this stays writable then. Reset to true when the gate opens — like everything else the gate changes, it goes back to the user's state. |
+| `playback` | `PlaybackState` | 읽기/쓰기 | any | Whether the deck is playing. Writing it fades in or out and holds the audio lock for the length of the fade. Refused with flowActive while a flow's music is sounding: the run was handed the deck and puts it back itself. A flow that only holds the gate is keeping the panel out, not using the deck, so this stays writable then. Refused with levelMatching while a level measurement has the deck. |
+| `volume` | `number` (0–100) | 읽기/쓰기 | any | Output volume, 0-100, whole numbers — a value with a fraction is rounded rather than refused, since a dragged fader sends the ratio of a pixel to a width. Reports what is *sounding*: while a run plays, this is the level that run was written with, not the one the panel was left at, and the panel's own level comes back with its song. Applies immediately, so it is safe to write continuously while dragging a fader. Refused with flowActive while a flow's music is sounding: the run was handed the deck and puts it back itself. A flow that only holds the gate is keeping the panel out, not using the deck, so this stays writable then. Refused with levelMatching while a level measurement has the deck. |
+| `mute` | `MuteState` | 읽기/쓰기 | any | Whether output is muted. Refused with flowActive while a flow's music is sounding: the run was handed the deck and puts it back itself. A flow that only holds the gate is keeping the panel out, not using the deck, so this stays writable then. Refused with levelMatching while a level measurement has the deck. |
+| `loop` | `boolean` | 읽기/쓰기 | admin | Whether what is on the deck repeats. Always true unless the gate is held: the panel's two songs are meant to run under a service without ending, and nobody at the panel should be able to stop that. Writable only while the gate is held, and refused with flowActive while a run's music is sounding — it describes what is on the deck, and a run's track made to repeat is a timeline that never finishes. A run merely holding the gate is not using the deck, so this stays writable then. Refused with levelMatching while a level measurement has the deck. Reset to true when the gate opens — like everything else the gate changes, it goes back to the user's state. |
 | `tracks` | `Track[]` | 읽기 전용 | — | Every track the server can play, each with the level it sounds at, in the order to show them. State rather than part of ready, because tracks are added, renamed and deleted while clients are connected. Read-only — addTrack, setTrackVolume, renameTrack and deleteTrack move it. |
 | `trackFetch` | `TrackFetch` | 읽기 전용 | — | Whether a track is being fetched from YouTube right now. Changes in the same patch as the tracks it produced, so a screen never sees the fetch end before the track appears. Read-only — addTrack moves it. |
+| `levelMatch` | `LevelMatch` | 읽기 전용 | — | What the level measurement is doing, or how the last one ended. Changes in the same patch as the tracks it moved, so a screen never sees it done before the new level. Read-only — matchTrackLevel and stopLevelMatch move it. |
 | `deck` | `DeckSource` | 읽기 전용 | — | What is on the deck: the panel's own song, or a library track an admin put on. Read-only — song and playTrack are what move it. |
 | `unlockWhenDone` | `boolean` | 읽기/쓰기 | admin | Whether the music stopping also releases the gate, restoring the user's song on the way out. For putting one piece on and walking away. 'Stopping' means either the track running out or musicEndsAt arriving — with loop on, only the latter can ever happen. Writable only while a *person* is holding the gate — during a run the gate is the run's and there is no hold to arm, so this is refused with flowActive. False again once the gate opens. |
 | `musicEndsAt` | `MusicEnd` | 읽기/쓰기 | admin | When the music an admin put on should stop. This is what makes a repeating track finite: looping audio has no end of its own, so without it a gate held over that music is held until somebody comes back. A client should ask the moment loop is switched on, and while the answer is undecided say plainly — in words, not as an alarm — that nothing will stop by itself. Reaching an instant stops the music and puts the user's song back; the gate goes too if unlockWhenDone is on. Writable only while a *person* is holding the gate, for the same reason unlockWhenDone is; refused with flowActive during a run. Undecided again once the gate opens. |
-| `song` | `string` | 읽기/쓰기 | any | Id of the selected song, one of the ids listed in ready.songs. Writing it fades out, switches, and restores that song's remembered position, paused. It is an id rather than a fixed set because which songs exist, and what they are called, is the server's to say. Refused with flowActive while a flow's music is sounding: the run was handed the deck and puts it back itself. A flow that only holds the gate is keeping the panel out, not using the deck, so this stays writable then. |
-| `adminLock` | `boolean` | 읽기/쓰기 | admin | Global gate on non-admin writes. Any admin may release it, it survives disconnects, and it is cleared by a restart. A gate a person engaged also lapses by itself — see adminHold. A run engages the same gate, and a run starting over a person's hold takes it: a scheduled service outranks an ad-hoc lock, and the hold stops counting from that moment rather than expiring later under music that is playing. |
+| `song` | `string` | 읽기/쓰기 | any | Id of the selected song, one of the ids listed in ready.songs. Writing it fades out, switches, and restores that song's remembered position, paused. It is an id rather than a fixed set because which songs exist, and what they are called, is the server's to say. Refused with flowActive while a flow's music is sounding: the run was handed the deck and puts it back itself. A flow that only holds the gate is keeping the panel out, not using the deck, so this stays writable then. Refused with levelMatching while a level measurement has the deck. |
+| `adminLock` | `boolean` | 읽기/쓰기 | admin | Global gate on non-admin writes. Any admin may release it, it survives disconnects, and it is cleared by a restart. A gate a person engaged also lapses by itself — see adminHold. A run engages the same gate, and a run starting over a person's hold takes it: a scheduled service outranks an ad-hoc lock, and the hold stops counting from that moment rather than expiring later under music that is playing. Releasing it, or a run taking it, ends a level measurement, which puts the deck and the desk back on its way out. |
 | `adminHold` | `Deadline` | 읽기 전용 | — | When a gate a person engaged lapses by itself. It waits for music that has an end — a track that will finish, or one told when to stop — because releasing under a song that is still sounding opens the panel mid-music. Never more than an hour ahead: a panel locked and forgotten is a panel nobody in the building can use, and the person who locked it has usually gone home. Lapsing does what releasing does — the user's song comes back with it. extendAdminHold pushes it out while somebody is still there. Reads none when the gate is open, and while a flow holds it: a run names its own window and ends on its own. |
 | `audioLock` | `boolean` | 읽기 전용 | — | True while the audio device is mid-transition. Read-only, and it refuses everyone including admins: it guards the device, not permissions. |
 | `isAdmin` | `boolean` | 읽기 전용 | — | Whether this connection holds admin rights. Per-connection, so it is only ever sent to the client it describes. |
@@ -71,7 +72,7 @@ Claim admin rights for this connection. Success shows up as isAdmin in a state p
 
 권한: any
 
-Switch a mixing console input on. Not subject to the audio lock, and open to anyone the admin lock is not holding back — the console keeps no protected state. It reports nothing back, so there is no attribute to read.
+Switch a mixing console input on. Not subject to the audio lock, and open to anyone the admin lock is not holding back — the console keeps no protected state. It reports nothing back, so there is no attribute to read. Refused with consoleHeld while the server has set part of the desk aside and this input is in it: the server puts it back itself when it is done, and the input can be switched on again then.
 
 | 필드 | 타입 | 설명 |
 | --- | --- | --- |
@@ -81,7 +82,7 @@ Switch a mixing console input on. Not subject to the audio lock, and open to any
 
 권한: any
 
-Put the mixing desk into the state a service starts from: every input on, the mute group released, and the masters at their levels. The steps are ordered and paced by the server, because raising the main before the matrix has come down would let the room hear everything at once. Like enableConsoleInput it takes no audio lock and reports nothing back — the desk's own answers arrive through the console attribute. Takes a few hundred milliseconds to finish, so a client should not expect the reading to have changed by the time the call returns.
+Put the mixing desk into the state a service starts from: every input on, the mute group released, and the masters at their levels. The steps are ordered and paced by the server, because raising the main before the matrix has come down would let the room hear everything at once. Like enableConsoleInput it takes no audio lock and reports nothing back — the desk's own answers arrive through the console attribute. Takes a few hundred milliseconds to finish, so a client should not expect the reading to have changed by the time the call returns. Refused with consoleHeld, before anything is sent, while the server has set aside any part of the desk it would write.
 
 _필드 없음._
 
@@ -89,7 +90,7 @@ _필드 없음._
 
 권한: admin
 
-Hand the server one run, spelled out in instants, and it owns that run to the end: it keeps to the wall clock, restores the user's song afterwards, and cleans up however it finishes. This is the primitive underneath startScheduledFlow, which is how a calendar entry is normally run — reach for this one only to run something that is not on the calendar. Every flow holds the admin gate for a window it names, and music must finish inside that window: running past the unlock is refused with musicOutsideLock rather than played on an open panel, as is music that would end before the gate even engages, since it could never sound. A timeline that begins before the window is accepted — the sound starts with the lock and joins the timeline where it already is, the opening cut exactly like a late start. Only one flow runs at a time. A flow whose window has already closed is refused with windowPassed rather than accepted and completed instantly, so pressing start never looks like nothing happened.
+Hand the server one run, spelled out in instants, and it owns that run to the end: it keeps to the wall clock, restores the user's song afterwards, and cleans up however it finishes. This is the primitive underneath startScheduledFlow, which is how a calendar entry is normally run — reach for this one only to run something that is not on the calendar. Every flow holds the admin gate for a window it names, and music must finish inside that window: running past the unlock is refused with musicOutsideLock rather than played on an open panel, as is music that would end before the gate even engages, since it could never sound. A timeline that begins before the window is accepted — the sound starts with the lock and joins the timeline where it already is, the opening cut exactly like a late start. Only one flow runs at a time. A flow whose window has already closed is refused with windowPassed rather than accepted and completed instantly, so pressing start never looks like nothing happened. A countdown part is refused as its kind describes — countdownOutsideLock, countdownOverlapsMusic, noticesOverlap, noticeMissing — and the whole flow with countdownUnderway when pressed inside the countdown's block; a music part naming a countdown track is refused with noticeTrack.
 
 | 필드 | 타입 | 설명 |
 | --- | --- | --- |
@@ -118,7 +119,7 @@ _필드 없음._
 
 권한: admin
 
-Create or replace one calendar entry, and write the calendar to disk. Validated the way the file is at boot, so an entry saved here cannot be one the next boot refuses. Refused with musicOutsideLock if the music could not finish inside the gate window, and with unknownTrack if it names a track this server does not have — both caught while somebody is still editing rather than at 19:30 on a Wednesday.
+Create or replace one calendar entry, and write the calendar to disk. Validated the way the file is at boot, so an entry saved here cannot be one the next boot refuses. Refused with musicOutsideLock if the music could not finish inside the gate window, and with unknownTrack if it names a track this server does not have — both caught while somebody is still editing rather than at 19:30 on a Wednesday. Its countdown is checked the way a start would check it, against today: countdownOutsideLock, countdownOverlapsMusic, noticesOverlap and noticeMissing; music naming a countdown track is noticeTrack.
 
 | 필드 | 타입 | 설명 |
 | --- | --- | --- |
@@ -180,7 +181,7 @@ Make a new track, stored on the server for good: its audio moves into the librar
 
 권한: admin
 
-Change what a track is called. Its id and audio stay as they are, so every flow that names it still does. Surrounding spaces are trimmed, and a title left empty is refused with invalidValue, one another track already has with titleTaken. Refused with deckSong for a song the panel offers: those are named once, in ready.songs, and a panel installed by hand is not asked to notice a rename.
+Change what a track is called. Its id and audio stay as they are, so every flow that names it still does. Surrounding spaces are trimmed, and a title left empty is refused with invalidValue, one another track already has with titleTaken. Refused with deckSong for a song the panel offers: those are named once, in ready.songs, and a panel installed by hand is not asked to notice a rename. Refused with noticeTrack for a countdown track.
 
 | 필드 | 타입 | 설명 |
 | --- | --- | --- |
@@ -191,7 +192,7 @@ Change what a track is called. Its id and audio stay as they are, so every flow 
 
 권한: admin
 
-Take a track out of the library and delete its audio file. Refused with deckSong for a song the panel offers, and with trackInUse while anything still needs it: a calendar entry that names it, the run in flight, or the deck it is on right now. A run copies its tracks when it starts, so the calendar alone would let a run lose a track it has yet to play.
+Take a track out of the library and delete its audio file. Refused with deckSong for a song the panel offers, and with trackInUse while anything still needs it: a calendar entry that names it, the run in flight, or the deck it is on right now. A run copies its tracks when it starts, so the calendar alone would let a run lose a track it has yet to play. Refused with noticeTrack for a countdown track: a countdown needs it.
 
 | 필드 | 타입 | 설명 |
 | --- | --- | --- |
@@ -201,11 +202,31 @@ Take a track out of the library and delete its audio file. Refused with deckSong
 
 권한: admin
 
-Put a library track on the deck, paused at its start, at its own level — the same act as writing the song attribute, for the tracks that are not among ready.songs. Playing it is a separate write to playback. Refused with adminUnlocked unless the gate is held: while the panel is open it shows the song it thinks is playing, and a track it never chose would make that a lie. Refused with flowActive while a run's music is sounding — a run holds the gate, so that first check passes during a service and this one is what keeps the deck the run's. While a run only holds the gate this is allowed, and what it puts on is faded out when the run's own music comes due; the run goes back to the deck it was handed, not to the track somebody put on during its quiet half. Releasing the gate takes the track off and puts the user's song back.
+Put a library track on the deck, paused at its start, at its own level — the same act as writing the song attribute, for the tracks that are not among ready.songs. Playing it is a separate write to playback. Refused with adminUnlocked unless the gate is held: while the panel is open it shows the song it thinks is playing, and a track it never chose would make that a lie. Refused with flowActive while a run's music is sounding — a run holds the gate, so that first check passes during a service and this one is what keeps the deck the run's. While a run only holds the gate this is allowed, and what it puts on is faded out when the run's own music comes due; the run goes back to the deck it was handed, not to the track somebody put on during its quiet half. Releasing the gate takes the track off and puts the user's song back. Refused with levelMatching while a level measurement has the deck, and with noticeTrack for a countdown track — only a flow's countdown plays those.
 
 | 필드 | 타입 | 설명 |
 | --- | --- | --- |
 | `id` | `string` | Track id from the tracks attribute |
+
+### `matchTrackLevel`
+
+권한: admin
+
+Measure a track on the desk and move its level so the desk's meter averages the target. The music player's input is switched off on the desk and read back before anything plays, so the room hears nothing; the track then plays from its start at its own level while the input's meter is read, and the deck and the desk are put back after it has stopped — however it ends. The average leaves out silence and the passages well under the song's own level, so a quiet verse does not drag it down. The new level is the one written down for the track, as setTrackVolume would write it; a flow already saved keeps the levels it was written with. Answers as soon as it is accepted; how it goes is in levelMatch. Only for a person holding the gate with nothing playing: refused with adminUnlocked when the gate is open, flowActive when the gate is a run's, deckPlaying while the deck plays, deckMuted while output is muted (it would measure silence), levelMatching while another measurement runs, unknownTrack, and invalidValue for a target outside -60 to 0 or a span that is not one. While it runs the deck is the measurement's — song, playback, volume, mute, loop and selectTrack are refused with levelMatching — and the music player's input is held on the desk, so switching it on is refused with consoleHeld. Releasing the gate, a run taking it, or a hand switching the input on at the desk ends it. A level change applies from the next time the track is chosen.
+
+| 필드 | 타입 | 설명 |
+| --- | --- | --- |
+| `track` | `string` | Track id from the tracks attribute |
+| `targetDb` | `number` | The average the desk's meter should read for this track, in dB under full scale, -60 to 0. Always given: there is no level the server would assume. |
+| `span` | `LevelSpan` | How much of the track to play |
+
+### `stopLevelMatch`
+
+권한: admin
+
+End the level measurement now: the track stops, the deck and the desk are put back, and no level changes. levelMatch reads failed, why stopped. Refused with notMeasuring when none is running.
+
+_필드 없음._
 
 ## 열거형
 
@@ -237,7 +258,13 @@ Who may write an attribute or invoke a command
 
 Why a write or invoke was refused. Sent only to the client that issued it, so it can explain itself instead of appearing to do nothing.
 
-`"unknownTarget"` · `"notWritable"` · `"invalidValue"` · `"invalidPassword"` · `"notAdmin"` · `"adminLocked"` · `"adminUnlocked"` · `"deviceBusy"` · `"unknownTrack"` · `"unknownFlow"` · `"flowActive"` · `"noFlow"` · `"windowPassed"` · `"musicOutsideLock"` · `"deckSong"` · `"trackInUse"` · `"unknownUpload"` · `"titleTaken"` · `"tooLarge"` · `"fetchFailed"` · `"fetchBusy"` · `"protocolMismatch"`
+`"unknownTarget"` · `"notWritable"` · `"invalidValue"` · `"invalidPassword"` · `"notAdmin"` · `"adminLocked"` · `"adminUnlocked"` · `"deviceBusy"` · `"unknownTrack"` · `"unknownFlow"` · `"flowActive"` · `"noFlow"` · `"windowPassed"` · `"musicOutsideLock"` · `"deckSong"` · `"trackInUse"` · `"unknownUpload"` · `"titleTaken"` · `"tooLarge"` · `"fetchFailed"` · `"fetchBusy"` · `"consoleHeld"` · `"levelMatching"` · `"deckPlaying"` · `"deckMuted"` · `"notMeasuring"` · `"noticeTrack"` · `"noticeMissing"` · `"countdownOutsideLock"` · `"countdownOverlapsMusic"` · `"noticesOverlap"` · `"countdownUnderway"` · `"protocolMismatch"`
+
+### LevelFailure
+
+Why a level measurement ended without an answer. Nothing about the track was changed, and the deck and the desk were put back.
+
+`"stopped"` · `"gateReleased"` · `"deckTaken"` · `"deckFailed"` · `"deskMoved"` · `"deskSilent"` · `"deskHeld"` · `"noSignal"`
 
 ## 객체
 
@@ -278,6 +305,7 @@ A playable library entry. File paths never leave the server.
 | `title` | `string` | Human-readable name |
 | `durationSec` | `number` | Length in seconds, measured from the file |
 | `volume` | `number` | The level it sounds at, 0-100. One setting serving three uses: what a song returns to when it is chosen, what a library track is put on at, and what a flow editor offers when this track joins a service. A flow carries its own level for every track it plays, so changing this never rewrites a service already written. |
+| `role` | `TrackRole` | Music, or a countdown's count or one of its notices. A countdown track is never put on the deck or used in a flow's music, and it is not renamed or deleted (noticeTrack); its level is set like any track's, and is how loud the band hears it. |
 
 ### ScheduledTrack
 

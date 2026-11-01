@@ -78,11 +78,41 @@ export const RejectReason = {
   TOO_LARGE: 'tooLarge',
   FETCH_FAILED: 'fetchFailed',
   FETCH_BUSY: 'fetchBusy',
+  CONSOLE_HELD: 'consoleHeld',
+  LEVEL_MATCHING: 'levelMatching',
+  DECK_PLAYING: 'deckPlaying',
+  DECK_MUTED: 'deckMuted',
+  NOT_MEASURING: 'notMeasuring',
+  NOTICE_TRACK: 'noticeTrack',
+  NOTICE_MISSING: 'noticeMissing',
+  COUNTDOWN_OUTSIDE_LOCK: 'countdownOutsideLock',
+  COUNTDOWN_OVERLAPS_MUSIC: 'countdownOverlapsMusic',
+  NOTICES_OVERLAP: 'noticesOverlap',
+  COUNTDOWN_UNDERWAY: 'countdownUnderway',
   PROTOCOL_MISMATCH: 'protocolMismatch',
 } as const;
 export type RejectReason = (typeof RejectReason)[keyof typeof RejectReason];
 export function isRejectReason(value: unknown): value is RejectReason {
   return typeof value === 'string' && (Object.values(RejectReason) as string[]).includes(value);
+}
+
+/**
+ * Why a level measurement ended without an answer. Nothing about the track was
+ * changed, and the deck and the desk were put back.
+ */
+export const LevelFailure = {
+  STOPPED: 'stopped',
+  GATE_RELEASED: 'gateReleased',
+  DECK_TAKEN: 'deckTaken',
+  DECK_FAILED: 'deckFailed',
+  DESK_MOVED: 'deskMoved',
+  DESK_SILENT: 'deskSilent',
+  DESK_HELD: 'deskHeld',
+  NO_SIGNAL: 'noSignal',
+} as const;
+export type LevelFailure = (typeof LevelFailure)[keyof typeof LevelFailure];
+export function isLevelFailure(value: unknown): value is LevelFailure {
+  return typeof value === 'string' && (Object.values(LevelFailure) as string[]).includes(value);
 }
 
 /**
@@ -135,6 +165,13 @@ export interface Track {
    * track it plays, so changing this never rewrites a service already written.
    */
   volume: number;
+  /**
+   * Music, or a countdown's count or one of its notices. A countdown track is never
+   * put on the deck or used in a flow's music, and it is not renamed or deleted
+   * (noticeTrack); its level is set like any track's, and is how loud the band hears
+   * it.
+   */
+  role: TrackRole;
 }
 
 /**
@@ -213,11 +250,34 @@ export interface ConsoleInput {
 }
 
 /**
+ * What a track is for. Music is what people and a flow's music play. A countdown's
+ * count and its notices are the server's to play, inside a flow; the player never puts
+ * one on. Which notices a countdown can have is whichever notice tracks the library
+ * holds, so adding one is a track, not a release.
+ */
+export type TrackRole =
+  /** Played by the panel, by a person, or as a flow's music. */
+  | { kind: 'music' }
+  /** The count: 카운트다운을 시작합니다, then 10 to 1, ending at zero. One in the library. */
+  | { kind: 'count' }
+  /** An announcement ahead of the count, such as 1분 남았습니다. */
+  | { kind: 'notice'; beforeSec: number }
+  ;
+export const TrackRoleKind = {
+  MUSIC: 'music',
+  COUNT: 'count',
+  NOTICE: 'notice',
+} as const;
+
+/**
  * When a scheduled flow's gate opens again. Written as an intent rather than a copied
  * time, so moving the music moves the gate with it.
  */
 export type ScheduleUntil =
-  /** With the music. The usual case, and only valid on an entry that has a music part. */
+  /**
+   * With the last sound: the music, or a countdown that ends after it. The usual case,
+   * and only valid on an entry that has a music or a countdown part.
+   */
   | { kind: 'music' }
   /**
    * At a time of its own — for an entry that holds the gate over something other than
@@ -283,9 +343,15 @@ export const DeadlineKind = {
 export type SchedulePart =
   /** Play these tracks in order so the last one finishes at endsAt. */
   | { kind: 'music'; tracks: ScheduledTrack[]; endsAt: string }
+  /**
+   * Count down to a moment, on the band's ears alone. Everything as in FlowPart's
+   * countdown.
+   */
+  | { kind: 'countdown'; at: string; notices: number[] }
   ;
 export const SchedulePartKind = {
   MUSIC: 'music',
+  COUNTDOWN: 'countdown',
 } as const;
 
 /**
@@ -323,6 +389,54 @@ export const TrackFetchKind = {
 } as const;
 
 /**
+ * How much of a track a level measurement plays. The whole track is the full answer;
+ * the front of a long one that keeps repeating itself is the same answer sooner.
+ */
+export type LevelSpan =
+  /** From its start to its end */
+  | { kind: 'whole' }
+  /** From its start, for this long */
+  | { kind: 'first'; sec: number }
+  ;
+export const LevelSpanKind = {
+  WHOLE: 'whole',
+  FIRST: 'first',
+} as const;
+
+/**
+ * What the server's one level measurement is doing, or how the last one ended. A
+ * measurement plays a track to the desk with the music player's input switched off
+ * there, reads that input's meter, and moves the track's level so its average lands on
+ * a target. It takes minutes, so it is state: every screen can say the deck is in use
+ * and why. What one ended with stays until the next starts; a restart forgets it.
+ */
+export type LevelMatch =
+  /** Nothing has been measured since the server started */
+  | { phase: 'idle' }
+  /** A track is being measured. Sent once a second while it runs. */
+  | { phase: 'measuring'; track: string; targetDb: number; elapsedSec: number; totalSec: number; levelDb: number }
+  /**
+   * Measured, and the track's level was moved. The new level is in tracks, in the same
+   * patch.
+   */
+  | { phase: 'done'; track: string; targetDb: number; averageDb: number; volumeBefore: number; volumeAfter: number }
+  /**
+   * Measured, but the target needs a level the deck does not have — over 100, or under
+   * 1. Nothing was changed.
+   */
+  | { phase: 'outOfReach'; track: string; targetDb: number; averageDb: number; volumeBefore: number; volumeNeeded: number }
+  /** Ended without an answer. Nothing was changed. */
+  | { phase: 'failed'; track: string; why: LevelFailure }
+  ;
+export const LevelMatchKind = {
+  IDLE: 'idle',
+  MEASURING: 'measuring',
+  DONE: 'done',
+  OUT_OF_REACH: 'outOfReach',
+  FAILED: 'failed',
+} as const;
+
+/**
  * How far a fetch has got. A stage rather than a bare percentage, because the last
  * stage has none to give: the audio has all arrived and is being made into an mp3, and
  * the converter says nothing about how far along it is. Sent at most once a second.
@@ -353,9 +467,25 @@ export type FlowPart =
    * flow's lock window.
    */
   | { kind: 'music'; tracks: ScheduledTrack[]; endsAt: string }
+  /**
+   * Count down to a moment, on the band's ears alone: the count (카운트다운을 시작합니다, then 10
+   * to 1) always, ending exactly at at, and ahead of it whichever notices were ticked,
+   * each on its own second. The server picks the audio by role from its tracks and
+   * plays each at that track's own level. It is one block, from 10 seconds before its
+   * first sound to zero: nothing else sounds in it, and the desk is set so the music
+   * player reaches AuxMix alone — which the band hears on their P16s — and put back
+   * after. The block must lie inside the lock window (countdownOutsideLock) and clear
+   * of the flow's music (countdownOverlapsMusic), and no notice may start before the
+   * one ahead of it has ended (noticesOverlap); a countdown track missing from the
+   * library is noticeMissing. A flow is never started inside its countdown's block
+   * (countdownUnderway): started before it, the countdown plays whole; after it, the
+   * countdown is behind it.
+   */
+  | { kind: 'countdown'; at: string; notices: number[] }
   ;
 export const FlowPartKind = {
   MUSIC: 'music',
+  COUNTDOWN: 'countdown',
 } as const;
 
 /**
@@ -420,7 +550,7 @@ export const ATTRIBUTES = {
    * for the length of the fade. Refused with flowActive while a flow's music is
    * sounding: the run was handed the deck and puts it back itself. A flow that only
    * holds the gate is keeping the panel out, not using the deck, so this stays
-   * writable then.
+   * writable then. Refused with levelMatching while a level measurement has the deck.
    */
   playback: { access: 'rw', permission: 'any' },
   /**
@@ -431,13 +561,15 @@ export const ATTRIBUTES = {
    * its song. Applies immediately, so it is safe to write continuously while dragging
    * a fader. Refused with flowActive while a flow's music is sounding: the run was
    * handed the deck and puts it back itself. A flow that only holds the gate is
-   * keeping the panel out, not using the deck, so this stays writable then.
+   * keeping the panel out, not using the deck, so this stays writable then. Refused
+   * with levelMatching while a level measurement has the deck.
    */
   volume: { access: 'rw', permission: 'any', range: { min: 0, max: 100 } },
   /**
    * Whether output is muted. Refused with flowActive while a flow's music is sounding:
    * the run was handed the deck and puts it back itself. A flow that only holds the
    * gate is keeping the panel out, not using the deck, so this stays writable then.
+   * Refused with levelMatching while a level measurement has the deck.
    */
   mute: { access: 'rw', permission: 'any' },
   /**
@@ -447,8 +579,9 @@ export const ATTRIBUTES = {
    * refused with flowActive while a run's music is sounding — it describes what is on
    * the deck, and a run's track made to repeat is a timeline that never finishes. A
    * run merely holding the gate is not using the deck, so this stays writable then.
-   * Reset to true when the gate opens — like everything else the gate changes, it goes
-   * back to the user's state.
+   * Refused with levelMatching while a level measurement has the deck. Reset to true
+   * when the gate opens — like everything else the gate changes, it goes back to the
+   * user's state.
    */
   loop: { access: 'rw', permission: 'admin' },
   /**
@@ -464,6 +597,12 @@ export const ATTRIBUTES = {
    * appears. Read-only — addTrack moves it.
    */
   trackFetch: { access: 'ro' },
+  /**
+   * What the level measurement is doing, or how the last one ended. Changes in the
+   * same patch as the tracks it moved, so a screen never sees it done before the new
+   * level. Read-only — matchTrackLevel and stopLevelMatch move it.
+   */
+  levelMatch: { access: 'ro' },
   /**
    * What is on the deck: the panel's own song, or a library track an admin put on.
    * Read-only — song and playTrack are what move it.
@@ -495,7 +634,8 @@ export const ATTRIBUTES = {
    * rather than a fixed set because which songs exist, and what they are called, is
    * the server's to say. Refused with flowActive while a flow's music is sounding: the
    * run was handed the deck and puts it back itself. A flow that only holds the gate
-   * is keeping the panel out, not using the deck, so this stays writable then.
+   * is keeping the panel out, not using the deck, so this stays writable then. Refused
+   * with levelMatching while a level measurement has the deck.
    */
   song: { access: 'rw', permission: 'any' },
   /**
@@ -504,7 +644,8 @@ export const ATTRIBUTES = {
    * by itself — see adminHold. A run engages the same gate, and a run starting over a
    * person's hold takes it: a scheduled service outranks an ad-hoc lock, and the hold
    * stops counting from that moment rather than expiring later under music that is
-   * playing.
+   * playing. Releasing it, or a run taking it, ends a level measurement, which puts
+   * the deck and the desk back on its way out.
    */
   adminLock: { access: 'rw', permission: 'admin' },
   /**
@@ -571,7 +712,10 @@ export const COMMANDS = {
   /**
    * Switch a mixing console input on. Not subject to the audio lock, and open to
    * anyone the admin lock is not holding back — the console keeps no protected state.
-   * It reports nothing back, so there is no attribute to read.
+   * It reports nothing back, so there is no attribute to read. Refused with
+   * consoleHeld while the server has set part of the desk aside and this input is in
+   * it: the server puts it back itself when it is done, and the input can be switched
+   * on again then.
    */
   enableConsoleInput: { permission: 'any' },
   /**
@@ -581,7 +725,9 @@ export const COMMANDS = {
    * the room hear everything at once. Like enableConsoleInput it takes no audio lock
    * and reports nothing back — the desk's own answers arrive through the console
    * attribute. Takes a few hundred milliseconds to finish, so a client should not
-   * expect the reading to have changed by the time the call returns.
+   * expect the reading to have changed by the time the call returns. Refused with
+   * consoleHeld, before anything is sent, while the server has set aside any part of
+   * the desk it would write.
    */
   initializeConsole: { permission: 'any' },
   /**
@@ -597,7 +743,11 @@ export const COMMANDS = {
    * lock and joins the timeline where it already is, the opening cut exactly like a
    * late start. Only one flow runs at a time. A flow whose window has already closed
    * is refused with windowPassed rather than accepted and completed instantly, so
-   * pressing start never looks like nothing happened.
+   * pressing start never looks like nothing happened. A countdown part is refused as
+   * its kind describes — countdownOutsideLock, countdownOverlapsMusic, noticesOverlap,
+   * noticeMissing — and the whole flow with countdownUnderway when pressed inside the
+   * countdown's block; a music part naming a countdown track is refused with
+   * noticeTrack.
    */
   startFlow: { permission: 'admin' },
   /**
@@ -618,6 +768,9 @@ export const COMMANDS = {
    * refuses. Refused with musicOutsideLock if the music could not finish inside the
    * gate window, and with unknownTrack if it names a track this server does not have —
    * both caught while somebody is still editing rather than at 19:30 on a Wednesday.
+   * Its countdown is checked the way a start would check it, against today:
+   * countdownOutsideLock, countdownOverlapsMusic, noticesOverlap and noticeMissing;
+   * music naming a countdown track is noticeTrack.
    */
   saveFlow: { permission: 'admin' },
   /**
@@ -666,6 +819,7 @@ export const COMMANDS = {
    * is refused with invalidValue, one another track already has with titleTaken.
    * Refused with deckSong for a song the panel offers: those are named once, in
    * ready.songs, and a panel installed by hand is not asked to notice a rename.
+   * Refused with noticeTrack for a countdown track.
    */
   renameTrack: { permission: 'admin' },
   /**
@@ -673,7 +827,8 @@ export const COMMANDS = {
    * for a song the panel offers, and with trackInUse while anything still needs it: a
    * calendar entry that names it, the run in flight, or the deck it is on right now. A
    * run copies its tracks when it starts, so the calendar alone would let a run lose a
-   * track it has yet to play.
+   * track it has yet to play. Refused with noticeTrack for a countdown track: a
+   * countdown needs it.
    */
   deleteTrack: { permission: 'admin' },
   /**
@@ -687,9 +842,39 @@ export const COMMANDS = {
    * the gate this is allowed, and what it puts on is faded out when the run's own
    * music comes due; the run goes back to the deck it was handed, not to the track
    * somebody put on during its quiet half. Releasing the gate takes the track off and
-   * puts the user's song back.
+   * puts the user's song back. Refused with levelMatching while a level measurement
+   * has the deck, and with noticeTrack for a countdown track — only a flow's countdown
+   * plays those.
    */
   selectTrack: { permission: 'admin' },
+  /**
+   * Measure a track on the desk and move its level so the desk's meter averages the
+   * target. The music player's input is switched off on the desk and read back before
+   * anything plays, so the room hears nothing; the track then plays from its start at
+   * its own level while the input's meter is read, and the deck and the desk are put
+   * back after it has stopped — however it ends. The average leaves out silence and
+   * the passages well under the song's own level, so a quiet verse does not drag it
+   * down. The new level is the one written down for the track, as setTrackVolume would
+   * write it; a flow already saved keeps the levels it was written with. Answers as
+   * soon as it is accepted; how it goes is in levelMatch. Only for a person holding
+   * the gate with nothing playing: refused with adminUnlocked when the gate is open,
+   * flowActive when the gate is a run's, deckPlaying while the deck plays, deckMuted
+   * while output is muted (it would measure silence), levelMatching while another
+   * measurement runs, unknownTrack, and invalidValue for a target outside -60 to 0 or
+   * a span that is not one. While it runs the deck is the measurement's — song,
+   * playback, volume, mute, loop and selectTrack are refused with levelMatching — and
+   * the music player's input is held on the desk, so switching it on is refused with
+   * consoleHeld. Releasing the gate, a run taking it, or a hand switching the input on
+   * at the desk ends it. A level change applies from the next time the track is
+   * chosen.
+   */
+  matchTrackLevel: { permission: 'admin' },
+  /**
+   * End the level measurement now: the track stops, the deck and the desk are put
+   * back, and no level changes. levelMatch reads failed, why stopped. Refused with
+   * notMeasuring when none is running.
+   */
+  stopLevelMatch: { permission: 'admin' },
 } as const;
 export type CommandName = keyof typeof COMMANDS;
 
@@ -700,7 +885,7 @@ export interface State {
    * for the length of the fade. Refused with flowActive while a flow's music is
    * sounding: the run was handed the deck and puts it back itself. A flow that only
    * holds the gate is keeping the panel out, not using the deck, so this stays
-   * writable then.
+   * writable then. Refused with levelMatching while a level measurement has the deck.
    */
   playback: PlaybackState;
   /**
@@ -711,13 +896,15 @@ export interface State {
    * its song. Applies immediately, so it is safe to write continuously while dragging
    * a fader. Refused with flowActive while a flow's music is sounding: the run was
    * handed the deck and puts it back itself. A flow that only holds the gate is
-   * keeping the panel out, not using the deck, so this stays writable then.
+   * keeping the panel out, not using the deck, so this stays writable then. Refused
+   * with levelMatching while a level measurement has the deck.
    */
   volume: number;
   /**
    * Whether output is muted. Refused with flowActive while a flow's music is sounding:
    * the run was handed the deck and puts it back itself. A flow that only holds the
    * gate is keeping the panel out, not using the deck, so this stays writable then.
+   * Refused with levelMatching while a level measurement has the deck.
    */
   mute: MuteState;
   /**
@@ -727,8 +914,9 @@ export interface State {
    * refused with flowActive while a run's music is sounding — it describes what is on
    * the deck, and a run's track made to repeat is a timeline that never finishes. A
    * run merely holding the gate is not using the deck, so this stays writable then.
-   * Reset to true when the gate opens — like everything else the gate changes, it goes
-   * back to the user's state.
+   * Refused with levelMatching while a level measurement has the deck. Reset to true
+   * when the gate opens — like everything else the gate changes, it goes back to the
+   * user's state.
    */
   loop: boolean;
   /**
@@ -744,6 +932,12 @@ export interface State {
    * appears. Read-only — addTrack moves it.
    */
   trackFetch: TrackFetch;
+  /**
+   * What the level measurement is doing, or how the last one ended. Changes in the
+   * same patch as the tracks it moved, so a screen never sees it done before the new
+   * level. Read-only — matchTrackLevel and stopLevelMatch move it.
+   */
+  levelMatch: LevelMatch;
   /**
    * What is on the deck: the panel's own song, or a library track an admin put on.
    * Read-only — song and playTrack are what move it.
@@ -775,7 +969,8 @@ export interface State {
    * rather than a fixed set because which songs exist, and what they are called, is
    * the server's to say. Refused with flowActive while a flow's music is sounding: the
    * run was handed the deck and puts it back itself. A flow that only holds the gate
-   * is keeping the panel out, not using the deck, so this stays writable then.
+   * is keeping the panel out, not using the deck, so this stays writable then. Refused
+   * with levelMatching while a level measurement has the deck.
    */
   song: string;
   /**
@@ -784,7 +979,8 @@ export interface State {
    * by itself — see adminHold. A run engages the same gate, and a run starting over a
    * person's hold takes it: a scheduled service outranks an ad-hoc lock, and the hold
    * stops counting from that moment rather than expiring later under music that is
-   * playing.
+   * playing. Releasing it, or a run taking it, ends a level measurement, which puts
+   * the deck and the desk back on its way out.
    */
   adminLock: boolean;
   /**
@@ -871,6 +1067,8 @@ export type InvokeRequest =
   | { command: 'renameTrack'; args: { id: string; title: string } }
   | { command: 'deleteTrack'; args: { id: string } }
   | { command: 'selectTrack'; args: { id: string } }
+  | { command: 'matchTrackLevel'; args: { track: string; targetDb: number; span: LevelSpan } }
+  | { command: 'stopLevelMatch'; args: Record<string, never> }
   ;
 
 /** C2S event names */

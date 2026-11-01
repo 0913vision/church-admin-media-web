@@ -307,7 +307,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     const usedBy = (id: string): string => {
       if (device.deck?.source === "track" && device.deck.id === id) return "재생 중";
       const flows = (device.schedule ?? []).filter((entry) =>
-        entry.parts.some((part) => part.tracks.some((cue) => cue.id === id)));
+        entry.parts.some((part) => part.kind === "music" && part.tracks.some((cue) => cue.id === id)));
       return flows.map((entry) => entry.name).join(", ");
     };
     // Note(yoochan.kim): a table with named columns, so a number says what it is and a
