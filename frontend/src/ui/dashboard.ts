@@ -24,7 +24,7 @@ import { FlowPanel } from "./components/FlowPanel.js";
 import { ChurchClock, driftOf, hhmmOf, instantOf, noOffset, ssOf } from "../util/churchClock.js";
 import { TransportControls } from "./components/TransportControls.js";
 import { icon } from "./icons.js";
-import { flowOwnsDeck } from "../util/flow.js";
+import { countdownAudio, flowOwnsDeck, isCountdownAudio } from "../util/flow.js";
 import { LibraryPanel } from "./components/LibraryPanel.js";
 
 type ViewKey = "overview" | "player" | "schedule" | "console" | "clock" | "system" | "logs";
@@ -334,7 +334,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
       volume.max = "100";
 
       // Note(yoochan.kim): the panel's own songs are named once, in ready, and keep their place.
-      const editable = canEditTracks && !deckSongIds.has(track.id);
+      const editable = canEditTracks && !deckSongIds.has(track.id) && !isCountdownAudio(track);
       const name = editable
         ? el("input", { class: "editor__input editor__input--name", value: track.title }) as HTMLInputElement
         : null;
@@ -363,7 +363,8 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     // Note(yoochan.kim): the same two groups the list is drawn in. Eight flat rows say the
     // tracks are alike; two of them can be reached from the wall and six cannot.
     const panelSongs = libraryTracks.filter((track) => deckSongIds.has(track.id));
-    const gated = libraryTracks.filter((track) => !deckSongIds.has(track.id));
+    const gated = libraryTracks.filter((track) => !deckSongIds.has(track.id) && !isCountdownAudio(track));
+    const counts = countdownAudio(libraryTracks);
     body.append(...panelSongs.map(row));
     if (gated.length > 0) {
       body.append(el("div", { class: "setlist__g" }, [
@@ -371,6 +372,14 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
         el("span", { textContent: "잠금 필요" }),
       ]));
       body.append(...gated.map(row));
+    }
+    // Note(yoochan.kim): a countdown's audio keeps its name and place; its level is how loud the band hears it.
+    if (counts.length > 0) {
+      body.append(el("div", { class: "setlist__g" }, [
+        el("span", { class: "icon" }, [icon("clock", 13)]),
+        el("span", { textContent: "카운트다운" }),
+      ]));
+      body.append(...counts.map(row));
     }
 
     const close = el("button", { class: "btn", type: "button", textContent: "닫기" });

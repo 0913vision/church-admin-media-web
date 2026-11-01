@@ -5,6 +5,7 @@ import type { Track } from "../../protocol.js";
 import { FlowEditor } from "./FlowEditor.js";
 import { Modal } from "./Modal.js";
 import { WeekView } from "./WeekView.js";
+import { countdownSpan, inOrder, lastSound, noticeLabel } from "../../util/flow.js";
 
 export interface SchedulePanelOptions {
   onStart: (flowId: string) => void;
@@ -185,6 +186,15 @@ export class SchedulePanel {
         cursor += lengths[index]!;
       });
     }
+    // Note(yoochan.kim): after the songs, so the music row and its songs stay together and time reads downwards.
+    const later: HTMLElement[] = [];
+    const countdown = flow.parts.find((part) => part.kind === "countdown");
+    if (countdown) {
+      const span = countdownSpan(countdown.at, countdown.notices, [...this.tracks.values()]);
+      later.push(row("카운트다운", el("span", { class: "num", textContent: `${hhmmss(span.opens)} → ${hhmmss(span.zero)}` })));
+      const told = inOrder(countdown.notices).map(noticeLabel);
+      later.push(row("안내", el("span", { textContent: told.length > 0 ? told.join(", ") : "없음" })));
+    }
 
     // Note(yoochan.kim): the device owns its run, so a save here would change the
     // calendar without changing what is playing.
@@ -209,14 +219,15 @@ export class SchedulePanel {
       el("div", { class: "detail__n", textContent: flow.name }),
       ...rows,
       songs,
+      ...later,
       el("div", { class: "detail__b" }, [action, edit]),
     );
   }
 
   private closesOf(flow: ScheduledFlow): string {
     if (flow.lock.until.kind === "clock") return hhmmss(minutesOf(flow.lock.until.at) * 60);
-    const music = flow.parts.find((part) => part.kind === "music");
-    return music ? hhmmss(minutesOf(music.endsAt) * 60) : "음악이 끝나면";
+    const last = lastSound(flow.lock.at, flow.parts);
+    return last ? hhmmss(minutesOf(last.at) * 60) : "음악이 끝나면";
   }
 }
 

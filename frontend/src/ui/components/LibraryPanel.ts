@@ -1,7 +1,7 @@
 import { el } from "../../util/dom.js";
 import { icon } from "../icons.js";
 import type { State, Track } from "../../protocol.js";
-import { flowOwnsDeck } from "../../util/flow.js";
+import { countdownAudio, flowOwnsDeck, isCountdownAudio } from "../../util/flow.js";
 
 export interface LibraryPanelOptions {
   /** A song the panel itself offers: selected, not started. */
@@ -72,7 +72,10 @@ export class LibraryPanel {
     const playingTrack = state?.deck.source === "track" ? state.deck.id : "";
 
     const panel = this.tracks.filter((track) => this.deckSongs.has(track.id));
-    const gated = this.tracks.filter((track) => !this.deckSongs.has(track.id));
+    const gated = this.tracks.filter((track) => !this.deckSongs.has(track.id) && !isCountdownAudio(track));
+    // Note(yoochan.kim): a countdown's audio is listed so it can be seen, but only a countdown plays it.
+    const counts = countdownAudio(this.tracks);
+    const fetching = state?.trackFetch.kind === "fetching" ? 1 : 0;
 
     this.el.replaceChildren(
       el("div", { class: "lib__h" }, [
@@ -93,8 +96,19 @@ export class LibraryPanel {
           // Numbered straight on from the panel songs: it says which of them all this is.
           this.row(track, panel.length + at + 1, track.id === playingTrack, !held, () => this.options.onPlayTrack(track.id)),
         ),
-        ...this.coming(state, this.tracks.length + 1),
+        ...this.coming(state, panel.length + gated.length + 1),
       ]),
+      ...(counts.length > 0
+        ? [
+            el("div", { class: "lib__g" }, [
+              el("span", { class: "icon" }, [icon("clock", 13)]),
+              el("span", { textContent: "카운트다운" }),
+            ]),
+            el("div", { class: "lib__rows" }, counts.map((track, at) =>
+              this.row(track, panel.length + gated.length + fetching + at + 1, false, true, () => {}),
+            )),
+          ]
+        : []),
       ...this.runNote(state, runOwnsDeck),
       el("div", { class: "lib__opts" }, [
         this.toggle("반복", state?.loop === true, held, (next) => this.options.onLoop(next)),

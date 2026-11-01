@@ -1,5 +1,6 @@
 import { el } from "../../util/dom.js";
 import type { ScheduledFlow } from "../../api/device.js";
+import { lastSound } from "../../util/flow.js";
 
 /** Sunday first: this is a church, and the week starts at 주일. */
 const DAYS = ["주일", "월", "화", "수", "목", "금", "토"];
@@ -88,11 +89,11 @@ export class WeekView {
 
   private spanOf(flow: ScheduledFlow): { opens: number; closes: number } {
     const opens = minutesOf(flow.lock.at);
-    const music = flow.parts.find((part) => part.kind === "music");
+    const last = lastSound(flow.lock.at, flow.parts);
     const closesRaw = flow.lock.until.kind === "clock"
       ? minutesOf(flow.lock.until.at)
-      : music
-        ? minutesOf(music.endsAt)
+      : last
+        ? minutesOf(last.at)
         : opens + 60;
     return { opens, closes: closesRaw <= opens ? 24 * 60 : closesRaw };
   }

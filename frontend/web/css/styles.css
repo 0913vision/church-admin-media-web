@@ -970,6 +970,11 @@ body.has-modal { overflow: hidden; }
 /* A list takes the whole width, and names itself in its own head. */
 .editor__row--block { display: block; }
 .editor__row.editor__row--block > * { width: auto; }
+/* Note(yoochan.kim): the library's tick boxes in three columns as wide as their words, so the boxes line up. */
+.editor__checks { display: grid; grid-template-columns: repeat(3, max-content); gap: 2px 20px; }
+.editor__checks .lib__t { margin: 0; padding: 0; min-height: var(--field); }
+.editor__checks .lib__t:hover:not(:disabled) { background: none; }
+.editor__none { color: var(--c-fnt); font-size: 13.5px; line-height: var(--field); }
 .editor__row > .editor__input, .field > .editor__input, .filebar { border-radius: 8px; overflow: hidden; }
 .modal .editor__input::-webkit-calendar-picker-indicator { opacity: 0.35; }
 /* The browser draws the clock black whatever the theme. */
@@ -1039,7 +1044,7 @@ body.has-modal { overflow: hidden; }
                    padding: 12px 0 4px; position: sticky; bottom: 0; background: var(--panel);
                    border-top: 1px solid var(--line); }
 .editor__srow { display: flex; gap: 12px; }
-.editor__srow > span:first-child { width: 34px; color: var(--c-fnt); flex: none; }
+.editor__srow > span:first-child { width: 68px; color: var(--c-fnt); flex: none; }
 .editor__warn { color: var(--bad); font-weight: 600; }
 
 /* ================= alert ================= */

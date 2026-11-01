@@ -1,8 +1,9 @@
 import { el } from "../../util/dom.js";
 import { icon } from "../icons.js";
-import type { ScheduledTrack, Track } from "../../protocol.js";
+import type { ScheduledTrack, SchedulePart, Track } from "../../protocol.js";
 import type { FlowEntry, ScheduledFlow } from "../../api/device.js";
 import type { FlowDraft } from "./WeekView.js";
+import { countdownSpan, inOrder, lastSound, missingAudio, noticeLabel, noticesHeld } from "../../util/flow.js";
 
 const WEEKDAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 // Note(yoochan.kim): Sunday first, matching the calendar next to this editor.
@@ -41,6 +42,12 @@ export class FlowEditor {
   private autoStart = false;
   private cues: ScheduledTrack[] = [];
   private endsAt = "20:00";
+  private countdown = false;
+  private zeroAt = "20:00";
+  /** Seconds before zero of each notice ticked. */
+  private notices = new Set<number>();
+  /** Whether the flow holds a part this build cannot edit, which saving would drop. */
+  private unknownPart = false;
   private tracks: Track[] = [];
   /** Whether this draft is already on the calendar — only then is deleting offered. */
   private existing = false;
@@ -49,6 +56,8 @@ export class FlowEditor {
    * redrawing the editor replaced the box being typed into and lost its focus.
    */
   private readonly summaryEl = el("div", { class: "editor__summary num" });
+  /** The unlock key that names the last sound, renamed on a keystroke rather than redrawn. */
+  private followsKey = el("button", { type: "button" });
   /** Whether 저장 has been pressed: until then an empty field is not yet a mistake. */
   private tried = false;
   /** Whether the draft holds anything the server would refuse. */
@@ -70,7 +79,7 @@ export class FlowEditor {
 
   /** Where this draft sits on the week, for the calendar's dashed preview. */
   private emit(): void {
-    const closes = this.followsMusic && this.cues.length > 0 ? this.endsAt : this.lockUntil;
+    const closes = this.closesAt();
     this.options.onChange?.({
       id: this.id,
       weekdays: [...this.weekdays],
@@ -92,6 +101,11 @@ export class FlowEditor {
     this.autoStart = flow?.autoStart ?? false;
     this.cues = music ? music.tracks.map((cue) => ({ ...cue })) : [];
     this.endsAt = music?.endsAt ?? "20:00";
+    const countdown = flow?.parts.find((part) => part.kind === "countdown");
+    this.countdown = countdown !== undefined;
+    this.zeroAt = countdown?.at ?? "20:00";
+    this.notices = new Set(countdown?.notices ?? []);
+    this.unknownPart = (flow?.parts ?? []).some((part) => !["music", "countdown"].includes(part.kind));
 
     this.existing = flow !== null;
     this.tried = false;
@@ -102,7 +116,7 @@ export class FlowEditor {
 
   /** What it is and how it starts, then the times in the order they happen. */
   private render(): void {
-    const follows = this.followsMusic && this.cues.length > 0;
+    const follows = this.follows();
     this.el.replaceChildren(
       this.field("이름", this.text(this.name, (value) => { this.name = value; })),
       this.field("요일", this.weekdayRow()),
@@ -111,6 +125,13 @@ export class FlowEditor {
       el("div", { class: "editor__row editor__row--block" }, [this.trackList()]),
       ...(this.cues.length > 0
         ? [this.field("음악 마치는 시각", this.time(this.endsAt, (value) => { this.endsAt = value; this.emit(); this.refresh(); }))]
+        : []),
+      this.field("카운트다운", this.countdownRow()),
+      ...(this.countdown
+        ? [
+            this.field("목표 시각", this.time(this.zeroAt, (value) => { this.zeroAt = value; this.emit(); this.refresh(); })),
+            this.field("안내", this.noticeRow()),
+          ]
         : []),
       this.field("잠금 해제", this.unlockRow()),
       ...(follows
@@ -124,6 +145,7 @@ export class FlowEditor {
   /** What a keystroke changes: the reading underneath, and nothing else. */
   private refresh(): void {
     this.summaryEl.replaceChildren(...this.summaryRows());
+    this.followsKey.textContent = this.followsLabel();
   }
 
   // --- fields ---
@@ -220,10 +242,12 @@ export class FlowEditor {
 
     // Note(yoochan.kim): behind a button, because a button per track wrapped to
     // three lines once the manifest grew.
+    // Note(yoochan.kim): a countdown's audio is played only by a countdown, so it is not offered as music.
+    const pickable = this.tracks.filter((track) => track.role.kind === "music");
     const menu = el(
       "div",
       { class: "picker is-hidden" },
-      this.tracks.map((track) =>
+      pickable.map((track) =>
         el("button", { class: "picker__row", type: "button" }, [
           el("span", { class: "picker__n", textContent: track.title }),
           el("span", { class: "picker__d", textContent: length(track.durationSec) }),
@@ -232,7 +256,7 @@ export class FlowEditor {
     );
     menu.querySelectorAll("button").forEach((row, index) => {
       row.addEventListener("click", () => {
-        const track = this.tracks[index]!;
+        const track = pickable[index]!;
         // Note(yoochan.kim): a song joins at its own level, which is the one
         // someone would have picked anyway — and can then be changed here.
         this.cues.push({ id: track.id, volume: track.volume });
@@ -308,9 +332,9 @@ export class FlowEditor {
 
   /** The gate closes with the music, or at a time of its own — a choice. The time is a row of its own. */
   private unlockRow(): HTMLElement {
-    const follows = this.followsMusic && this.cues.length > 0;
-    const choice = (label: string, value: boolean, disabled = false): HTMLElement => {
-      const button = el("button", { class: follows === value ? "on" : "", type: "button", textContent: label });
+    const follows = this.follows();
+    const choice = (label: string, value: boolean, disabled = false): HTMLButtonElement => {
+      const button = el("button", { class: follows === value ? "on" : "", type: "button", textContent: label }) as HTMLButtonElement;
       button.disabled = disabled;
       button.addEventListener("click", () => {
         this.followsMusic = value;
@@ -320,10 +344,69 @@ export class FlowEditor {
       return button;
     };
 
-    return el("div", { class: "segctl" }, [
-      choice("음악이 끝나면", true, this.cues.length === 0),
-      choice("시각을 정해서", false),
-    ]);
+    this.followsKey = choice(this.followsLabel(), true, this.parts().length === 0);
+    return el("div", { class: "segctl" }, [this.followsKey, choice("시각을 정해서", false)]);
+  }
+
+  /** The count is in every countdown, so this says only whether there is one. */
+  private countdownRow(): HTMLElement {
+    const choice = (label: string, value: boolean): HTMLElement => {
+      const button = el("button", { class: this.countdown === value ? "on" : "", type: "button", textContent: label });
+      button.addEventListener("click", () => {
+        this.countdown = value;
+        this.emit();
+        this.render();
+      });
+      return button;
+    };
+    return el("div", { class: "segctl" }, [choice("없음", false), choice("넣기", true)]);
+  }
+
+  /** One box per notice the library has audio for, plus any ticked one it has lost, so it can be unticked. */
+  private noticeRow(): HTMLElement {
+    const choices = inOrder([...noticesHeld(this.tracks), ...this.notices]);
+    if (choices.length === 0) return el("span", { class: "editor__none", textContent: "없음" });
+    return el("div", { class: "editor__checks" }, choices.map((beforeSec) => {
+      const box = el("span", { class: "lib__box" });
+      const button = el("button", { class: "lib__t", type: "button" }, [box, el("span", { textContent: noticeLabel(beforeSec) })]);
+      const show = (): void => {
+        button.classList.toggle("on", this.notices.has(beforeSec));
+        box.replaceChildren(...(this.notices.has(beforeSec) ? [icon("check", 13)] : []));
+      };
+      show();
+      button.addEventListener("click", () => {
+        if (this.notices.has(beforeSec)) this.notices.delete(beforeSec);
+        else this.notices.add(beforeSec);
+        show();
+        this.emit();
+        this.refresh();
+      });
+      return button;
+    }));
+  }
+
+  /** The draft's parts in the shape the calendar keeps them. */
+  private parts(): SchedulePart[] {
+    const parts: SchedulePart[] = [];
+    if (this.cues.length > 0) {
+      parts.push({ kind: "music", tracks: this.cues.map((cue) => ({ ...cue })), endsAt: asClock(asSeconds(this.endsAt)) });
+    }
+    if (this.countdown) {
+      parts.push({ kind: "countdown", at: asClock(asSeconds(this.zeroAt)), notices: inOrder(this.notices) });
+    }
+    return parts;
+  }
+
+  private follows(): boolean {
+    return this.followsMusic && this.parts().length > 0;
+  }
+
+  private closesAt(): string {
+    return this.follows() ? lastSound(this.lockAt, this.parts())!.at : this.lockUntil;
+  }
+
+  private followsLabel(): string {
+    return lastSound(this.lockAt, this.parts())?.kind === "countdown" ? "카운트다운이 끝나면" : "음악이 끝나면";
   }
 
   // --- summary ---
@@ -341,7 +424,7 @@ export class FlowEditor {
       (sum, cue) => sum + (this.tracks.find((track) => track.id === cue.id)?.durationSec ?? 0),
       0,
     );
-    const closesAt = this.followsMusic && this.cues.length > 0 ? this.endsAt : this.lockUntil;
+    const closesAt = this.closesAt();
     lines.push(["잠금", `${asClock(asSeconds(this.lockAt))} → ${asClock(asSeconds(closesAt))}`]);
 
     if (this.cues.length > 0) {
@@ -362,6 +445,21 @@ export class FlowEditor {
         warnings.push("음악이 잠금 해제보다 늦게 끝나요");
       }
     }
+    if (this.countdown) {
+      // Note(yoochan.kim): the block, not the first sound: nothing else may sound in its lead either.
+      const span = countdownSpan(this.zeroAt, this.notices, this.tracks);
+      const told = inOrder(this.notices).map(noticeLabel);
+      lines.push(["카운트다운", `${asClock(span.opens)} → ${asClock(span.zero)}${told.length > 0 ? ` (${told.join(", ")})` : ""}`]);
+      warnings.push(...missingAudio(this.notices, this.tracks).map((name) => `${name} 파일이 곡 목록에 없어요`));
+      if (span.opens < asSeconds(this.lockAt)) warnings.push("카운트다운이 잠금 시작보다 빨라요");
+      if (span.zero > asSeconds(closesAt)) warnings.push("카운트다운이 잠금 해제보다 늦게 끝나요");
+      // Note(yoochan.kim): music timed before the gate is counted from the gate, as the server counts it.
+      const musicFrom = Math.max(asSeconds(this.endsAt) - totalSec, asSeconds(this.lockAt));
+      if (this.cues.length > 0 && span.opens < asSeconds(this.endsAt) && span.zero > musicFrom) {
+        warnings.push("음악이 카운트다운과 겹쳐요");
+      }
+    }
+    if (this.unknownPart) warnings.push("알 수 없는 순서가 있어요");
     if (asSeconds(closesAt) <= asSeconds(this.lockAt)) {
       warnings.push("잠금 해제가 잠금 시작보다 빨라요");
     }
@@ -420,7 +518,7 @@ export class FlowEditor {
   }
 
   private entry(): FlowEntry {
-    const follows = this.followsMusic && this.cues.length > 0;
+    const follows = this.follows();
     return {
       name: this.name.trim(),
       weekdays: [...this.weekdays].sort().map((day) => WEEKDAY_KEYS[day]!),
@@ -432,14 +530,7 @@ export class FlowEditor {
         at: asClock(asSeconds(this.lockAt)),
         until: follows ? { kind: "music" } : { kind: "clock", at: asClock(asSeconds(this.lockUntil)) },
       },
-      parts:
-        this.cues.length > 0
-          ? [{
-              kind: "music",
-              tracks: this.cues.map((cue) => ({ ...cue })),
-              endsAt: asClock(asSeconds(this.endsAt)),
-            }]
-          : [],
+      parts: this.parts(),
     };
   }
 

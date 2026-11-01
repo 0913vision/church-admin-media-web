@@ -2,6 +2,7 @@ import { el } from "../../util/dom.js";
 import type { ScheduledFlow } from "../../api/device.js";
 import type { FlowStatus, Track } from "../../protocol.js";
 import { durationOf } from "../../util/churchClock.js";
+import { countdownSpan, isCountdownAudio, lastSound } from "../../util/flow.js";
 
 /** How early a flow announces itself on the dashboard. */
 export const WINDOW_MINUTES = 30;
@@ -33,6 +34,8 @@ interface Span {
   musicFrom: number;
   musicTo: number;
   segments: { from: number; to: number; title: string }[];
+  /** From its first sound to zero; it is sounding while any of `titles` is the run's track. */
+  countdown?: { from: number; to: number; titles: string[] };
 }
 
 /**
@@ -126,6 +129,7 @@ export class FlowPanel {
     const facts: (string | HTMLElement)[] = [];
     if (running) {
       if (span.segments.length > 0) facts.push(`${hhmm(span.musicTo)}에 음악 종료`);
+      if (span.countdown) facts.push(`${hhmm(span.countdown.to)}에 카운트다운 종료`);
       facts.push(`${hhmm(span.closes)}에 잠금 해제`);
     } else {
       if (flow.autoStart) facts.push("자동으로 시작");
@@ -138,6 +142,7 @@ export class FlowPanel {
         facts.push(`음악 ${hhmm(from)} → ${hhmm(span.musicTo)}`);
         facts.push(`${span.segments.length}곡`);
       }
+      if (span.countdown) facts.push(`카운트다운 ${hhmm(span.countdown.from)} → ${hhmm(span.countdown.to)}`);
     }
     return facts.map((fact) =>
       typeof fact === "string" ? el("span", { textContent: fact }) : el("span", {}, [fact]),
@@ -191,25 +196,33 @@ export class FlowPanel {
     const pct = (minutes: number): number => ((minutes - span.opens) / width) * 100;
 
     const children: HTMLElement[] = [el("div", { class: "tl__lock" })];
-    // Note(yoochan.kim): The bar shows the lock window, so a timeline that begins earlier is cut
-    // at the gate — the part before it never sounds.
-    children.push(el("div", { class: "seg seg--gap", style: `width:${pct(Math.max(span.opens, span.musicFrom))}%` }));
+    const playing = (title: string): boolean => this.status.phase === "playing" && this.status.track.title === title;
+    const blocks = [
+      ...span.segments.map((segment) => ({ ...segment, live: playing(segment.title) })),
+      ...(span.countdown
+        ? [{ from: span.countdown.from, to: span.countdown.to, title: "카운트다운", live: span.countdown.titles.some(playing) }]
+        : []),
+    ].sort((a, b) => a.from - b.from);
     // Note(yoochan.kim): half an hour of music inside a two-hour window leaves each
     // song a sliver, so a block carries no writing of its own — it is told apart
     // by its edge and, when it is the one playing, by its colour. What it is and
     // when it starts is in the tooltip and on the scale below.
     const minutesPerPercent = width / 100;
-    for (const segment of span.segments) {
-      if (segment.to <= span.opens) continue;
-      const from = Math.max(segment.from, span.opens);
-      const share = pct(segment.to) - pct(from);
-      const live =
-        this.status.phase === "playing" && this.status.track.title === segment.title ? " is-now" : "";
-      const seg = el("div", { class: `seg${live}`, style: `width:${share}%` });
-      seg.title = `${hhmm(from)} ${segment.title}`;
+    // Note(yoochan.kim): the bar shows the lock window, so a block that begins earlier is cut at the gate.
+    let cursor = span.opens;
+    for (const block of blocks) {
+      if (block.to <= span.opens) continue;
+      const from = Math.max(block.from, span.opens);
+      if (from > cursor || cursor === span.opens) {
+        children.push(el("div", { class: "seg seg--gap", style: `width:${pct(from) - pct(cursor)}%` }));
+      }
+      const share = pct(block.to) - pct(from);
+      const seg = el("div", { class: `seg${block.live ? " is-now" : ""}`, style: `width:${share}%` });
+      seg.title = `${hhmm(from)} ${block.title}`;
       // Room for a name is rare on this bar; when there is, it is worth having.
-      if (share * minutesPerPercent >= 14) seg.append(segment.title);
+      if (share * minutesPerPercent >= 14) seg.append(block.title);
       children.push(seg);
+      cursor = block.to;
     }
     if (nowMinutes >= span.opens && nowMinutes <= span.closes) {
       children.push(el("div", { class: "now", style: `left:${pct(nowMinutes)}%` }));
@@ -222,7 +235,8 @@ export class FlowPanel {
     const opens = minutesOf(flow.lock.at);
     const music = flow.parts.find((part) => part.kind === "music");
     const musicEnds = music ? minutesOf(music.endsAt) : opens;
-    const closesRaw = flow.lock.until.kind === "clock" ? minutesOf(flow.lock.until.at) : musicEnds;
+    const last = lastSound(flow.lock.at, flow.parts);
+    const closesRaw = flow.lock.until.kind === "clock" ? minutesOf(flow.lock.until.at) : last ? minutesOf(last.at) : opens;
     const closes = closesRaw <= opens ? closesRaw + 24 * 60 : closesRaw;
 
     const segments: Span["segments"] = [];
@@ -238,7 +252,23 @@ export class FlowPanel {
         cursor += lengthMin;
       });
     }
-    return { opens, closes, musicFrom: music ? from : closes, musicTo: musicEnds, segments };
+    const countdown = flow.parts.find((part) => part.kind === "countdown");
+    const library = [...this.tracks.values()];
+    const counts = countdown ? countdownSpan(countdown.at, countdown.notices, library) : undefined;
+    return {
+      opens,
+      closes,
+      musicFrom: music ? from : closes,
+      musicTo: musicEnds,
+      segments,
+      ...(counts && {
+        countdown: {
+          from: counts.first / 60,
+          to: counts.zero / 60,
+          titles: library.filter(isCountdownAudio).map((track) => track.title),
+        },
+      }),
+    };
   }
 
   /** The soonest flow whose window is open, or about to be. */
