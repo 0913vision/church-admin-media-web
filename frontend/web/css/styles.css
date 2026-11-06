@@ -522,6 +522,8 @@ button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--slot); }
 .tl__col { flex: 1; min-width: 0; }
 .tl__col.is-preview { opacity: 0.7; }
 .tl__act { flex: none; margin-top: 8px; height: 38px; display: flex; align-items: center; }
+/* Note(yoochan.kim): as tall as the bar beside it, so their top and bottom edges meet. */
+.tl__act .btn { height: 38px; }
 .tl__bar { position: relative; height: 38px; margin-top: 8px; border-radius: 6px; background: var(--well); overflow: hidden; display: flex; }
 .tl__lock { position: absolute; inset: 0; background: repeating-linear-gradient(45deg, var(--hold-soft) 0 7px, transparent 7px 14px); }
 /* A block is as wide as its song is long, so it is usually a sliver. It carries
