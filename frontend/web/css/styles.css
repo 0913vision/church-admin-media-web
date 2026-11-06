@@ -1042,8 +1042,9 @@ body.has-modal { overflow: hidden; }
 .picker__n { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .picker__d { color: var(--c-fnt); font-size: 13.5px; font-variant-numeric: tabular-nums; }
 /* Held at the bottom while the rows scroll: what is wrong with the draft stays beside 저장. */
+/* Note(yoochan.kim): down over the body's 16px foot padding, or the form scrolls into view through it. */
 .editor__summary { display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; color: var(--c-mut);
-                   padding: 12px 0 4px; position: sticky; bottom: 0; background: var(--panel);
+                   padding: 12px 0 20px; margin-bottom: -16px; position: sticky; bottom: -16px; background: var(--panel);
                    border-top: 1px solid var(--line); }
 .editor__srow { display: flex; gap: 12px; }
 .editor__srow > span:first-child { width: 68px; color: var(--c-fnt); flex: none; }
