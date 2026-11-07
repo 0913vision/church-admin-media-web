@@ -1,7 +1,7 @@
 import { el } from "../../util/dom.js";
 import { icon } from "../icons.js";
 import type { LevelMatch, State, Track } from "../../protocol.js";
-import { countdownAudio, flowOwnsDeck, isCountdownAudio } from "../../util/flow.js";
+import { flowOwnsDeck, isCountdownAudio } from "../../util/flow.js";
 import { trackLength } from "../../util/korean.js";
 import { LEVEL_FAILED, answerText } from "./LevelMatch.js";
 
@@ -84,10 +84,8 @@ export class LibraryPanel {
     const playingTrack = state?.deck.source === "track" ? state.deck.id : "";
 
     const panel = this.tracks.filter((track) => this.deckSongs.has(track.id));
+    // Note(yoochan.kim): a countdown's audio is not listed here at all; only a flow's countdown plays it (the user, 2026-11-08).
     const gated = this.tracks.filter((track) => !this.deckSongs.has(track.id) && !isCountdownAudio(track));
-    // Note(yoochan.kim): a countdown's audio is listed so it can be seen, but only a countdown plays it.
-    const counts = countdownAudio(this.tracks);
-    const fetching = state?.trackFetch.kind === "fetching" ? 1 : 0;
 
     this.el.replaceChildren(
       el("div", { class: "lib__h" }, [
@@ -112,17 +110,6 @@ export class LibraryPanel {
         ...this.coming(state, panel.length + gated.length + 1),
       ]),
       ...this.measuring(state),
-      ...(counts.length > 0
-        ? [
-            el("div", { class: "lib__g" }, [
-              el("span", { class: "icon" }, [icon("clock", 13)]),
-              el("span", { textContent: "카운트다운" }),
-            ]),
-            el("div", { class: "lib__rows" }, counts.map((track, at) =>
-              this.row(track, panel.length + gated.length + fetching + at + 1, false, true, () => {}),
-            )),
-          ]
-        : []),
       ...this.runNote(state, runOwnsDeck),
       el("div", { class: "lib__opts" }, [
         this.toggle("반복", state?.loop === true, held, (next) => this.options.onLoop(next)),
