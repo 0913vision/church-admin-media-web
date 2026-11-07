@@ -26,11 +26,11 @@ async def _run(*command: str) -> tuple[bool, list[str], str]:
         )
         out, _ = await asyncio.wait_for(process.communicate(), timeout=_RUN_TIMEOUT)
     except (OSError, asyncio.TimeoutError) as error:
-        return False, [], str(error) or "실행할 수 없어요"
+        return False, [], str(error) or "실행할 수 없습니다"
     if process.returncode != 0:
         # The exit code, not the machine's own words: stderr is thrown away here so
         # that nothing this process is told ever reaches a browser.
-        return False, [], f"이 기계에서 {command[0]}을(를) 쓸 수 없어요 (코드 {process.returncode})"
+        return False, [], f"이 기계에서 {command[0]}을(를) 쓸 수 없습니다 (코드 {process.returncode})"
     text = out.decode("utf-8", errors="replace")
     return True, [line for line in text.splitlines() if line.strip()], ""
 
@@ -50,7 +50,7 @@ async def log() -> dict:
         # Note(yoochan.kim): the path goes back with the failure. This panel exists so
         # that reading the log needs no SSH, and "cannot read it" without saying which
         # file sends you to SSH anyway — which is how a wrong path went unnoticed.
-        return {"available": False, "lines": [], "path": str(path), "reason": error.strerror or "읽을 수 없어요"}
+        return {"available": False, "lines": [], "path": str(path), "reason": error.strerror or "읽을 수 없습니다"}
     return {"available": True, "lines": [line.rstrip("\n") for line in lines]}
 
 
@@ -92,11 +92,11 @@ async def cron_file(path: str) -> dict:
         if not line.lstrip().startswith("#") and len(line.split(None, 5)) >= 6
     }
     if path not in allowed or not path:
-        return {"available": False, "lines": [], "path": path, "reason": "cron이 실행하는 파일이 아니에요"}
+        return {"available": False, "lines": [], "path": path, "reason": "cron이 실행하는 파일이 아닙니다"}
     try:
         text = Path(path).read_text(encoding="utf-8", errors="replace")
     except OSError as error:
-        return {"available": False, "lines": [], "path": path, "reason": error.strerror or "읽을 수 없어요"}
+        return {"available": False, "lines": [], "path": path, "reason": error.strerror or "읽을 수 없습니다"}
     return {"available": True, "lines": text.splitlines(), "path": path, "reason": ""}
 
 

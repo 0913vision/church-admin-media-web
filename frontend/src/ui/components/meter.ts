@@ -81,7 +81,7 @@ export function unmuteButton(
   }) as HTMLButtonElement;
   button.disabled = !reachable;
   if (on) {
-    button.title = `${decibels(input.nominalDb)}로 다시 보내려면 길게 누르세요`;
+    button.title = `${decibels(input.nominalDb)}로 다시 보내려면 길게 누르십시오`;
     holdToFire(button, () => onEnable(true));
   } else {
     button.addEventListener("click", () => onEnable(false));

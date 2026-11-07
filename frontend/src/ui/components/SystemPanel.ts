@@ -325,7 +325,7 @@ export class SystemPanel {
   private paintKernel(payload: LogPayload): void {
     if (!payload.available) {
       this.log.replaceChildren(
-        el("div", { class: "log__none", textContent: `커널 로그를 읽을 수 없어요: ${payload.reason ?? "확인해 주세요"}` }),
+        el("div", { class: "log__none", textContent: `커널 로그를 읽을 수 없습니다: ${payload.reason ?? "확인해 주십시오"}` }),
       );
       return;
     }
@@ -358,7 +358,7 @@ export class SystemPanel {
   /** What this machine does on its own, and when. */
   private paintCron(payload: CronPayload): void {
     if (!payload.available || payload.jobs.length === 0) {
-      const why = payload.available ? "예약된 작업이 없어요" : `읽을 수 없어요: ${payload.reason ?? "확인해 주세요"}`;
+      const why = payload.available ? "예약된 작업이 없습니다" : `읽을 수 없습니다: ${payload.reason ?? "확인해 주십시오"}`;
       this.cron.replaceChildren(el("div", { class: "log__none", textContent: why }));
       return;
     }
@@ -388,10 +388,10 @@ export class SystemPanel {
         show(
           payload.available
             ? el("pre", { class: "file", textContent: payload.lines.join("\n") })
-            : el("div", { class: "log__none", textContent: payload.reason ?? "읽을 수 없어요" }),
+            : el("div", { class: "log__none", textContent: payload.reason ?? "읽을 수 없습니다" }),
         ),
       )
-      .catch(() => show(el("div", { class: "log__none", textContent: "읽을 수 없어요" })));
+      .catch(() => show(el("div", { class: "log__none", textContent: "읽을 수 없습니다" })));
   }
 
   /**
@@ -405,7 +405,7 @@ export class SystemPanel {
       // the reader to SSH, which is the one thing this panel is here to avoid.
       const none = [
         el("div", { class: "log__none" }, [
-          el("span", { textContent: `로그 파일을 읽을 수 없어요: ${payload.reason ?? "확인해 주세요"}` }),
+          el("span", { textContent: `로그 파일을 읽을 수 없습니다: ${payload.reason ?? "확인해 주십시오"}` }),
           ...(payload.path === undefined ? [] : [el("code", { textContent: payload.path })]),
         ]),
       ];
@@ -413,7 +413,7 @@ export class SystemPanel {
       return none;
     }
     if (payload.lines.length === 0) {
-      const none = [el("div", { class: "log__none", textContent: "아직 기록이 없어요" })];
+      const none = [el("div", { class: "log__none", textContent: "아직 기록이 없습니다" })];
       if (paint) this.log.replaceChildren(...none);
       return none;
     }

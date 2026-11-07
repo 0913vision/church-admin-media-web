@@ -96,8 +96,10 @@ repo speaks that model end to end rather than translating it.
 - **Church time, never the browser's clock.** `util/churchClock.ts` keeps the
   skew from `ping.at` and everything on screen is drawn against that — the
   whole point of the offset is that local clocks disagree
-- Korean copy is 해요체, short, and free of `·`. Labels stay labels: no
-  explanatory sentence trailing a control
+- Korean copy is 합쇼체 (~합니다, ~입니다, ~됩니다; questions ~하시겠습니까?), short,
+  and free of `·` (the user, 2026-11-07; the apps keep their own 해요체). Labels stay
+  labels: no explanatory sentence trailing a control, and a field's placeholder is a
+  noun (곡 선택), never an instruction
 
 ## Conventions
 

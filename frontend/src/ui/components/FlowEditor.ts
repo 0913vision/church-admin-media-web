@@ -434,15 +434,15 @@ export class FlowEditor {
       // Note(yoochan.kim): the media server refuses a track with no level, so a
       // blank box stops the save here rather than at the moment someone starts it.
       if (this.cues.some((cue) => !Number.isInteger(cue.volume) || cue.volume < 0 || cue.volume > 100)) {
-        warnings.push("볼륨은 0에서 100 사이여야 해요");
+        warnings.push("볼륨은 0에서 100 사이여야 합니다");
       }
       // Note(yoochan.kim): Only the finish is bound to the lock window: a timeline that begins
       // earlier just has its front cut, so an early start is not an error.
       if (asSeconds(this.endsAt) <= asSeconds(this.lockAt)) {
-        warnings.push("음악이 잠금 시작 전에 끝나요");
+        warnings.push("음악이 잠금 시작 전에 끝납니다");
       }
       if (asSeconds(this.endsAt) > asSeconds(closesAt)) {
-        warnings.push("음악이 잠금 해제보다 늦게 끝나요");
+        warnings.push("음악이 잠금 해제보다 늦게 끝납니다");
       }
     }
     if (this.countdown) {
@@ -450,24 +450,24 @@ export class FlowEditor {
       const span = countdownSpan(this.zeroAt, this.notices, this.tracks);
       const told = inOrder(this.notices).map(noticeLabel);
       lines.push(["카운트다운", `${asClock(span.opens)} → ${asClock(span.zero)}${told.length > 0 ? ` (${told.join(", ")})` : ""}`]);
-      warnings.push(...missingAudio(this.notices, this.tracks).map((name) => `${name} 파일이 곡 목록에 없어요`));
-      if (span.opens < asSeconds(this.lockAt)) warnings.push("카운트다운이 잠금 시작보다 빨라요");
-      if (span.zero > asSeconds(closesAt)) warnings.push("카운트다운이 잠금 해제보다 늦게 끝나요");
+      warnings.push(...missingAudio(this.notices, this.tracks).map((name) => `${name} 파일이 곡 목록에 없습니다`));
+      if (span.opens < asSeconds(this.lockAt)) warnings.push("카운트다운이 잠금 시작보다 빠릅니다");
+      if (span.zero > asSeconds(closesAt)) warnings.push("카운트다운이 잠금 해제보다 늦게 끝납니다");
       // Note(yoochan.kim): music timed before the gate is counted from the gate, as the server counts it.
       const musicFrom = Math.max(asSeconds(this.endsAt) - totalSec, asSeconds(this.lockAt));
       if (this.cues.length > 0 && span.opens < asSeconds(this.endsAt) && span.zero > musicFrom) {
-        warnings.push("음악이 카운트다운과 겹쳐요");
+        warnings.push("음악이 카운트다운과 겹칩니다");
       }
     }
-    if (this.unknownPart) warnings.push("알 수 없는 순서가 있어요");
+    if (this.unknownPart) warnings.push("알 수 없는 순서가 있습니다");
     if (asSeconds(closesAt) <= asSeconds(this.lockAt)) {
-      warnings.push("잠금 해제가 잠금 시작보다 빨라요");
+      warnings.push("잠금 해제가 잠금 시작보다 빠릅니다");
     }
     // Note(yoochan.kim): a blank form is not a wrong one. Empty fields are said once
     // 저장 has been pressed; a schedule that contradicts itself is said at once.
     const empty: string[] = [];
-    if (this.weekdays.size === 0) empty.push("요일이 비어 있어요");
-    if (!this.name.trim()) empty.push("이름이 비어 있어요");
+    if (this.weekdays.size === 0) empty.push("요일이 비어 있습니다");
+    if (!this.name.trim()) empty.push("이름이 비어 있습니다");
     this.blocked = warnings.length + empty.length > 0;
     if (this.tried) warnings.push(...empty);
 

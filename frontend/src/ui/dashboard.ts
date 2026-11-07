@@ -68,26 +68,26 @@ const ATTRIBUTES = [
 ] as const;
 
 const REJECT_LABEL: Record<string, string> = {
-  invalidValue: "값이 올바르지 않아요",
-  invalidPassword: "비밀번호가 올바르지 않아요",
-  notAdmin: "방송실에서만 할 수 있어요",
-  notWritable: "바꿀 수 없어요",
-  adminLocked: "관리자 잠금이 걸려 있어요",
-  deviceBusy: "바뀌는 중이에요",
-  unknownTrack: "등록되지 않은 곡이에요",
-  flowActive: "이미 도는 자동 진행이 있어요",
-  noFlow: "도는 자동 진행이 없어요",
-  windowPassed: "이미 지난 시각이에요",
-  musicOutsideLock: "곡이 잠금 시간을 벗어나요",
-  deckSong: "앱에서 고르는 곡이에요",
-  trackInUse: "쓰고 있는 곡이에요",
-  unknownUpload: "재생기에 올리지 못했어요",
-  tooLarge: "300MB를 넘어요",
-  fetchFailed: "영상을 받지 못했어요",
-  fetchBusy: "다른 곡을 받고 있어요",
-  titleTaken: "같은 제목이 있어요",
-  unknownTarget: "서버가 모르는 요청이에요",
-  protocolMismatch: "버전이 맞지 않아요. 업데이트가 필요해요",
+  invalidValue: "값이 올바르지 않습니다",
+  invalidPassword: "비밀번호가 올바르지 않습니다",
+  notAdmin: "방송실에서만 할 수 있습니다",
+  notWritable: "바꿀 수 없습니다",
+  adminLocked: "관리자 잠금이 걸려 있습니다",
+  deviceBusy: "바뀌는 중입니다",
+  unknownTrack: "등록되지 않은 곡입니다",
+  flowActive: "이미 도는 자동 진행이 있습니다",
+  noFlow: "도는 자동 진행이 없습니다",
+  windowPassed: "이미 지난 시각입니다",
+  musicOutsideLock: "곡이 잠금 시간을 벗어납니다",
+  deckSong: "앱에서 고르는 곡입니다",
+  trackInUse: "쓰고 있는 곡입니다",
+  unknownUpload: "재생기에 올리지 못했습니다",
+  tooLarge: "300MB를 넘습니다",
+  fetchFailed: "영상을 받지 못했습니다",
+  fetchBusy: "다른 곡을 받고 있습니다",
+  titleTaken: "같은 제목이 있습니다",
+  unknownTarget: "서버가 모르는 요청입니다",
+  protocolMismatch: "버전이 맞지 않습니다. 업데이트가 필요합니다",
 };
 
 /**
@@ -185,7 +185,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     guard(deviceApi.invoke({ command: "enableConsoleInput", args: { input } }));
     if (!resend) return;
     const label = consoleState.find((entry) => entry.id === input)?.label ?? "입력";
-    showNotice(`${label} 소리를 기준으로 되돌렸어요`, true);
+    showNotice(`${label} 소리를 기준으로 되돌렸습니다`, true);
   };
 
   /**
@@ -197,13 +197,13 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
    */
   const initializeConsole = (): void => {
     askFirst.open({
-      title: "본당 음향을 예배와 동일하게 변경할까요?",
-      message: "모든 입력이 켜지고, 메인과 매트릭스가 예배 레벨로 바뀌어요.",
+      title: "본당 음향을 예배와 동일하게 변경하시겠습니까?",
+      message: "모든 입력이 켜지고, 메인과 매트릭스가 예배 레벨로 바뀝니다.",
       action: "변경",
       tone: "go",
       onAction: () => {
         guard(deviceApi.invoke({ command: "initializeConsole", args: {} }));
-        showNotice("본당 음향을 예배와 동일하게 맞췄어요", true);
+        showNotice("본당 음향을 예배와 동일하게 맞췄습니다", true);
       },
     });
   };
@@ -234,21 +234,21 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     onStart: (flowId) => {
       scheduleApi.start(flowId).catch((err) => {
         if (err instanceof UnauthorizedError) leave();
-        else schedulePanel.showMessage(err instanceof Error ? err.message : "시작하지 못했어요");
+        else schedulePanel.showMessage(err instanceof Error ? err.message : "시작하지 못했습니다");
       });
     },
     onStop: () => guard(scheduleApi.stop()),
     onSave: (id, entry) => {
-      written(scheduleApi.save(id, entry), "저장했어요", "저장하지 못했어요");
+      written(scheduleApi.save(id, entry), "저장했습니다", "저장하지 못했습니다");
     },
     onDelete: (id) => {
       const name = (store.dashboard.device.schedule ?? []).find((entry) => entry.id === id)?.name;
       askFirst.open({
-        title: name ? `‘${name}’${objectParticle(name)} 삭제할까요?` : "이 자동 진행을 삭제할까요?",
-        message: "삭제한 자동 진행은 되돌릴 수 없어요.",
+        title: name ? `‘${name}’${objectParticle(name)} 삭제하시겠습니까?` : "이 자동 진행을 삭제하시겠습니까?",
+        message: "삭제한 자동 진행은 되돌릴 수 없습니다.",
         action: "삭제",
         tone: "danger",
-        onAction: () => written(scheduleApi.remove(id), "삭제했어요", "삭제하지 못했어요"),
+        onAction: () => written(scheduleApi.remove(id), "삭제했습니다", "삭제하지 못했습니다"),
       });
     },
   });
@@ -265,7 +265,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     onAdd: (title, source) => guard(deviceApi.invoke({ command: "addTrack", args: { title, source } })),
     onAdded: () => {
       confirm.close();
-      showNotice("추가했어요", true);
+      showNotice("추가했습니다", true);
     },
     onFetching: () => {
       fetchAsked = true;
@@ -412,8 +412,8 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   /** Deleting one track, asked over the settings dialog in the words Apple and Material use. */
   const askToDelete = (track: Track): void => {
     askFirst.open({
-      title: `‘${track.title}’${objectParticle(track.title)} 삭제할까요?`,
-      message: "음원 파일도 함께 지워져요. 삭제한 곡은 되돌릴 수 없어요.",
+      title: `‘${track.title}’${objectParticle(track.title)} 삭제하시겠습니까?`,
+      message: "음원 파일도 함께 지워집니다. 삭제한 곡은 되돌릴 수 없습니다.",
       action: "삭제",
       tone: "danger",
       onAction: () => {
@@ -458,7 +458,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
       write("musicEndsAt", { kind: "withHold" });
     });
     body.append(untilGate);
-    confirm.open("음악을 언제 멈출까요", body, () => {}, [], "sm");
+    confirm.open("음악을 언제 멈추시겠습니까", body, () => {}, [], "sm");
   };
 
   const systemPanel = new SystemPanel({
@@ -744,7 +744,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   };
 
   const showRejection = (rejection: Rejection): void => {
-    showNotice(REJECT_LABEL[rejection.reason] ?? `거부됐어요: ${rejection.reason}`);
+    showNotice(REJECT_LABEL[rejection.reason] ?? `거부됐습니다: ${rejection.reason}`);
   };
 
   const renderLink = (link: Link): void => {
@@ -780,12 +780,12 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
       // Note(yoochan.kim): told on the screen that asked, and only there.
       if (!trackAdd.onTracks(added) && added.length > 0 && fetchAsked) {
         fetchAsked = false;
-        showNotice("추가했어요", true);
+        showNotice("추가했습니다", true);
       }
       for (const id of gone) {
         settingsRows.get(id)?.remove();
         settingsRows.delete(id);
-        if (deleting.delete(id)) showNotice("삭제했어요", true);
+        if (deleting.delete(id)) showNotice("삭제했습니다", true);
       }
     }
     tracksKnown = true;

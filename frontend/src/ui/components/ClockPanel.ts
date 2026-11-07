@@ -173,7 +173,7 @@ export class ClockPanel {
         el("span", { class: "tap__t" }, [
           el("b", { textContent: "분이 바뀔 때" }),
           el("kbd", { class: "kbd", textContent: "Space" }),
-          "를 누르세요",
+          "를 누르십시오",
         ]),
         cancel,
       );
@@ -192,7 +192,7 @@ export class ClockPanel {
       el("span", { class: "tap__t" }, [
         "교회 시계가 바뀔 때를 보고 ",
         el("kbd", { class: "kbd", textContent: "Space" }),
-        "를 눌러 맞출 수 있어요",
+        "를 눌러 맞출 수 있습니다",
       ]),
     );
   }

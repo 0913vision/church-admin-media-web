@@ -133,9 +133,9 @@ export class LibraryPanel {
     if (state?.adminLock !== true || state.loop !== true) return [];
 
     const end = state.musicEndsAt;
-    const said = end.kind === "at" ? `${hhmmss(end.at)}에 멈춰요`
-      : end.kind === "withHold" ? "잠금이 풀릴 때 멈춰요"
-      : "언제 멈출지 정하지 않았어요";
+    const said = end.kind === "at" ? `${hhmmss(end.at)}에 멈춥니다`
+      : end.kind === "withHold" ? "잠금이 풀릴 때 멈춥니다"
+      : "언제 멈출지 정하지 않았습니다";
 
     const set = el("button", { class: "lib__when", type: "button", textContent: said });
     set.addEventListener("click", () => this.options.onSetMusicEnd());
@@ -153,8 +153,8 @@ export class LibraryPanel {
   private runNote(state: State | null, runOwnsDeck: boolean): HTMLElement[] {
     if (!state || state.flow.phase === "idle") return [];
     const says = runOwnsDeck
-      ? "자동 진행이 음악을 틀고 있어요. 끝나야 고를 수 있어요"
-      : "자동 진행 중이에요. 지금 고른 곡은 자동 진행 음악이 시작되면 멈춰요";
+      ? "자동 진행이 음악을 틀고 있습니다. 끝나야 고를 수 있습니다"
+      : "자동 진행 중입니다. 지금 고른 곡은 자동 진행 음악이 시작되면 멈춥니다";
     return [el("div", { class: "lib__note" }, [el("span", { textContent: says })])];
   }
 

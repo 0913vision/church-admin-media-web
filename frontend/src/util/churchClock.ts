@@ -157,7 +157,7 @@ export function noOffset(offsetSec: number): boolean {
 /** How the church clock differs from standard time, said the way people say it. */
 export function driftOf(offsetSec: number): string {
   if (noOffset(offsetSec)) return "보정 없음";
-  return `표준 시각보다 ${amountOf(offsetSec)} ${offsetSec > 0 ? "빨라요" : "느려요"}`;
+  return `표준 시각보다 ${amountOf(offsetSec)} ${offsetSec > 0 ? "빠릅니다" : "느립니다"}`;
 }
 
 function signOf(sec: number): string {

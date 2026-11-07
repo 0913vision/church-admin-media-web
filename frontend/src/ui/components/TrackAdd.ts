@@ -33,11 +33,11 @@ const FINE: Problem = { kind: "none" };
 
 /** What a refusal of addTrack means, said by the field it is about. */
 const REFUSED: Record<string, string> = {
-  invalidValue: "유튜브 주소가 아니에요",
-  fetchBusy: "다른 곡을 받고 있어요",
-  fetchFailed: "영상을 받지 못했어요",
-  tooLarge: "300MB를 넘어요",
-  unknownUpload: "재생기에 올리지 못했어요",
+  invalidValue: "유튜브 주소가 아닙니다",
+  fetchBusy: "다른 곡을 받고 있습니다",
+  fetchFailed: "영상을 받지 못했습니다",
+  tooLarge: "300MB를 넘습니다",
+  unknownUpload: "재생기에 올리지 못했습니다",
 };
 
 function sizeOf(bytes: number): string {
@@ -159,13 +159,13 @@ export class TrackAdd {
     const onFile = this.phase.on === "upload";
     this.phase = EDITING;
     if (rejection.reason === "titleTaken") {
-      this.problem = { kind: "field", field: "title", text: "같은 제목이 있어요" };
+      this.problem = { kind: "field", field: "title", text: "같은 제목이 있습니다" };
     } else {
       if (onFile) this.uploaded = undefined;
       this.problem = {
         kind: "field",
         field: onFile ? "file" : "url",
-        text: onFile ? REFUSED.unknownUpload! : (REFUSED[rejection.reason] ?? "추가하지 못했어요"),
+        text: onFile ? REFUSED.unknownUpload! : (REFUSED[rejection.reason] ?? "추가하지 못했습니다"),
       };
     }
     this.refresh();
@@ -224,9 +224,9 @@ export class TrackAdd {
           this.problem = {
             kind: "field",
             field: "file",
-            text: outcome.reason === "tooLarge" ? "300MB를 넘어요"
-              : outcome.reason === "notMp3" ? "mp3 파일이 아니에요"
-              : "재생기에 올리지 못했어요",
+            text: outcome.reason === "tooLarge" ? "300MB를 넘습니다"
+              : outcome.reason === "notMp3" ? "mp3 파일이 아닙니다"
+              : "재생기에 올리지 못했습니다",
           };
           this.refresh();
           return;

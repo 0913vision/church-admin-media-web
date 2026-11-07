@@ -35,6 +35,6 @@ export class TransportControls {
     // run describing sound that is not there.
     const held = flowOwnsDeck(state.flow);
     this.el.disabled = state.audioLock || held;
-    if (held) this.el.title = "자동 진행 중이에요";
+    if (held) this.el.title = "자동 진행 중입니다";
   }
 }

@@ -34,7 +34,7 @@ export function renderLogin(root: HTMLElement, onSuccess: () => void): void {
       onSuccess();
     } catch (err) {
       error.textContent =
-        err instanceof UnauthorizedError ? "비밀번호가 맞지 않아요" : "로그인하지 못했어요";
+        err instanceof UnauthorizedError ? "비밀번호가 맞지 않습니다" : "로그인하지 못했습니다";
       submit.disabled = false;
     }
   });

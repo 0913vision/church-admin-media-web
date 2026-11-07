@@ -96,7 +96,7 @@ export class FlowPanel {
           el("b", {
             textContent: running
               ? ((this.status as { name?: string }).name ?? "자동 진행 중")
-              : "지금 시작할 수 있는 자동 진행이 없어요",
+              : "지금 시작할 수 있는 자동 진행이 없습니다",
           }),
           gotoRight(this.goto()),
         ]),
@@ -133,7 +133,7 @@ export class FlowPanel {
       facts.push(`${hhmm(span.closes)}에 잠금 해제`);
     } else {
       if (flow.autoStart) facts.push("자동으로 시작");
-      facts.push(opensInSec > 0 ? `${durationOf(opensInSec)} 뒤 시작해요` : "자동 진행을 시작할 수 있어요");
+      facts.push(opensInSec > 0 ? `${durationOf(opensInSec)} 뒤 시작합니다` : "자동 진행을 시작할 수 있습니다");
       if (span.segments.length > 0) {
         // Note(yoochan.kim): written out here rather than left to the scale, where a
         // music time falling within a few minutes of the lock would land on top

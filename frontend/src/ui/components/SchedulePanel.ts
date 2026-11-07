@@ -124,11 +124,11 @@ export class SchedulePanel {
     }
     this.runBox.replaceChildren(
       el("div", { class: "run__head" }, [
-        el("span", { class: "run__name", textContent: "알 수 없는 상태예요" }),
+        el("span", { class: "run__name", textContent: "알 수 없는 상태입니다" }),
         el("span", { class: "badge is-bad", textContent: "업데이트 필요" }),
       ]),
       el("div", { class: "run__meta" }, [
-        el("span", { textContent: "이 버전이 모르는 상태예요. 화면을 믿지 마세요" }),
+        el("span", { textContent: "이 버전이 모르는 상태입니다. 화면을 믿지 마십시오" }),
       ]),
     );
   }
@@ -144,7 +144,7 @@ export class SchedulePanel {
     const flow = this.week.selectedFlow();
     if (!flow) {
       this.detail.replaceChildren(
-        el("span", { class: "sched-msg", textContent: "선택된 순서가 없어요" }),
+        el("span", { class: "sched-msg", textContent: "선택된 순서가 없습니다" }),
         el("div", { class: "detail__b" }, [this.addButton()]),
       );
       return;
@@ -200,7 +200,7 @@ export class SchedulePanel {
     // calendar without changing what is playing.
     const edit = el("button", { class: "pick", type: "button", textContent: "편집" }) as HTMLButtonElement;
     edit.disabled = this.runningId === flow.id;
-    if (edit.disabled) edit.title = "진행 중에는 편집할 수 없어요";
+    if (edit.disabled) edit.title = "진행 중에는 편집할 수 없습니다";
     edit.addEventListener("click", () => this.openEditor(flow));
 
     let action: HTMLElement;
@@ -210,7 +210,7 @@ export class SchedulePanel {
     } else {
       const start = el("button", { class: "btn btn--go", type: "button", textContent: "시작" });
       start.disabled = !flow.runnableToday;
-      start.title = flow.runnableToday ? "" : "오늘은 실행할 수 없어요";
+      start.title = flow.runnableToday ? "" : "오늘은 실행할 수 없습니다";
       start.addEventListener("click", () => this.options.onStart(flow.id));
       action = start;
     }
