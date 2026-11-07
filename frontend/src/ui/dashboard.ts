@@ -16,6 +16,7 @@ import { holdToFire } from "./components/hold.js";
 import { Modal } from "./components/Modal.js";
 import { Alert } from "./components/Alert.js";
 import { TrackAdd } from "./components/TrackAdd.js";
+import { LevelMatchWindow } from "./components/LevelMatch.js";
 import { Fader } from "./components/Fader.js";
 import { SchedulePanel } from "./components/SchedulePanel.js";
 import { SystemPanel, formatUptime } from "./components/SystemPanel.js";
@@ -88,6 +89,10 @@ const REJECT_LABEL: Record<string, string> = {
   titleTaken: "같은 제목이 있습니다",
   unknownTarget: "서버가 모르는 요청입니다",
   protocolMismatch: "버전이 맞지 않습니다. 업데이트가 필요합니다",
+  levelMatching: "볼륨 측정 중입니다",
+  notMeasuring: "측정 중이 아닙니다",
+  outOfReach: "볼륨 범위를 벗어납니다",
+  consoleHeld: "다른 작업이 X32를 쓰고 있습니다",
 };
 
 /**
@@ -286,7 +291,25 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     },
     onUnlockWhenDone: (on) => write("unlockWhenDone", on),
     onSetMusicEnd: () => openMusicEnd(),
+    onMeasure: () => openLevelMatch(),
   });
+  const levelMatch = new LevelMatchWindow({
+    onStart: (args) => guard(deviceApi.invoke({ command: "matchTrackLevel", args })),
+    onCommand: (command) => guard(deviceApi.invoke({ command, args: {} })),
+    onConfirm: (alert) => askFirst.open(alert),
+    onClose: () => confirm.close(),
+  });
+  // Note(yoochan.kim): what a finished measurement came to stays on the library until it has been opened here.
+  const openLevelMatch = (): void => {
+    levelMatch.opened();
+    confirm.open("볼륨 튜닝", levelMatch.el, () => {
+      levelMatch.closed();
+      const phase = store.dashboard.device.levelMatch?.phase;
+      if (phase !== "measuring" && phase !== "paused") libraryPanel.markMeasureSeen();
+    }, [levelMatch.keys], "tn");
+    // Note(yoochan.kim): no field taken for the person; the form opens as its mockup shows it.
+    if (document.activeElement instanceof HTMLInputElement) document.activeElement.blur();
+  };
   /**
    * The library's settings: every track, the level it comes back at, and — for
    * the tracks the panel does not offer — its name and 삭제.
@@ -765,6 +788,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     libraryPanel.setTracks(libraryTracks, [...deckSongIds]);
     // Note(yoochan.kim): a server that does not implement these shows no key for them.
     libraryPanel.setCanAdd(link.commands.includes("addTrack"));
+    libraryPanel.setCanMeasure(link.commands.includes("matchTrackLevel") && link.commands.includes("applyLevelMatch"));
     canEditTracks = link.commands.includes("renameTrack") && link.commands.includes("deleteTrack");
   };
 
@@ -792,6 +816,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     libraryTracks = tracks;
     trackTitles = new Map(tracks.map((track) => [track.id, track.title]));
     libraryPanel.setTracks(tracks, [...deckSongIds]);
+    levelMatch.setTracks(tracks);
     schedulePanel.setTracks(tracks);
     flowPanel.setTracks(tracks);
   };
@@ -853,6 +878,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     flowPanel.setFlows(flows);
     renderSongRadios(state);
     libraryPanel.setState(state);
+    levelMatch.setState(state);
     trackAdd.onFetch(state.trackFetch);
     clockPanel.setOffset(state.clockOffsetSec);
     // Note(yoochan.kim): A run always holds the gate, so this is also "no clock changes while
@@ -907,6 +933,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     onRejected: (rejection) => {
       // Note(yoochan.kim): a refusal the add dialog is waiting on is shown by its field.
       if (trackAdd.onRejected(rejection)) return;
+      if (levelMatch.onRejected(rejection)) return;
       if (rejection.target === "addTrack") fetchAsked = false;
       if (rejection.target === "deleteTrack") deleting.clear();
       showRejection(rejection);

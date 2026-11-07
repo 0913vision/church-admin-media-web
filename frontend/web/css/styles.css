@@ -32,6 +32,8 @@
   --go: #16A34A; --go-soft: rgba(22, 163, 74, 0.13); --go-face: #16A34A;
   --hold: #C2740A; --hold-face: #C2740A; --hold-soft: rgba(194, 116, 10, 0.12);
   --bad: #DC2626; --bad-soft: rgba(220, 38, 38, 0.12);
+  /* Note(yoochan.kim): red and green for small words, dark enough to read at 4.5:1. */
+  --bad-ink: #B91C1C; --go-ink: #166534;
   --seg-idle: #C3CFE3;
   --ink-tint: rgba(27, 32, 41, 0.05);
   --key-dn: rgba(20, 26, 40, 0.10);
@@ -55,6 +57,7 @@
   --go: #22C55E; --go-soft: rgba(34, 197, 94, 0.16); --go-face: #15803D;
   --hold: #F5A524; --hold-face: #B45309; --hold-soft: rgba(245, 165, 36, 0.10);
   --bad: #EF4444; --bad-soft: rgba(239, 68, 68, 0.16);
+  --bad-ink: #FCA5A5; --go-ink: #4ADE80;
   --seg-idle: #46556E;
   --ink-tint: rgba(233, 237, 244, 0.09);
   --key-dn: rgba(0, 0, 0, 0.25);
@@ -361,6 +364,7 @@ button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--slot); }
 .lib__cog { margin-left: auto; display: grid; place-items: center; width: 32px; height: 32px;
             border: 0; border-radius: 8px; background: none; color: var(--c-fnt); cursor: pointer; }
 .lib__cog:hover { background: var(--raised); color: var(--c-ink); }
+.lib__cog:disabled { opacity: 0.38; background: none; cursor: default; }
 .lib__i { flex: none; width: 16px; text-align: right; font-size: 13.5px; color: var(--c-fnt);
           font-variant-numeric: tabular-nums; }
 .lib__r.on .lib__i { color: rgba(255, 255, 255, 0.75); }
@@ -1093,6 +1097,122 @@ body.has-modal { overflow: hidden; }
 .field.is-bad .filebar, .field.is-bad .editor__input { border-color: var(--bad); }
 /* What is wrong with a field, under it. Only the reason. */
 .field__msg { margin: 0; font-size: 13.5px; color: var(--bad); }
+
+/* ================= 볼륨 튜닝: the form, the run, what it came to ================= */
+/* Note(yoochan.kim): as its mockup draws it (claude.ai/artifact/6UW289VJzr6ZKDiZEXikCX); 448 wide, every step one height. */
+.modal__box--tn { width: min(448px, 100%); }
+.modal__box--tn .modal__b { padding: 0; overflow: visible; }
+.tn__b { height: 312px; padding: 12px 24px 24px; display: flex; flex-direction: column; gap: 16px; }
+.lm__keys { display: contents; }
+.lm__aside { margin-right: auto; font-size: 13px; color: var(--c-mut); }
+.lm__aside.is-bad { color: var(--bad-ink); font-weight: 500; }
+/* Fields: the label above, 8 between (shadcn, Geist); two short ones share a row. */
+.tn__field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.tn__lab { font-size: 13.5px; font-weight: 500; line-height: 16px; color: var(--c-ink); }
+.tn__pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+/* Note(yoochan.kim): two options that need a word each, as Geist's Choicebox: side by side, title over a muted line, the radio at the right. */
+.tn__cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.tn__card { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px 10px; cursor: pointer;
+            border: 1px solid var(--cap-line); border-radius: 8px; background: var(--cap); color: var(--c-ink); }
+.tn__card:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--slot); }
+.tn__cardT { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tn__card b { font-size: 13.5px; font-weight: 500; line-height: 18px; }
+.tn__card small { font-size: 12.5px; line-height: 16px; color: var(--c-mut); }
+.tn__card .tn__check { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); height: auto; font-size: 12.5px; line-height: 20px; }
+.tn__card.on { border-color: var(--go); background: var(--go-soft); }
+.tn__card.on .tn__check { border-top-color: rgba(22, 163, 74, 0.25); }
+/* The radio: 16, as shadcn, Fluent and Geist draw it; the chosen one in the app's green. */
+.tn__r { flex: none; width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--c-fnt); display: grid; place-items: center; background: var(--cap); }
+.tn__card.on .tn__r { border-color: var(--go); }
+.tn__card.on .tn__r::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--go); }
+/* One thing on or off is a tick box, the app's own (repeat, unlock when done). */
+.tn__check { display: flex; align-items: center; gap: 8px; height: 24px; padding: 0; border: 0; background: none; font: inherit; font-size: 13.5px;
+             color: var(--c-ink); cursor: pointer; text-align: left; }
+.tn__check.on .lib__box { background: var(--go); border-color: var(--go); color: #fff; }
+.tn__check:disabled { color: var(--c-fnt); cursor: default; }
+.tn__check:disabled .lib__box { opacity: 0.5; }
+/* Note(yoochan.kim): a grey tick is one that cannot be taken off: the player's output is always measured with aux 5/6 muted. */
+.tn__check:disabled.on .lib__box { background: var(--c-fnt); border-color: var(--c-fnt); color: var(--panel); opacity: 1; }
+/* Note(yoochan.kim): the track's name left and its length right, as the library and the flow editor's picker list them. */
+.tn__pick { position: relative; }
+.tn__sel { position: relative; height: var(--field); display: flex; align-items: center; gap: 12px; padding: 0 32px 0 10px; border: 1px solid var(--cap-line);
+           border-radius: 8px; background: var(--cap); font: inherit; font-size: 13.5px; color: var(--c-ink); text-align: left; cursor: pointer; }
+.tn__sel:focus-visible { outline: none; border-color: var(--go); box-shadow: none; }
+.tn__sel > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tn__sel > small { flex: none; font-size: 13px; color: var(--c-mut); font-variant-numeric: tabular-nums; }
+.tn__sel.is-empty { color: var(--c-mut); }
+.tn__sel::after { content: ""; position: absolute; right: 13px; top: 50%; width: 6px; height: 6px; margin-top: -5px;
+                  border-right: 1.5px solid var(--c-mut); border-bottom: 1.5px solid var(--c-mut); transform: rotate(45deg); }
+.tn__list { right: 0; max-height: 228px; }
+/* The unit inside the field's border, after the value, muted (all four systems); the range is the empty field's placeholder. */
+.tn__unit { height: var(--field); display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid var(--cap-line);
+            border-radius: 8px; background: var(--cap); font-size: 13.5px; }
+.tn__unit:focus-within { border-color: var(--go); }
+.tn__unit.is-bad { border-color: var(--bad); }
+.tn__unit span { color: var(--c-mut); }
+.tn__in { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; background: none; outline: none;
+          font: inherit; font-size: 13.5px; color: var(--c-ink); font-variant-numeric: tabular-nums; }
+.tn__in::placeholder { color: var(--c-mut); opacity: 1; }
+/* The run: the track first, then the average as the one big number, two facts, the meter, the X32's state. */
+.tn__now { display: flex; flex-direction: column; gap: 6px; }
+.tn__lbl { font-size: 13.5px; line-height: 16px; color: var(--c-mut); }
+/* Note(yoochan.kim): the one thing in ink at weight, 48 / 600 (Geist heading-48); everything else steps back to grey. */
+.tn__num { font-size: 48px; font-weight: 600; line-height: 56px; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: var(--c-ink); }
+.tn__num small { font-size: 18px; font-weight: 500; letter-spacing: 0; color: var(--c-mut); margin-left: 6px; }
+/* Note(yoochan.kim): the run's number takes 69px as the mockup's did, its dB setting the line there. */
+.tn__now .tn__num { height: 69px; }
+.tn__num.is-wait { color: var(--c-mut); }
+/* Facts: the label above the value, Geist Description. */
+.tn__facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 0; }
+.tn__facts > div { display: flex; flex-direction: column; gap: 4px; }
+.tn__facts dt { font-size: 12.5px; line-height: 16px; color: var(--c-fnt); }
+.tn__facts dd { margin: 0; font-size: 14px; font-weight: 400; line-height: 18px; color: var(--c-mut); font-variant-numeric: tabular-nums; }
+/* Note(yoochan.kim): −60 to 0 dB, green as every level bar in the app, the target a mark through it and the average a triangle. */
+.tn__meter { position: relative; height: 10px; border-radius: 3px; background: var(--track); }
+.tn__meter > i { position: absolute; inset: 0 auto 0 0; border-radius: 3px 0 0 3px; background: var(--go); }
+.tn__mark { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--c-ink); box-shadow: 0 0 0 1px var(--panel); }
+.tn__avg { position: absolute; top: -9px; width: 0; height: 0; margin-left: -5px;
+           border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid var(--c-ink); }
+.tn__scale { position: relative; height: 14px; margin-top: 4px; font-size: 11.5px; line-height: 14px; color: var(--c-fnt); font-variant-numeric: tabular-nums; }
+.tn__scale span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+.tn__scale span:first-child:not(.is-target) { transform: none; left: 0; }
+.tn__scale span:last-child:not(.is-target) { transform: none; left: auto; right: 0; }
+.tn__scale .is-target { color: var(--c-mut); font-weight: 500; }
+/* Note(yoochan.kim): the track as shadcn's progress with a label: name left, time right, a 4px bar under them. */
+.tn__track { display: flex; flex-direction: column; gap: 8px; }
+/* Note(yoochan.kim): the mockup's line heights stated outright (its face sets 1.6 where this one sets 1.45), so every step lands where it is drawn. */
+.tn__trackT { display: flex; align-items: baseline; gap: 12px; font-size: 13.5px; line-height: 21.6px; }
+.tn__trackT span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 400; color: var(--c-mut); }
+.tn__trackT small { font-size: 13.5px; color: var(--c-fnt); font-variant-numeric: tabular-nums; }
+.tn__prog { height: 4px; border-radius: 2px; background: var(--track); position: relative; overflow: hidden; }
+.tn__prog > i { position: absolute; inset: 0 auto 0 0; background: var(--c-fnt); }
+/* Note(yoochan.kim): the spinner and what is under way at the left for as long as it runs, the X32's state at the right. */
+.tn__desk { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: auto; font-size: 12.5px; font-weight: 500; line-height: 16px; }
+.tn__busy { display: flex; align-items: center; gap: 8px; color: var(--c-mut); }
+.tn__desk .is-bad { color: var(--bad-ink); }
+.tn__desk .is-go { color: var(--go-ink); }
+.tn__spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--track); border-top-color: var(--c-mut); animation: spin 0.9s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .tn__spin { animation: none; } }
+/* What it came to: the track, the new level as the big number, then what it came from. */
+.tn__ans { display: flex; flex-direction: column; gap: 6px; }
+.tn__why { font-size: 20px; font-weight: 600; line-height: 48px; color: var(--c-ink); }
+/* Note(yoochan.kim): a state as a tag beside the number, not a sentence (badge 20 high, 12 / 500: 3 systems). */
+.tn__tag { height: 20px; margin-left: 10px; vertical-align: 7px; font-size: 12px; font-weight: 500; letter-spacing: 0;
+           background: var(--bad-soft); color: var(--bad-ink); }
+.tn__tag--wait { background: var(--raised); color: var(--c-mut); }
+.tn__tag--done { background: var(--go-soft); color: var(--go-ink); }
+.tn__line { height: 1px; background: var(--line); }
+/* Note(yoochan.kim): the measurement on the list's columns: the ring where the numbers are, the name under the names, 열기 ending where the lengths end. */
+.lib__run { display: flex; align-items: center; gap: 10px; padding: 9px 10px; margin: 2px -10px 0;
+            border-radius: 8px; background: var(--well); font-size: 13.5px; color: var(--c-mut); }
+.lib__run b { color: var(--c-ink); font-weight: 600; }
+.lib__run .lib__i { display: flex; justify-content: flex-end; }
+/* Note(yoochan.kim): 1px in and 열기 1px out, so the ink meets the digits' and the lengths' ink (measured at 4x). */
+.lib__run .ring { margin-right: 1px; }
+.lib__run .chip { flex: none; }
+.lib__run .num { flex: none; font-variant-numeric: tabular-nums; }
+.lib__run .textbtn { font-size: 13.5px; padding: 2px 4px; margin-right: -5px; font-weight: 600; }
+.lib__cog .ring { width: 15px; height: 15px; }
 
 /* ================= login ================= */
 /* One field, so no card: a mark, a title, the field and one full-width key on the page

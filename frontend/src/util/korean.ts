@@ -1,3 +1,9 @@
+/** A track's length as the library lists it: 6분 02초. */
+export function trackLength(seconds: number): string {
+  const whole = Math.round(seconds);
+  return `${Math.floor(whole / 60)}분 ${String(whole % 60).padStart(2, "0")}초`;
+}
+
 /**
  * 을 or 를 after a word, by whether its last syllable ends in a consonant.
  * A word that does not end in Hangul gets both, the way forms write it.

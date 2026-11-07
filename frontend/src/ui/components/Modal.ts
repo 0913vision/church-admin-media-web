@@ -2,7 +2,7 @@ import { el } from "../../util/dom.js";
 import { icon } from "../icons.js";
 
 /** How wide a dialog is: set by what it holds, not one width for all of them. */
-export type ModalSize = "sm" | "md" | "lg";
+export type ModalSize = "sm" | "md" | "lg" | "tn";
 
 /**
  * A dialog over a dimmed page: the title and ✕ at the top, what it is about, and

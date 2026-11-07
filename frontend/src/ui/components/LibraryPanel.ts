@@ -1,7 +1,9 @@
 import { el } from "../../util/dom.js";
 import { icon } from "../icons.js";
-import type { State, Track } from "../../protocol.js";
+import type { LevelMatch, State, Track } from "../../protocol.js";
 import { countdownAudio, flowOwnsDeck, isCountdownAudio } from "../../util/flow.js";
+import { trackLength } from "../../util/korean.js";
+import { LEVEL_FAILED, answerText } from "./LevelMatch.js";
 
 export interface LibraryPanelOptions {
   /** A song the panel itself offers: selected, not started. */
@@ -16,11 +18,8 @@ export interface LibraryPanelOptions {
   onUnlockWhenDone: (on: boolean) => void;
   /** Asks when the music should stop; the panel only says that it must be asked. */
   onSetMusicEnd: () => void;
-}
-
-function minutes(seconds: number): string {
-  const whole = Math.round(seconds);
-  return `${Math.floor(whole / 60)}분 ${String(whole % 60).padStart(2, "0")}초`;
+  /** Opens the 볼륨 튜닝 dialog. */
+  onMeasure: () => void;
 }
 
 /** The clock part of a wire instant. */
@@ -43,8 +42,21 @@ export class LibraryPanel {
   private state: State | null = null;
   /** Whether this server takes new tracks at all: ready says, and the key follows. */
   private canAdd = false;
+  private canMeasure = false;
+  /** The finished measurement somebody has already looked at, so its row goes. */
+  private measureSeen = "";
 
   constructor(private readonly options: LibraryPanelOptions) {}
+
+  setCanMeasure(canMeasure: boolean): void {
+    this.canMeasure = canMeasure;
+    this.render();
+  }
+
+  markMeasureSeen(): void {
+    this.measureSeen = JSON.stringify(this.state?.levelMatch ?? "");
+    this.render();
+  }
 
   setTracks(tracks: Track[], deckSongIds: string[]): void {
     this.tracks = tracks;
@@ -81,6 +93,7 @@ export class LibraryPanel {
       el("div", { class: "lib__h" }, [
         el("b", { textContent: "곡 목록" }),
         ...(this.canAdd ? [this.addKey()] : []),
+        ...(this.canMeasure ? [this.measureKey(state)] : []),
         this.settingsKey(),
       ]),
       el("div", { class: "lib__rows" }, panel.map((track) => {
@@ -98,6 +111,7 @@ export class LibraryPanel {
         ),
         ...this.coming(state, panel.length + gated.length + 1),
       ]),
+      ...this.measuring(state),
       ...(counts.length > 0
         ? [
             el("div", { class: "lib__g" }, [
@@ -193,6 +207,50 @@ export class LibraryPanel {
     return key;
   }
 
+  /** Opens 볼륨 튜닝; a new measurement needs the gate, one already there can always be looked at. */
+  private measureKey(state: State | null): HTMLElement {
+    const match = state?.levelMatch;
+    // Note(yoochan.kim): a person's gate, as the device asks; a run holding it is refused there.
+    const personHolds = state?.adminLock === true && state.flow.phase === "idle";
+    const running = match?.phase === "measuring" ? [el("i", { class: "ring", style: `--p:${this.percentOf(match)}` })] : [icon("audio", 16)];
+    const key = el("button", { class: "lib__cog", type: "button", title: "볼륨 튜닝" }, running) as HTMLButtonElement;
+    key.disabled = !personHolds && (match?.phase ?? "idle") === "idle";
+    key.addEventListener("click", () => this.options.onMeasure());
+    return key;
+  }
+
+  private percentOf(match: { elapsedSec: number; totalSec: number }): number {
+    return match.totalSec > 0 ? Math.round((match.elapsedSec / match.totalSec) * 100) : 0;
+  }
+
+  /**
+   * The measurement while its dialog is shut, on the list's columns: running or paused
+   * always, and how it ended until somebody has opened it.
+   */
+  private measuring(state: State | null): HTMLElement[] {
+    const match: LevelMatch | undefined = state?.levelMatch;
+    if (!match || match.phase === "idle") return [];
+    const live = match.phase === "measuring" || match.phase === "paused";
+    if (!live && JSON.stringify(match) === this.measureSeen) return [];
+
+    const title = this.tracks.find((track) => track.id === match.track)?.title ?? match.track;
+    const time = (sec: number): string => `${Math.floor(sec / 60)}:${String(Math.round(sec) % 60).padStart(2, "0")}`;
+    const said = match.phase === "measuring" ? ["측정 중", `${time(match.elapsedSec)} / ${time(match.totalSec)}`]
+      : match.phase === "paused" ? ["중지", `${time(match.elapsedSec)} / ${time(match.totalSec)}`]
+      : match.phase === "measured" ? ["측정 완료", answerText(match.answer)]
+      : match.phase === "done" ? ["측정 완료", `볼륨 ${match.volumeAfter}`]
+      : ["멈춤", LEVEL_FAILED[match.why] ?? match.why];
+    const open = el("button", { class: "textbtn", type: "button", textContent: "열기" });
+    open.addEventListener("click", () => this.options.onMeasure());
+    return [el("div", { class: "lib__run" }, [
+      el("span", { class: "lib__i" }, live ? [el("i", { class: "ring", style: `--p:${this.percentOf(match)}` })] : []),
+      el("span", { class: "lib__n" }, [el("b", { textContent: title })]),
+      el("span", { class: "chip", textContent: said[0]! }),
+      el("span", { class: "num", textContent: said[1]! }),
+      open,
+    ])];
+  }
+
   /** Opens the whole library's settings. One dialog, not a control per row. */
   private settingsKey(): HTMLElement {
     const key = el("button", { class: "lib__cog", type: "button", title: "곡 설정" }, [icon("cog", 16)]);
@@ -211,7 +269,7 @@ export class LibraryPanel {
     const pick = el("button", { class: "lib__pick", type: "button" }, [
       el("span", { class: "lib__i num", textContent: String(index) }),
       el("span", { class: "lib__n", textContent: track.title }),
-      el("span", { class: "lib__d num", textContent: minutes(track.durationSec) }),
+      el("span", { class: "lib__d num", textContent: trackLength(track.durationSec) }),
     ]) as HTMLButtonElement;
     pick.disabled = off;
     pick.addEventListener("click", onPick);
