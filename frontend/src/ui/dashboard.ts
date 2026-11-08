@@ -376,7 +376,8 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
           ...(use ? [el("span", { class: "setlist__use", textContent: use, title: use })] : []),
         ]),
         el("span", { class: "setlist__d num", textContent: lengthOf(track.durationSec) }),
-        volume,
+        // Note(yoochan.kim): the speaker names the number on a phone, where the column headings go; a wide screen keeps them.
+        el("span", { class: "setlist__vol", title: "볼륨" }, [icon("speaker", 14), volume]),
         editable && !use ? remove : el("span", {}),
       ]);
       settingsRows.set(track.id, line);
@@ -704,6 +705,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     // A tab title takes a string and nothing else, so this one separator is a
     // character. A plain hyphen: no dashes anywhere a reader sees.
     document.title = `${NAV.find((entry) => entry.key === key)?.label ?? ""} - 미디어 관리자`;
+    topTitle.textContent = NAV.find((entry) => entry.key === key)?.label ?? "";
     // Note(yoochan.kim): in the address, so a reload comes back to the tab it was on. A
     // dashboard is left open on the log or the desk for an hour at a time, and
     // refreshing to see something is not asking to be sent home.
@@ -718,26 +720,65 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
         icon(entry.icon, 15),
         el("span", { textContent: entry.label }),
       ]);
-      button.addEventListener("click", () => setView(entry.key));
+      button.addEventListener("click", () => {
+        setView(entry.key);
+        closeMenu();
+      });
       navButtons.set(entry.key, button);
       return button;
     }),
   );
 
-  root.replaceChildren(
-    el("div", { class: "app" }, [
-      // Note(yoochan.kim): what belongs to the dashboard rather than to one tab. The
-      // bar across the top had nothing left in it once these moved, so it is gone.
-      el("aside", { class: "side" }, [gate, holdRow, nav, el("div", { class: "side__gap" }), theme, logout]),
-      el("div", { class: "main" }, [
-        // Note(yoochan.kim): every view, taken from the map rather than listed by
-        // hand. Written out one by one, a new tab is a section that exists and is
-        // never mounted — and the deck, moved into it, left the page altogether.
-        el("main", { class: "page" }, Object.values(views)),
-      ]),
-      confirm.el,
-      askFirst.el,
+  // Note(yoochan.kim): what belongs to the dashboard rather than to one tab. The
+  // bar across the top had nothing left in it once these moved, so it is gone.
+  const side = el("aside", { class: "side" }, [gate, holdRow, nav, el("div", { class: "side__gap" }), theme, logout]);
+  // Note(yoochan.kim): on a phone the side becomes a panel opened from the top bar (shadcn's sheet under 768px), and the gate,
+  // the one control that must never be a tap away, stands in the bar itself, as Linear keeps its main key there.
+  const app = el("div", { class: "app" });
+  const scrim = el("div", { class: "scrim" });
+  const menuKey = el("button", { class: "topbar__menu", type: "button", title: "메뉴" }, [icon("menu", 18)]);
+  const topTitle = el("b", { class: "topbar__t" });
+  const topbar = el("header", { class: "topbar" }, [menuKey, topTitle]);
+  const onEscape = (event: KeyboardEvent): void => {
+    if (event.key === "Escape") closeMenu();
+  };
+  function closeMenu(): void {
+    app.classList.remove("is-menu");
+    document.removeEventListener("keydown", onEscape);
+  }
+  menuKey.addEventListener("click", () => {
+    app.classList.add("is-menu");
+    document.addEventListener("keydown", onEscape);
+  });
+  scrim.addEventListener("click", closeMenu);
+  const phone = window.matchMedia("(max-width: 767px)");
+  const placeGate = (): void => {
+    if (phone.matches) {
+      topbar.append(gate, holdRow);
+      return;
+    }
+    side.insertBefore(gate, nav);
+    side.insertBefore(holdRow, nav);
+    closeMenu();
+  };
+  phone.addEventListener("change", placeGate);
+  placeGate();
+
+  app.append(
+    side,
+    scrim,
+    el("div", { class: "main" }, [
+      topbar,
+      // Note(yoochan.kim): every view, taken from the map rather than listed by
+      // hand. Written out one by one, a new tab is a section that exists and is
+      // never mounted — and the deck, moved into it, left the page altogether.
+      el("main", { class: "page" }, Object.values(views)),
     ]),
+    confirm.el,
+    askFirst.el,
+  );
+  root.replaceChildren(
+    app,
     // Note(yoochan.kim): last, and outside the shell. A dialog opens deeper in the
     // tree than this sat, and later siblings win however high a z-index the
     // earlier one is given — a refusal hidden behind the dialog that caused it

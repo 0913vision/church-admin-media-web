@@ -286,14 +286,14 @@ button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--slot); }
    not by being stretched to fit it — widened alone it became an oval, which is
    not a lamp. Green while the gate is open, red while it holds; grey on a
    raised chip is the one pairing that cannot be seen. */
-.side > .gate .led { background: var(--go); box-shadow: 0 0 7px var(--go); }
-.side > .gate.on .led { background: var(--bad); box-shadow: 0 0 7px var(--bad); }
+.side > .gate .led, .topbar > .gate .led { background: var(--go); box-shadow: 0 0 7px var(--go); }
+.side > .gate.on .led, .topbar > .gate.on .led { background: var(--bad); box-shadow: 0 0 7px var(--bad); }
 .gate:hover:not(:disabled):not(.on) { background: var(--slot); }
 /* What is left of a hold, under the chip that made it. The extend key is always
    here rather than appearing near the end — a control that arrives when you are
    already short of time is one nobody has learned the position of. */
-.side > .hold { display: flex; align-items: center; gap: 8px; margin: 2px 8px 0;
-                padding: 6px 8px; border-radius: 8px; background: var(--raised); }
+.side > .hold, .topbar > .hold { display: flex; align-items: center; gap: 8px; margin: 2px 8px 0;
+                                 padding: 6px 8px; border-radius: 8px; background: var(--raised); }
 .hold__l { flex: 1; font-size: 13.5px; color: var(--c-mut); font-variant-numeric: tabular-nums; }
 .hold.is-soon .hold__l { color: var(--hold); font-weight: 700; }
 .hold .btn { height: 28px; padding: 0 10px; font-size: 13.5px; }
@@ -902,6 +902,9 @@ body.has-modal { overflow: hidden; }
 .setlist__r { display: grid; grid-template-columns: 22px 1fr 60px 54px; gap: 14px; align-items: center;
               padding: 3px 10px; margin: 0 -10px; border-radius: 8px; }
 .setlist__r > :nth-child(3), .setlist__r > :nth-child(4) { text-align: right; }
+/* Note(yoochan.kim): the level's cell; its speaker shows only on a phone, where it stands in for the 볼륨 heading. */
+.setlist__vol { display: flex; align-items: center; justify-content: flex-end; min-width: 0; color: var(--c-fnt); }
+.setlist__vol > .icon { display: none; }
 /* Numbered straight through, both groups: it says which of the eight this is. */
 .setlist__i { font-size: 13.5px; color: var(--c-fnt); text-align: right; font-variant-numeric: tabular-nums; }
 /* One rule, under the headings. Between every row as well, the table read as a
@@ -1340,3 +1343,115 @@ body.has-modal { overflow: hidden; }
 .blk.draft { background: transparent; border: 1.5px dashed var(--c-mut); pointer-events: none; z-index: 2; }
 /* Loud on purpose: it sits on top of the flow it would collide with. */
 .blk.draft.clash { border: 2px dashed var(--bad); background: rgba(220, 38, 38, 0.38); }
+
+/* ================= phone ================= */
+/* Note(yoochan.kim): the top bar, its backdrop and the schedule's list exist only on a phone. */
+.topbar, .scrim, .agenda { display: none; }
+/* Note(yoochan.kim): under 768px, where shadcn's sidebar turns into a sheet: the side slides in at 288px over a 50% backdrop
+   (open 500ms, shut 300ms, its curve), the gate stands in a 64px top bar, and every grid is one column with 16px round it. */
+@media (max-width: 767px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .side { position: fixed; top: 0; bottom: 0; left: 0; z-index: 30; width: 288px; padding: 16px 0 12px;
+          transform: translateX(-100%); transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1); }
+  .app.is-menu .side { transform: none; transition-duration: 500ms; }
+  .side > .nav { margin-top: 0; }
+  .scrim { display: block; position: fixed; inset: 0; z-index: 29; background: rgba(0, 0, 0, 0.5);
+           opacity: 0; pointer-events: none; transition: opacity 150ms ease; }
+  .app.is-menu .scrim { opacity: 1; pointer-events: auto; }
+  .topbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-height: 64px; padding: 14px 16px;
+            border-bottom: 1px solid var(--line); background: var(--bg); }
+  .topbar__menu { flex: none; display: grid; place-items: center; width: 32px; height: 32px; padding: 0;
+                  border: 0; border-radius: 8px; background: none; color: var(--c-ink); cursor: pointer; }
+  .topbar__menu:hover { background: var(--ink-tint); }
+  .topbar__t { flex: 1; min-width: 0; font-size: 16px; font-weight: 500; color: var(--c-ink);
+               white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .topbar > .gate { flex: none; }
+  .topbar > .hold { flex-basis: 100%; margin: 0; }
+  .page { padding: 16px; }
+  .view:not(.is-hidden) { gap: 16px; }
+  .head, .player, .ck, .sum, .sys, .week { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  /* Note(yoochan.kim): stacked, these grow with what they hold and the page scrolls; held to the screen, a card was squeezed under the next. */
+  .sys, .week { flex: none; }
+  .sys__t > span:first-child { flex: none; }
+  /* Note(yoochan.kim): the slider keeps the row and 음소거 takes a line of its own, as wide as the card. */
+  .volrow { grid-template-columns: 42px minmax(0, 1fr) 52px; }
+  .volrow > .mute { grid-column: 1 / -1; margin-left: 0; width: 100%; }
+  /* Note(yoochan.kim): each way the clock is moved on a line of its own, its three steps sharing the width, 보정 제거 under them. */
+  .ckset { display: grid; grid-template-columns: max-content repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .ckset__g, .ckset__g:not(:first-child) { margin: 0; white-space: nowrap; }
+  .ckset__clear { grid-column: 1 / -1; margin-left: 0; }
+  /* Note(yoochan.kim): the clock reads from the left like every card above and below it; centred, it floated in its own space. */
+  .clock__b { align-items: flex-start; margin-top: 8px; }
+  .clock__date, .clock__d { text-align: left; }
+  .clock__date { margin-top: 8px; }
+  /* Note(yoochan.kim): a 44px tap (Apple's least) around each "… 탭 ›" link, its look and place unchanged. */
+  .goto { padding: 12px 0; margin: -12px 0; }
+  .tap > .pick { flex: none; }
+  /* Note(yoochan.kim): the week as a list, a row each (Material's two-line item, 72): days, name, lock window; the grid stays on wider screens. */
+  .cal { padding: 8px; }
+  .cal__days, .cal__grid { display: none; }
+  .agenda { display: flex; flex-direction: column; }
+  .agenda__r { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 72px; padding: 12px 16px;
+               border: 0; border-top: 1px solid var(--line); border-radius: 0; background: none;
+               font: inherit; color: var(--c-ink); text-align: left; cursor: pointer; }
+  .agenda__r:first-child { border-top-color: transparent; }
+  .agenda__r:hover:not(.sel) { background: var(--raised); border-radius: 8px; }
+  .agenda__r.sel { background: var(--go); border-radius: 8px; border-top-color: transparent; color: #fff; }
+  .agenda__r.sel + .agenda__r { border-top-color: transparent; }
+  .agenda__d { flex: none; width: 40px; display: flex; flex-wrap: wrap; gap: 2px 6px; font-size: 13.5px; font-weight: 600; color: var(--c-mut); }
+  .agenda__d .wk { color: var(--go); }
+  .agenda__m { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .agenda__m b { font-size: 15.5px; font-weight: 600; }
+  .agenda__m small { font-size: 13.5px; color: var(--c-mut); }
+  .agenda__r.sel .agenda__d, .agenda__r.sel .agenda__d .wk, .agenda__r.sel small { color: rgba(255, 255, 255, 0.85); }
+  .agenda__r .chip { flex: none; }
+  .agenda__none { margin: 0; padding: 16px; font-size: 13.5px; color: var(--c-mut); }
+  /* Note(yoochan.kim): 곡 설정's rows as the flow editor's songs: the name alone, then its length and speaker-marked level from under it, 삭제 at the right. */
+  .setlist__r--h { display: none; }
+  .setlist--edit .setlist__r { grid-template-columns: 22px max-content max-content minmax(0, 1fr) auto;
+                               grid-template-areas: "i t t t t" ". d v . x"; row-gap: 2px; column-gap: 10px; padding-block: 8px; }
+  .setlist__r > :nth-child(3) { text-align: left; }
+  .setlist__vol { justify-content: flex-start; gap: 2px; }
+  .setlist__vol > .icon { display: inline-flex; }
+  .setlist .setlist__vol > .editor__input { width: 36px; padding: 0 3px; text-align: left; }
+  /* Note(yoochan.kim): a track's two lines 8 apart in ink and tracks 22 apart, as a two-line list item sets its title and subtitle
+     (Material, Apple); 5 read as one line (the user, 2026-11-08). Fields and plain names the same height, so a row a name can be
+     typed into is no taller than the rest. */
+  .setlist .editor__input, .setlist .setlist__vol > .editor__input { height: 24px; margin-block: -1px; }
+  .setlist__n, .setlist__use, .setlist__d { line-height: 22px; }
+  .setlist__r .textbtn { padding: 0 2px; line-height: 22px; }
+  .setlist--edit .setlist__r { row-gap: 0; padding-block: 6px; }
+  .setlist__r > :nth-child(3), .setlist__r > :nth-child(4), .setlist__r > :nth-child(5) { margin-top: -3px; }
+  /* Note(yoochan.kim): 7 inside its 1px border, so a name that can be typed into starts where the length under it does. */
+  .setlist .editor__input--name { padding-left: 7px; }
+  .setlist__r > :nth-child(1) { grid-area: i; }
+  .setlist__r > :nth-child(2) { grid-area: t; }
+  .setlist__r > :nth-child(3) { grid-area: d; }
+  .setlist__r > :nth-child(4) { grid-area: v; }
+  .setlist__r > :nth-child(5) { grid-area: x; }
+  .setlist__t { flex-wrap: wrap; }
+  .setlist__n { white-space: normal; }
+  .setlist__use { max-width: 100%; white-space: normal; }
+  /* Note(yoochan.kim): a console row as two lines: the input and its key, then its meter and its level. */
+  .chrow { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "n k" "m d"; row-gap: 12px; padding-bottom: 20px; }
+  .chrow > .chrow__n { grid-area: n; }
+  .chrow > .chrow__bar { grid-area: m; }
+  .chrow > .chrow__db { grid-area: d; }
+  .chrow > :nth-child(4) { display: none; }
+  .chrow > :last-child { grid-area: k; }
+}
+/* Note(yoochan.kim): under 520px a song in the flow editor is two lines too: its number and name, then its length and level, × at the right. */
+@media (max-width: 520px) {
+  .editor__songs .editor__track:not(.editor__addrow) { grid-template-columns: 16px 16px max-content minmax(0, 1fr) 28px;
+      grid-template-areas: "g no nm nm x" ". . ln vl x"; row-gap: 2px; padding-block: 5px; }
+  /* Note(yoochan.kim): the two lines 8 apart in ink, as 곡 설정's; at 16 they read as two songs (the user, 2026-11-08). */
+  .editor__songs .editor__track-vol { height: 24px; }
+  .editor__songs .editor__track-len, .editor__songs .editor__vol { margin-top: -6px; }
+  .editor__songs .editor__grip { grid-area: g; }
+  .editor__songs .editor__track-no { grid-area: no; }
+  .editor__songs .editor__track-name { grid-area: nm; white-space: normal; }
+  .editor__songs .editor__track-len { grid-area: ln; text-align: left; }
+  .editor__songs .editor__vol { grid-area: vl; justify-content: flex-start; padding-left: 4px; }
+  .editor__songs .editor__track > .textbtn { grid-area: x; }
+  .editor__songs .editor__addrow { grid-template-columns: 16px 16px minmax(0, 1fr); }
+}

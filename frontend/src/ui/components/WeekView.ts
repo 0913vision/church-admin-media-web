@@ -43,7 +43,7 @@ export class WeekView {
   constructor(private readonly options: WeekViewOptions) {
     // Note(yoochan.kim): Clicking past the blocks lets the pick go.
     this.el.addEventListener("click", (event) => {
-      if ((event.target as HTMLElement).closest(".blk")) return;
+      if ((event.target as HTMLElement).closest(".blk, .agenda__r")) return;
       if (!this.selected) return;
       this.selected = "";
       this.options.onPick("");
@@ -143,7 +143,42 @@ export class WeekView {
         ])]
       : [];
 
-    this.el.replaceChildren(head, el("div", { class: "cal__grid" }, [...lines, ...marker, hours, ...columns]));
+    this.el.replaceChildren(head, el("div", { class: "cal__grid" }, [...lines, ...marker, hours, ...columns]), this.agenda(today));
+  }
+
+  /**
+   * The same flows as a list, for a phone, where a day is a 31px column and every
+   * name was cut off: one row each, its days, its name and its lock, as a phone's
+   * alarm list and a calendar's schedule view set out what repeats.
+   */
+  private agenda(today: number): HTMLElement {
+    const days = (flow: ScheduledFlow): number[] => flow.weekdays.map((day) => DAY_ORDER[day]!).sort((a, b) => a - b);
+    const clock = (minutes: number): string => {
+      const whole = Math.round(minutes * 60);
+      const pad = (value: number): string => String(value).padStart(2, "0");
+      return `${pad(Math.floor(whole / 3600) % 24)}:${pad(Math.floor((whole % 3600) / 60))}:${pad(whole % 60)}`;
+    };
+    const rows = [...this.flows]
+      .sort((a, b) => (days(a)[0] ?? 7) - (days(b)[0] ?? 7) || minutesOf(a.lock.at) - minutesOf(b.lock.at))
+      .map((flow) => {
+        const { opens, closes } = this.spanOf(flow);
+        const row = el("button", { class: `agenda__r${flow.id === this.selected ? " sel" : ""}`, type: "button" }, [
+          el("span", { class: "agenda__d" }, days(flow).map((column) =>
+            el("span", { class: column === today ? "wk" : "", textContent: DAYS[column] }))),
+          el("span", { class: "agenda__m" }, [
+            el("b", { textContent: flow.name }),
+            el("small", { class: "num", textContent: `${clock(opens)} → ${clock(closes)}` }),
+          ]),
+          ...(flow.autoStart ? [el("span", { class: "chip", textContent: "자동" })] : []),
+        ]);
+        row.addEventListener("click", () => {
+          this.selected = flow.id;
+          this.options.onPick(flow.id);
+          this.render();
+        });
+        return row;
+      });
+    return el("div", { class: "agenda" }, rows.length > 0 ? rows : [el("p", { class: "agenda__none", textContent: "등록된 자동 진행이 없습니다" })]);
   }
 
   /**
