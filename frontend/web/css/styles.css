@@ -997,9 +997,9 @@ body.has-modal { overflow: hidden; }
 /* Note(yoochan.kim): under 520px a name and a 300px control no longer fit side by side (음악 마치는 시각 needs 411),
    so the name goes above, 8 apart, as the 볼륨 튜닝 dialog's fields (shadcn, Geist). */
 @media (max-width: 520px) {
-  .editor > .editor__row { flex-direction: column; align-items: stretch; gap: 8px; }
-  .editor > .editor__row > .editor__label { line-height: 16px; }
-  .editor > .editor__row > :not(.editor__label) { width: auto; }
+  .editor > .editor__row, .addtrack > .editor__row { flex-direction: column; align-items: stretch; gap: 8px; }
+  .editor > .editor__row > .editor__label, .addtrack > .editor__row > .editor__label { line-height: 16px; }
+  .editor > .editor__row > :not(.editor__label), .addtrack > .editor__row > :not(.editor__label) { width: auto; }
 }
 /* Note(yoochan.kim): one box a list, lines between its rows, as an inset grouped list (Apple settings, shadcn Item group). */
 /* Note(yoochan.kim): on the dialog's own ground, so the faint numbers and lengths keep their contrast; not clipped, so a menu can hang below. */
