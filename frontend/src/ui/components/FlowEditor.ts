@@ -1,11 +1,14 @@
-import { el } from "../../util/dom.js";
+import { BLANK, el } from "../../util/dom.js";
 import { icon } from "../icons.js";
+import { timeField } from "./TimeField.js";
 import type { ScheduledTrack, SchedulePart, Track } from "../../protocol.js";
 import type { FlowEntry, ScheduledFlow } from "../../api/device.js";
 import type { FlowDraft } from "./WeekView.js";
 import { countdownSpan, inOrder, lastSound, missingAudio, noticeLabel, noticesHeld } from "../../util/flow.js";
 
 const WEEKDAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+// Note(yoochan.kim): how long a dropped song takes to settle into its slot, dnd-kit's 0.2s; the same as the rows' slide in styles.css.
+const SETTLE_MS = 200;
 // Note(yoochan.kim): Sunday first, matching the calendar next to this editor.
 const DAY_CHOICES: { day: number; label: string }[] = [
   { day: 6, label: "주일" },
@@ -43,7 +46,8 @@ export class FlowEditor {
   private cues: ScheduledTrack[] = [];
   private endsAt = "20:00";
   private countdown = false;
-  private zeroAt = "20:00";
+  /** Empty until somebody gives the countdown its time; kept through 빼기, so 넣기 brings it back. */
+  private zeroAt = "";
   /** Seconds before zero of each notice ticked. */
   private notices = new Set<number>();
   /** Whether the flow holds a part this build cannot edit, which saving would drop. */
@@ -62,9 +66,36 @@ export class FlowEditor {
   private tried = false;
   /** Whether the draft holds anything the server would refuse. */
   private blocked = false;
+  /** Whether it contradicts itself, said at once; an empty field is said only once 저장 is pressed. */
+  private contradicts = false;
+  private saveKey: HTMLButtonElement | null = null;
+  /** The song picked up from the keyboard, moved by the arrow keys until it is put down. */
+  private grabbed: number | null = null;
+  private rendering = false;
+  /** What the target time means, under its field; with the times below, redrawn on a keystroke. */
+  private readonly zeroField = el("div", { class: "field" });
+  private readonly zeroNote = el("p");
+  /** Shown while the music runs into the countdown: the clash, and a key that moves the music's end to where the countdown's block opens. */
+  private readonly clashText = el("span");
+  private readonly alignKey = el("button", {
+    class: "editor__fix",
+    type: "button",
+    textContent: "음악 앞당기기",
+    title: "첫 안내 10초 전에 음악이 끝나도록 음악 마치는 시각을 옮깁니다",
+  });
+  private readonly clashBar = el("div", { class: "editor__clash is-hidden", role: "alert" }, [icon("alert", 16), this.clashText, this.alignKey]);
+  private noticeTimes = new Map<number, HTMLElement>();
+  private countTime = el("small");
 
   constructor(private readonly options: FlowEditorOptions) {
     this.el = el("div", { class: "editor is-hidden" });
+    // Note(yoochan.kim): the block opens 10s before the first sound, so the music ends there, on the second at or before it (the user, 2026-11-08).
+    this.alignKey.addEventListener("click", () => {
+      if (!this.zeroAt) return;
+      this.endsAt = asClock(Math.floor(countdownSpan(this.zeroAt, this.notices, this.tracks).opens));
+      this.emit();
+      this.render();
+    });
   }
 
   setTracks(tracks: Track[]): void {
@@ -79,7 +110,8 @@ export class FlowEditor {
 
   /** Where this draft sits on the week, for the calendar's dashed preview. */
   private emit(): void {
-    const closes = this.closesAt();
+    // Note(yoochan.kim): until the countdown has its time, the calendar draws the gate to the music's end.
+    const closes = this.closesAt() ?? (this.cues.length > 0 ? this.endsAt : this.lockAt);
     this.options.onChange?.({
       id: this.id,
       weekdays: [...this.weekdays],
@@ -103,7 +135,8 @@ export class FlowEditor {
     this.endsAt = music?.endsAt ?? "20:00";
     const countdown = flow?.parts.find((part) => part.kind === "countdown");
     this.countdown = countdown !== undefined;
-    this.zeroAt = countdown?.at ?? "20:00";
+    this.zeroAt = countdown?.at ?? "";
+    this.grabbed = null;
     this.notices = new Set(countdown?.notices ?? []);
     this.unknownPart = (flow?.parts ?? []).some((part) => !["music", "countdown"].includes(part.kind));
 
@@ -117,6 +150,7 @@ export class FlowEditor {
   /** What it is and how it starts, then the times in the order they happen. */
   private render(): void {
     const follows = this.follows();
+    this.rendering = true;
     this.el.replaceChildren(
       this.field("이름", this.text(this.name, (value) => { this.name = value; })),
       this.field("요일", this.weekdayRow()),
@@ -127,25 +161,24 @@ export class FlowEditor {
         ? [this.field("음악 마치는 시각", this.time(this.endsAt, (value) => { this.endsAt = value; this.emit(); this.refresh(); }))]
         : []),
       this.field("카운트다운", this.countdownRow()),
-      ...(this.countdown
-        ? [
-            this.field("목표 시각", this.time(this.zeroAt, (value) => { this.zeroAt = value; this.emit(); this.refresh(); })),
-            this.field("안내", this.noticeRow()),
-          ]
-        : []),
+      ...(this.countdown ? [this.zeroRow(), this.child("안내", this.noticeList())] : []),
       this.field("잠금 해제", this.unlockRow()),
       ...(follows
         ? []
         : [this.field("해제 시각", this.time(this.lockUntil, (value) => { this.lockUntil = value; this.emit(); this.refresh(); }))]),
       this.summaryEl,
     );
+    this.rendering = false;
     this.refresh();
   }
 
   /** What a keystroke changes: the reading underneath, and nothing else. */
   private refresh(): void {
     this.summaryEl.replaceChildren(...this.summaryRows());
+    // Note(yoochan.kim): a draft that contradicts itself cannot be saved, and the band beside 저장 says why.
+    if (this.saveKey) this.saveKey.disabled = this.contradicts;
     this.followsKey.textContent = this.followsLabel();
+    if (this.countdown) this.paintCountdown();
   }
 
   // --- fields ---
@@ -157,8 +190,16 @@ export class FlowEditor {
    * anywhere in the row's empty middle pressed its first key — 요일 switched 일요일 on.
    */
   private field(label: string, control: HTMLElement): HTMLElement {
-    const tag = control instanceof HTMLInputElement ? "label" : "div";
+    const tag = control instanceof HTMLInputElement || control.classList.contains("timefield") ? "label" : "div";
     return el(tag, { class: "editor__row" }, [
+      el("span", { class: "editor__label", textContent: label }),
+      control,
+    ]);
+  }
+
+  /** A setting that belongs to the one above it, set in under it (Fluent's SettingsExpander). */
+  private child(label: string, control: HTMLElement): HTMLElement {
+    return el("div", { class: "editor__row editor__row--child" }, [
       el("span", { class: "editor__label", textContent: label }),
       control,
     ]);
@@ -193,10 +234,9 @@ export class FlowEditor {
    * be set to a minute cannot express when the music should actually stop.
    */
   private time(value: string, onInput: (value: string) => void): HTMLElement {
-    const input = el("input", { class: "editor__input", type: "time", value: asClock(asSeconds(value)) });
-    input.step = "1";
-    input.addEventListener("input", () => { if (input.value) onInput(asClock(asSeconds(input.value))); });
-    return input;
+    const field = timeField(asClock(asSeconds(value)));
+    field.input.addEventListener("input", () => { if (field.input.value) onInput(asClock(asSeconds(field.input.value))); });
+    return field.el;
   }
 
   private weekdayRow(): HTMLElement {
@@ -220,24 +260,38 @@ export class FlowEditor {
     );
   }
 
-  /** The order as numbered rows, with the library behind an add button. */
+  /**
+   * The order as numbered rows in one group, dragged by the grip at their left
+   * (Cuez, Rundown Studio), with the library behind the group's last row.
+   */
   private trackList(): HTMLElement {
+    const group = el("div", { class: "editor__group editor__songs" });
     const rows = this.cues.map((cue, index) => {
       const track = this.tracks.find((candidate) => candidate.id === cue.id);
       const label = track ? track.title : `${cue.id} (등록되지 않은 곡)`;
-      return el("div", { class: "editor__track" }, [
+      const grip = el("span", { class: "editor__grip", title: "끌어서 순서 바꾸기", role: "button", tabIndex: 0 }, [icon("grip", 16)]);
+      const row = el("div", { class: `editor__track${this.grabbed === index ? " is-dragging" : ""}` }, [
+        grip,
         el("span", { class: "editor__track-no", textContent: String(index + 1) }),
         el("span", { class: "editor__track-name", textContent: label }),
         el("span", { class: "editor__track-len", textContent: track ? length(track.durationSec) : "" }),
-        this.volumeInput(cue),
-        this.smallButton("up", "위로", () => this.move(index, -1)),
-        this.smallButton("down", "아래로", () => this.move(index, 1)),
+        // Note(yoochan.kim): the speaker says what the number is, so the list needs no column names.
+        el("span", { class: "editor__vol", title: "볼륨" }, [icon("speaker", 14), this.volumeInput(cue)]),
         this.smallButton("close", "빼기", () => {
           this.cues.splice(index, 1);
+          this.grabbed = null;
           this.emit();
           this.render();
         }),
       ]);
+      grip.addEventListener("pointerdown", (event) => this.drag(event, row, group));
+      grip.addEventListener("keydown", (event) => this.nudge(event, index));
+      grip.addEventListener("focusout", () => {
+        if (this.rendering || this.grabbed === null) return;
+        this.grabbed = null;
+        row.classList.remove("is-dragging");
+      });
+      return row;
     });
 
     // Note(yoochan.kim): behind a button, because a button per track wrapped to
@@ -265,14 +319,20 @@ export class FlowEditor {
       });
     });
 
-    const open = el("button", { class: "btn btn--small", type: "button", textContent: "곡 추가" });
-    const adders = el("div", { class: "editor__adders" }, [open, menu]);
+    // Note(yoochan.kim): adding is the list's last row, its plus where the numbers are and its words where the names are.
+    const open = el("button", { class: "editor__track editor__addrow", type: "button" }, [
+      el("span"),
+      el("span", { class: "editor__plus" }, [icon("plus", 14)]),
+      el("span", { textContent: "곡 추가" }),
+    ]);
+    group.append(...rows, open);
+    const adders = el("div", { class: "editor__adders" }, [menu]);
 
     // Note(yoochan.kim): a press anywhere else puts it away, which is what an open
     // menu means everywhere. The listener only lives while the menu is up, and
     // the modal takes the whole form down with it when it closes.
     const shut = (event: MouseEvent): void => {
-      if (adders.contains(event.target as Node)) return;
+      if (adders.contains(event.target as Node) || open.contains(event.target as Node)) return;
       menu.classList.add("is-hidden");
       open.classList.remove("on");
       document.removeEventListener("mousedown", shut);
@@ -285,19 +345,122 @@ export class FlowEditor {
       else document.removeEventListener("mousedown", shut);
     });
 
-    // Note(yoochan.kim): the list's name and the names of its number columns share one line,
-    // as a table's head does; a label per row costs the width the song's own name needs.
     const head = el("div", { class: "editor__track editor__track--head" }, [
       el("span", { class: "editor__track-title", textContent: "곡" }),
-      ...(rows.length === 0
-        ? []
-        : [
-            el("span", { class: "editor__track-len", textContent: "길이" }),
-            el("span", { class: "editor__track-volh", textContent: "볼륨" }),
-          ]),
     ]);
 
-    return el("div", { class: "editor__tracks" }, [head, ...rows, adders]);
+    return el("div", { class: "editor__tracks" }, [head, group, adders]);
+  }
+
+  /**
+   * Carries a song by its grip, as dnd-kit's sortable list does: the row is lifted
+   * and follows the pointer, the others slide aside to open the slot it would land
+   * in, and on release it settles into that slot before the order is written.
+   */
+  private drag(event: PointerEvent, row: HTMLElement, group: HTMLElement): void {
+    if (event.button !== 0 || this.cues.length < 2) return;
+    event.preventDefault();
+    const songs = [...group.children].filter((child): child is HTMLElement =>
+      child instanceof HTMLElement && !child.classList.contains("editor__addrow"));
+    const from = songs.indexOf(row);
+    const tops = songs.map((song) => song.getBoundingClientRect().top);
+    const step = row.getBoundingClientRect().height;
+    const startY = event.clientY;
+    let to = from;
+
+    // Note(yoochan.kim): a half-faded copy marks the slot it will land in, as dnd-kit's sortable leaves one; it sits beside the group, so the group's first and last rows keep their own edges.
+    const list = group.parentElement!;
+    const box = group.getBoundingClientRect();
+    const ghost = row.cloneNode(true) as HTMLElement;
+    ghost.className = "editor__track editor__ghost";
+    ghost.setAttribute("aria-hidden", "true");
+    ghost.style.cssText = `top: ${tops[from]! - list.getBoundingClientRect().top}px; left: ${box.left - list.getBoundingClientRect().left + 1}px; width: ${box.width - 2}px;`;
+    ghost.classList.toggle("is-first", from === 0);
+    list.append(ghost);
+
+    group.classList.add("is-sorting");
+    row.classList.add("is-dragging");
+    document.documentElement.classList.add("is-grabbing");
+
+    // Note(yoochan.kim): the slot whose middle is nearest the lifted row's (dnd-kit's closestCenter); the rows between it and the old slot move one row over.
+    const place = (dy: number): void => {
+      const offset = Math.min(Math.max(dy, tops[0]! - tops[from]!), tops[songs.length - 1]! - tops[from]!);
+      row.style.transform = `translateY(${offset}px)`;
+      to = Math.min(Math.max(from + Math.round(offset / step), 0), songs.length - 1);
+      songs.forEach((song, at) => {
+        if (song === row) return;
+        const shift = from < to && at > from && at <= to ? -step : to < from && at >= to && at < from ? step : 0;
+        song.style.transform = shift ? `translateY(${shift}px)` : "";
+        const number = song.querySelector(".editor__track-no");
+        if (number) number.textContent = String(at + 1 + Math.sign(shift));
+      });
+      const number = row.querySelector(".editor__track-no");
+      if (number) number.textContent = String(to + 1);
+      ghost.style.transform = `translateY(${tops[to]! - tops[from]!}px)`;
+      ghost.classList.toggle("is-first", to === 0);
+      const ghostNumber = ghost.querySelector(".editor__track-no");
+      if (ghostNumber) ghostNumber.textContent = String(to + 1);
+    };
+
+    const move = (moved: PointerEvent): void => place(moved.clientY - startY);
+    const finish = (commit: boolean): void => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", cancel);
+      window.removeEventListener("keydown", escape, true);
+      if (!commit) to = from;
+      // Note(yoochan.kim): it settles into its slot first, so the list never jumps when it is redrawn.
+      row.classList.add("is-settling");
+      row.style.transform = `translateY(${tops[to]! - tops[from]!}px)`;
+      if (!commit) songs.forEach((song) => { if (song !== row) song.style.transform = ""; });
+      if (!commit) ghost.style.transform = "";
+      window.setTimeout(() => {
+        ghost.remove();
+        document.documentElement.classList.remove("is-grabbing");
+        if (to !== from) {
+          const [moved] = this.cues.splice(from, 1);
+          this.cues.splice(to, 0, moved!);
+          this.emit();
+        }
+        this.grabbed = null;
+        this.render();
+      }, SETTLE_MS);
+    };
+    const up = (): void => finish(true);
+    const cancel = (): void => finish(false);
+    // Note(yoochan.kim): caught first and kept from the dialog, whose Escape would close it with the song in mid-air.
+    const escape = (pressed: KeyboardEvent): void => {
+      if (pressed.key !== "Escape") return;
+      pressed.preventDefault();
+      pressed.stopPropagation();
+      finish(false);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", cancel);
+    window.addEventListener("keydown", escape, true);
+  }
+
+  /** The same from the keyboard: Space picks the song up, the arrow keys move it, Space or Enter puts it down. */
+  private nudge(event: KeyboardEvent, index: number): void {
+    const by = event.key === "ArrowUp" ? -1 : event.key === "ArrowDown" ? 1 : 0;
+    if (event.key === " " || event.key === "Enter" || (event.key === "Escape" && this.grabbed !== null)) {
+      event.preventDefault();
+      this.grabbed = this.grabbed === null && event.key !== "Escape" ? index : null;
+    } else if (by !== 0 && this.grabbed === index) {
+      event.preventDefault();
+      const to = index + by;
+      if (to < 0 || to >= this.cues.length) return;
+      const [moved] = this.cues.splice(index, 1);
+      this.cues.splice(to, 0, moved!);
+      this.grabbed = to;
+      this.emit();
+    } else {
+      return;
+    }
+    const at = this.grabbed ?? index;
+    this.render();
+    this.el.querySelectorAll<HTMLElement>(".editor__grip")[at]?.focus();
   }
 
   /** How loud this song plays in this order, kept in 0-100 like the panel's. */
@@ -344,7 +507,7 @@ export class FlowEditor {
       return button;
     };
 
-    this.followsKey = choice(this.followsLabel(), true, this.parts().length === 0);
+    this.followsKey = choice(this.followsLabel(), true, this.parts().length === 0 && !this.zeroMissing());
     return el("div", { class: "segctl" }, [this.followsKey, choice("시각을 정해서", false)]);
   }
 
@@ -359,30 +522,109 @@ export class FlowEditor {
       });
       return button;
     };
-    return el("div", { class: "segctl" }, [choice("없음", false), choice("넣기", true)]);
+    // Note(yoochan.kim): the user's words, kept apart from the songs (2026-11-08).
+    return el("div", { class: "segctl" }, [choice("넣기", true), choice("빼기", false)]);
   }
 
-  /** One box per notice the library has audio for, plus any ticked one it has lost, so it can be unticked. */
-  private noticeRow(): HTMLElement {
-    const choices = inOrder([...noticesHeld(this.tracks), ...this.notices]);
-    if (choices.length === 0) return el("span", { class: "editor__none", textContent: "없음" });
-    return el("div", { class: "editor__checks" }, choices.map((beforeSec) => {
-      const box = el("span", { class: "lib__box" });
-      const button = el("button", { class: "lib__t", type: "button" }, [box, el("span", { textContent: noticeLabel(beforeSec) })]);
-      const show = (): void => {
-        button.classList.toggle("on", this.notices.has(beforeSec));
-        box.replaceChildren(...(this.notices.has(beforeSec) ? [icon("check", 13)] : []));
-      };
-      show();
-      button.addEventListener("click", () => {
+  /** When zero is, and under it what that means against the music. */
+  private zeroRow(): HTMLElement {
+    const field = timeField(this.zeroAt ? asClock(asSeconds(this.zeroAt)) : "");
+    field.input.addEventListener("input", () => {
+      this.zeroAt = field.input.value ? asClock(asSeconds(field.input.value)) : "";
+      this.emit();
+      this.refresh();
+    });
+    this.zeroField.replaceChildren(field.el, this.zeroNote, this.clashBar);
+    return el("label", { class: "editor__row editor__row--child" }, [
+      el("span", { class: "editor__label", textContent: "목표 시각" }),
+      this.zeroField,
+    ]);
+  }
+
+  /**
+   * Every notice the library has audio for, a row each to tick, with when it sounds;
+   * any ticked one the library has lost, so it can be unticked; and the count, which
+   * every countdown has, ticked in grey since it cannot be left out.
+   */
+  private noticeList(): HTMLElement {
+    const row = (label: string, time: HTMLElement, on: boolean): HTMLButtonElement => el("button", {
+      class: `editor__pick${on ? " on" : ""}`,
+      type: "button",
+    }, [
+      el("span", { class: "lib__box" }, on ? [icon("check", 13)] : []),
+      el("span", { class: "editor__pick-n" }, [el("span", { class: "editor__pick-k", textContent: label }), time]),
+    ]);
+
+    this.noticeTimes = new Map();
+    const picks = inOrder([...noticesHeld(this.tracks), ...this.notices]).map((beforeSec) => {
+      const time = el("small");
+      this.noticeTimes.set(beforeSec, time);
+      const pick = row(noticeLabel(beforeSec), time, this.notices.has(beforeSec));
+      pick.addEventListener("click", () => {
         if (this.notices.has(beforeSec)) this.notices.delete(beforeSec);
         else this.notices.add(beforeSec);
-        show();
+        const on = this.notices.has(beforeSec);
+        pick.classList.toggle("on", on);
+        pick.querySelector(".lib__box")!.replaceChildren(...(on ? [icon("check", 13)] : []));
         this.emit();
         this.refresh();
       });
-      return button;
-    }));
+      return pick;
+    });
+
+    this.countTime = el("small");
+    const count = row("10초 카운트", this.countTime, true);
+    count.classList.add("is-fixed");
+    count.title = "뺄 수 없음";
+    count.disabled = true;
+    return el("div", { class: "editor__group" }, [...picks, count]);
+  }
+
+  /**
+   * When each notice and the count will sound, worked out as the media server
+   * will: a notice its seconds before zero, the count its own length before it,
+   * and the block opening ahead of the first sound. A ticked one that would
+   * sound while the music still plays is in red, so what clashes shows.
+   */
+  private paintCountdown(): void {
+    const zero = this.zeroAt ? asSeconds(this.zeroAt) : null;
+    const music = this.musicSpan();
+    const underMusic = (at: number): boolean => music !== null && at >= music.from && at < music.to;
+    const paint = (time: HTMLElement, at: number | null, on: boolean): void => {
+      time.textContent = at === null ? BLANK : asClock(at);
+      time.classList.toggle("is-bad", at !== null && on && underMusic(at));
+    };
+    for (const [beforeSec, time] of this.noticeTimes) {
+      paint(time, zero === null ? null : zero - beforeSec, this.notices.has(beforeSec));
+    }
+    const count = this.tracks.find((track) => track.role.kind === "count");
+    paint(this.countTime, zero === null || !count ? null : zero - count.durationSec, true);
+
+    let note: { text: string; bad: boolean } | null = null;
+    if (zero !== null && music !== null) {
+      const span = countdownSpan(this.zeroAt, this.notices, this.tracks);
+      const overlap = Math.round(Math.min(music.to, span.zero) - Math.max(span.opens, music.from));
+      const gap = Math.round(span.opens - music.to);
+      if (overlap > 0) note = { text: `음악과 ${howLong(overlap)} 겹칩니다`, bad: true };
+      else if (gap >= 0) note = { text: gap === 0 ? "음악이 끝나자마자 시작" : `음악이 끝나고 ${howLong(gap)} 뒤에 시작`, bad: false };
+    }
+    const bad = note?.bad === true;
+    this.zeroField.classList.toggle("is-bad", bad);
+    this.clashBar.classList.toggle("is-hidden", !bad);
+    this.clashText.textContent = bad ? note!.text : "";
+    this.zeroNote.className = note === null || bad ? "is-hidden" : "editor__help";
+    this.zeroNote.textContent = bad ? "" : note?.text ?? "";
+  }
+
+  /** When the music sounds, counted from the gate as the server counts it; null when there is none. */
+  private musicSpan(): { from: number; to: number } | null {
+    if (this.cues.length === 0) return null;
+    const totalSec = this.cues.reduce(
+      (sum, cue) => sum + (this.tracks.find((track) => track.id === cue.id)?.durationSec ?? 0),
+      0,
+    );
+    const to = asSeconds(this.endsAt);
+    return { from: Math.max(to - totalSec, asSeconds(this.lockAt)), to };
   }
 
   /** The draft's parts in the shape the calendar keeps them. */
@@ -391,22 +633,30 @@ export class FlowEditor {
     if (this.cues.length > 0) {
       parts.push({ kind: "music", tracks: this.cues.map((cue) => ({ ...cue })), endsAt: asClock(asSeconds(this.endsAt)) });
     }
-    if (this.countdown) {
+    if (this.countdown && this.zeroAt) {
       parts.push({ kind: "countdown", at: asClock(asSeconds(this.zeroAt)), notices: inOrder(this.notices) });
     }
     return parts;
   }
 
-  private follows(): boolean {
-    return this.followsMusic && this.parts().length > 0;
+  /** A countdown put in and not yet given its time: in the draft, not yet a part. */
+  private zeroMissing(): boolean {
+    return this.countdown && !this.zeroAt;
   }
 
-  private closesAt(): string {
-    return this.follows() ? lastSound(this.lockAt, this.parts())!.at : this.lockUntil;
+  private follows(): boolean {
+    return this.followsMusic && (this.parts().length > 0 || this.zeroMissing());
+  }
+
+  /** When the gate opens again; null while that waits on a countdown with no time yet. */
+  private closesAt(): string | null {
+    if (!this.follows()) return this.lockUntil;
+    if (this.zeroMissing()) return null;
+    return lastSound(this.lockAt, this.parts())!.at;
   }
 
   private followsLabel(): string {
-    return lastSound(this.lockAt, this.parts())?.kind === "countdown" ? "카운트다운이 끝나면" : "음악이 끝나면";
+    return this.zeroMissing() || lastSound(this.lockAt, this.parts())?.kind === "countdown" ? "카운트다운이 끝나면" : "음악이 끝나면";
   }
 
   // --- summary ---
@@ -425,7 +675,7 @@ export class FlowEditor {
       0,
     );
     const closesAt = this.closesAt();
-    lines.push(["잠금", `${asClock(asSeconds(this.lockAt))} → ${asClock(asSeconds(closesAt))}`]);
+    lines.push(["잠금", `${asClock(asSeconds(this.lockAt))} → ${closesAt === null ? BLANK : asClock(asSeconds(closesAt))}`]);
 
     if (this.cues.length > 0) {
       const startsAt = asClock(asSeconds(this.endsAt) - totalSec);
@@ -441,26 +691,31 @@ export class FlowEditor {
       if (asSeconds(this.endsAt) <= asSeconds(this.lockAt)) {
         warnings.push("음악이 잠금 시작 전에 끝납니다");
       }
-      if (asSeconds(this.endsAt) > asSeconds(closesAt)) {
+      if (closesAt !== null && asSeconds(this.endsAt) > asSeconds(closesAt)) {
         warnings.push("음악이 잠금 해제보다 늦게 끝납니다");
       }
     }
     if (this.countdown) {
+      // Note(yoochan.kim): countdown audio is not a song, so it is never said to be missing from the 곡 목록 (the user, 2026-11-08).
+      warnings.push(...missingAudio(this.notices, this.tracks).map((name) => `${name} 파일이 없습니다`));
+    }
+    if (this.countdown && this.zeroAt) {
       // Note(yoochan.kim): the block, not the first sound: nothing else may sound in its lead either.
       const span = countdownSpan(this.zeroAt, this.notices, this.tracks);
       const told = inOrder(this.notices).map(noticeLabel);
       lines.push(["카운트다운", `${asClock(span.opens)} → ${asClock(span.zero)}${told.length > 0 ? ` (${told.join(", ")})` : ""}`]);
-      warnings.push(...missingAudio(this.notices, this.tracks).map((name) => `${name} 파일이 곡 목록에 없습니다`));
       if (span.opens < asSeconds(this.lockAt)) warnings.push("카운트다운이 잠금 시작보다 빠릅니다");
-      if (span.zero > asSeconds(closesAt)) warnings.push("카운트다운이 잠금 해제보다 늦게 끝납니다");
+      if (closesAt !== null && span.zero > asSeconds(closesAt)) warnings.push("카운트다운이 잠금 해제보다 늦게 끝납니다");
       // Note(yoochan.kim): music timed before the gate is counted from the gate, as the server counts it.
-      const musicFrom = Math.max(asSeconds(this.endsAt) - totalSec, asSeconds(this.lockAt));
-      if (this.cues.length > 0 && span.opens < asSeconds(this.endsAt) && span.zero > musicFrom) {
+      const music = this.musicSpan();
+      if (music !== null && span.opens < music.to && span.zero > music.from) {
         warnings.push("음악이 카운트다운과 겹칩니다");
       }
+    } else if (this.countdown) {
+      lines.push(["카운트다운", BLANK]);
     }
     if (this.unknownPart) warnings.push("알 수 없는 순서가 있습니다");
-    if (asSeconds(closesAt) <= asSeconds(this.lockAt)) {
+    if (closesAt !== null && asSeconds(closesAt) <= asSeconds(this.lockAt)) {
       warnings.push("잠금 해제가 잠금 시작보다 빠릅니다");
     }
     // Note(yoochan.kim): a blank form is not a wrong one. Empty fields are said once
@@ -468,7 +723,9 @@ export class FlowEditor {
     const empty: string[] = [];
     if (this.weekdays.size === 0) empty.push("요일이 비어 있습니다");
     if (!this.name.trim()) empty.push("이름이 비어 있습니다");
+    if (this.zeroMissing()) empty.push("목표 시각이 비어 있습니다");
     this.blocked = warnings.length + empty.length > 0;
+    this.contradicts = warnings.length > 0;
     if (this.tried) warnings.push(...empty);
 
     return [
@@ -505,6 +762,7 @@ export class FlowEditor {
       }
       this.options.onSave(this.id, this.entry());
     });
+    this.saveKey = save;
     this.refresh();
 
     return this.existing ? [this.danger(), cancel, save] : [cancel, save];
@@ -534,15 +792,6 @@ export class FlowEditor {
     };
   }
 
-  private move(index: number, by: number): void {
-    const to = index + by;
-    if (to < 0 || to >= this.cues.length) return;
-    const [moved] = this.cues.splice(index, 1);
-    this.cues.splice(to, 0, moved!);
-    this.emit();
-    this.render();
-  }
-
   private smallButton(name: string, title: string, onClick: () => void): HTMLElement {
     const tone = name === "close" ? " textbtn--bad" : "";
     const button = el("button", { class: `textbtn textbtn--icon${tone}`, type: "button", title }, [icon(name, 15)]);
@@ -559,6 +808,14 @@ export class FlowEditor {
 function length(seconds: number): string {
   const whole = Math.round(seconds);
   return `${Math.floor(whole / 60)}분 ${String(whole % 60).padStart(2, "0")}초`;
+}
+
+/** A stretch of time in words: 22분 50초, 1분 10초, 40초, 1시간 5분. */
+function howLong(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  return [hours ? `${hours}시간` : "", mins ? `${mins}분` : "", secs ? `${secs}초` : ""].filter(Boolean).join(" ");
 }
 
 /** Seconds since midnight, from HH:MM or HH:MM:SS. */

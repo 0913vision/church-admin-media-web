@@ -34,6 +34,7 @@
   --bad: #DC2626; --bad-soft: rgba(220, 38, 38, 0.12);
   /* Note(yoochan.kim): red and green for small words, dark enough to read at 4.5:1. */
   --bad-ink: #B91C1C; --go-ink: #166534;
+  --bad-line: rgba(220, 38, 38, 0.35);
   --seg-idle: #C3CFE3;
   --ink-tint: rgba(27, 32, 41, 0.05);
   --key-dn: rgba(20, 26, 40, 0.10);
@@ -58,6 +59,7 @@
   --hold: #F5A524; --hold-face: #B45309; --hold-soft: rgba(245, 165, 36, 0.10);
   --bad: #EF4444; --bad-soft: rgba(239, 68, 68, 0.16);
   --bad-ink: #FCA5A5; --go-ink: #4ADE80;
+  --bad-line: rgba(239, 68, 68, 0.45);
   --seg-idle: #46556E;
   --ink-tint: rgba(233, 237, 244, 0.09);
   --key-dn: rgba(0, 0, 0, 0.25);
@@ -976,15 +978,74 @@ body.has-modal { overflow: hidden; }
 /* A list takes the whole width, and names itself in its own head. */
 .editor__row--block { display: block; }
 .editor__row.editor__row--block > * { width: auto; }
-/* Note(yoochan.kim): the library's tick boxes in three columns as wide as their words, so the boxes line up. */
-.editor__checks { display: grid; grid-template-columns: repeat(3, max-content); gap: 2px 20px; }
-.editor__checks .lib__t { margin: 0; padding: 0; min-height: var(--field); }
-.editor__checks .lib__t:hover:not(:disabled) { background: none; }
-.editor__none { color: var(--c-fnt); font-size: 13.5px; line-height: var(--field); }
+/* Note(yoochan.kim): a setting's own settings sit under it, set in, as Fluent's SettingsExpander holds a setting's sub-options; no box, the hairlines kept. */
+.editor__row.editor__row--child { margin-left: 16px; }
+/* Note(yoochan.kim): what a field means, under it in muted words (shadcn FormDescription, Fluent Field message). */
+.editor__help { margin: 0; font-size: 12.5px; line-height: 16px; color: var(--c-mut); font-variant-numeric: tabular-nums; }
+.editor__row--child .field { gap: 6px; }
+.editor__row--child .field__msg { font-size: 12.5px; line-height: 16px; font-weight: 500; }
+.editor__row--child .field.is-bad .editor__input { box-shadow: 0 0 0 3px var(--bad-soft); }
+/* Note(yoochan.kim): a clash and its fix on one line, as Fluent's MessageBar with an action: 36 tall, the error's tint and border, a small outlined key at the right. */
+.editor__clash { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 6px 0 10px;
+                 border: 1px solid var(--bad-line); border-radius: 8px; background: var(--bad-soft);
+                 color: var(--bad-ink); font-size: 12.5px; line-height: 16px; font-weight: 500; }
+.editor__clash > span:not(.icon) { flex: 1; min-width: 0; }
+.editor__fix { flex: none; height: 24px; padding: 0 8px; border: 1px solid var(--cap-line); border-radius: 6px;
+               background: var(--cap); color: var(--cap-ink); font: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer; }
+.editor__fix:hover { filter: brightness(1.06); }
+.editor__fix:active { transform: translateY(1px); }
+/* Note(yoochan.kim): under 520px a name and a 300px control no longer fit side by side (음악 마치는 시각 needs 411),
+   so the name goes above, 8 apart, as the 볼륨 튜닝 dialog's fields (shadcn, Geist). */
+@media (max-width: 520px) {
+  .editor > .editor__row { flex-direction: column; align-items: stretch; gap: 8px; }
+  .editor > .editor__row > .editor__label { line-height: 16px; }
+  .editor > .editor__row > :not(.editor__label) { width: auto; }
+}
+/* Note(yoochan.kim): one box a list, lines between its rows, as an inset grouped list (Apple settings, shadcn Item group). */
+/* Note(yoochan.kim): on the dialog's own ground, so the faint numbers and lengths keep their contrast; not clipped, so a menu can hang below. */
+.editor__group { border: 1px solid var(--cap-line); border-radius: 8px; background: var(--panel); }
+.editor__group > :first-child { border-radius: 7px 7px 0 0; }
+.editor__group > :last-child { border-radius: 0 0 7px 7px; }
+/* Note(yoochan.kim): the notices are few and fixed, so each is a row that ticks on and off (the user, 2026-11-08); a grey tick cannot be taken off. */
+.editor__pick { display: flex; align-items: center; gap: 10px; width: 100%; height: 32px; padding: 0 10px;
+                border: 0; border-top: 1px solid var(--line); background: none; font: inherit;
+                font-size: 13.5px; color: var(--c-ink); text-align: left; cursor: pointer; }
+.editor__group > .editor__pick:first-child { border-top: 0; }
+.editor__pick:hover:not(:disabled) { background: var(--raised); }
+.editor__pick.on .lib__box { background: var(--go); border-color: var(--go); color: #fff; }
+.editor__pick:disabled { color: var(--c-ink); cursor: default; }
+.editor__pick.is-fixed .lib__box { background: var(--c-fnt); border-color: var(--c-fnt); color: var(--panel); }
+/* Note(yoochan.kim): the name at the left and when it sounds at the right edge, as a grouped list sets a value, so the row is not half empty. */
+.editor__pick-n { flex: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; color: var(--c-ink); }
+.editor__pick-k { flex: none; }
+.editor__pick-n small { font-size: 13.5px; color: var(--c-mut); font-variant-numeric: tabular-nums; }
+.editor__pick-n small.is-bad { color: var(--bad-ink); font-weight: 500; }
+.editor__pick:not(.on) small { color: var(--c-fnt); }
 .editor__row > .editor__input, .field > .editor__input, .filebar { border-radius: 8px; overflow: hidden; }
 .modal .editor__input::-webkit-calendar-picker-indicator { opacity: 0.35; }
 /* The browser draws the clock black whatever the theme. */
 :root[data-theme="dark"] .modal .editor__input::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.5; }
+/* Note(yoochan.kim): the typed field kept, the browser's own dropdown replaced by ours (the user, 2026-11-08: "너무 못생겼어"). */
+.timefield { position: relative; }
+.timefield > .editor__input { border-radius: 8px; padding-right: 36px; }
+.timefield > .editor__input::-webkit-calendar-picker-indicator { display: none; }
+.timefield__key { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px;
+                  display: grid; place-items: center; padding: 0; border: 0; border-radius: 6px; background: none;
+                  color: var(--c-fnt); cursor: pointer; }
+.timefield__key:hover, .timefield__key.on { background: var(--raised); color: var(--c-ink); }
+/* Note(yoochan.kim): three columns, hours, minutes and seconds, as Ant Design's and MUI's time pickers; the chosen cell green as every choice in the app. */
+.timepop { position: absolute; top: calc(100% + 4px); right: 0; z-index: 10; display: flex; padding: 0;
+           background: var(--cap); border: 1px solid var(--cap-line); border-radius: 8px;
+           box-shadow: 0 10px 26px rgba(20, 26, 40, 0.16); }
+/* Note(yoochan.kim): Ant Design's numbers: columns 56 wide and 216 tall, cells 48×28 with the digits 14 in, room below so 59 reaches the top. */
+.timepop__col { width: 56px; height: 216px; overflow-y: auto; scrollbar-width: none; display: flex; flex-direction: column;
+                padding: 4px 4px 184px; }
+.timepop__col::-webkit-scrollbar { display: none; }
+.timepop__col + .timepop__col { border-left: 1px solid var(--line); }
+.timepop__cell { flex: none; height: 28px; padding: 0 0 0 14px; border: 0; border-radius: 4px; background: none; font: inherit;
+                 font-size: 13.5px; color: var(--c-ink); text-align: left; font-variant-numeric: tabular-nums; cursor: pointer; }
+.timepop__cell:hover { background: var(--ink-tint); }
+.timepop__cell.on { background: var(--go); color: #fff; font-weight: 600; }
 /* A field is a bar with different insides: same border, fill and height. The
    height is set, or a time input and a day cell come out 38 and 31 tall. */
 .editor__input {
@@ -996,25 +1057,59 @@ body.has-modal { overflow: hidden; }
 /* Laid out like 곡 설정: fixed columns, so the lengths and levels stand under each other
    whatever the names, and every row is the same height. */
 .editor__tracks { display: flex; flex-direction: column; }
-.editor__track { display: grid; grid-template-columns: 22px minmax(0, 1fr) 76px 54px repeat(3, 32px);
-                 column-gap: 8px; align-items: center; min-height: 36px; margin: 0 -10px; padding: 0 10px;
-                 border-radius: 8px; font-size: 13.5px; }
+/* Note(yoochan.kim): columns as wide as what they hold (a grip, two digits, a length, a speaker and three digits, an ×), so no column is air. */
+.editor__track { display: grid; grid-template-columns: 16px 16px minmax(0, 1fr) 64px 48px 28px;
+                 column-gap: 8px; align-items: center; min-height: 36px; padding: 0 8px;
+                 border-top: 1px solid var(--line); font-size: 13.5px; }
+.editor__group > .editor__track:first-child { border-top: 0; }
 .editor__track:not(.editor__track--head):hover { background: var(--raised); }
 .editor__track-no { font-size: 13.5px; color: var(--c-fnt); text-align: right; font-variant-numeric: tabular-nums; }
 /* One line: a title folded in half reads as two songs. */
 .editor__track-name { color: var(--c-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .editor__track-len { font-size: 13.5px; color: var(--c-fnt); text-align: right; font-variant-numeric: tabular-nums; }
-/* The list's name on the line the other settings' names sit on, its column names beside it. */
-.editor__track-title { grid-column: 1 / 3; color: var(--c-ink); font-weight: 500; line-height: var(--field); }
-.editor__track--head .editor__track-len, .editor__track-volh { font-size: 13.5px; color: var(--c-mut); text-align: right; }
-/* Over the digits, not over the field's edge. */
-.editor__track-volh { padding-right: 9px; }
+/* Note(yoochan.kim): the list's name alone on its line, only as tall as that name, on the line every setting's name starts on. */
+.editor__track--head { min-height: 0; margin: 0 0 6px; padding: 0; border-top: 0; }
+.editor__track-title { grid-column: 1 / -1; color: var(--c-ink); font-weight: 500; line-height: 20px; }
+/* Note(yoochan.kim): a grip at each song's left to drag it, where Cuez and Rundown Studio put theirs. */
+/* Note(yoochan.kim): the grip's own 24px square, tinted when pointed at or held, as Atlassian's and dnd-kit's handles are. */
+.editor__grip { display: flex; align-items: center; justify-content: center; justify-self: center; width: 24px; height: 24px;
+                color: var(--c-fnt); cursor: grab; touch-action: none; border-radius: 4px; }
+.editor__grip:hover, .editor__track.is-dragging .editor__grip { background: var(--ink-tint); color: var(--c-ink); }
+.editor__grip:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--slot); }
+/* Note(yoochan.kim): lifted as dnd-kit lifts it: 1.05 larger, its picked-up shadow, grown into over 0.2s; the 1px ring keeps it apart in the dark theme. */
+.editor__track.is-dragging { position: relative; z-index: 2; background: var(--panel); border-radius: 8px; cursor: grabbing; scale: 1.05;
+                             box-shadow: 0 0 0 1px var(--cap-line), -1px 0 15px 0 rgba(34, 33, 81, 0.01), 0 15px 15px 0 rgba(34, 33, 81, 0.25); }
+.editor__track.is-dragging:hover { background: var(--panel); }
+.editor__songs:not(.is-sorting) .editor__track.is-dragging + .editor__track { border-top-color: transparent; }
+/* Note(yoochan.kim): while a song is carried the others slide aside over 0.2s (dnd-kit), and the carried one settles the same way. */
+.editor__tracks { position: relative; }
+.editor__songs.is-sorting .editor__track { transition: transform 200ms ease; }
+.editor__songs.is-sorting .editor__track.is-dragging:not(.is-settling) {
+  transition: scale 200ms cubic-bezier(0.18, 0.67, 0.6, 1.22), box-shadow 200ms cubic-bezier(0.18, 0.67, 0.6, 1.22); }
+.editor__songs.is-sorting .editor__track.is-settling { scale: 1; transition: transform 200ms ease, scale 200ms ease, box-shadow 200ms ease;
+                                                       box-shadow: 0 0 0 1px var(--cap-line); }
+.editor__songs.is-sorting .editor__track:not(.is-dragging):hover { background: none; }
+/* Note(yoochan.kim): where it will land: the row itself at half strength (dnd-kit's 0.5), moving from slot to slot with the others. */
+.editor__ghost { position: absolute; z-index: 1; margin: 0; opacity: 0.5; pointer-events: none; transition: transform 200ms ease; }
+.editor__ghost.is-first { border-top-color: transparent; }
+.is-grabbing, .is-grabbing * { cursor: grabbing !important; user-select: none; -webkit-user-select: none; }
+.editor__track.is-dragging .editor__grip { color: var(--c-ink); cursor: grabbing; }
+.editor__track.is-dragging:hover .editor__track-vol { background: transparent; border-color: transparent; }
+/* Note(yoochan.kim): the speaker that stands for 볼륨 on the deck, with the level right after it, so the two read as one. */
+.editor__vol { display: flex; align-items: center; justify-content: flex-end; color: var(--c-fnt); }
+/* Note(yoochan.kim): adding is the list's last row, as Cuez, Google Calendar and Apple's grouped lists end theirs. */
+.editor__addrow { width: 100%; border: 0; border-top: 1px solid var(--line); background: none; font: inherit; font-size: 13.5px;
+                  color: var(--c-mut); text-align: left; cursor: pointer; }
+.editor__addrow:hover { background: var(--raised); color: var(--c-ink); }
+.editor__plus { display: flex; justify-content: flex-end; }
 /* A number that reads as a number until its row is pointed at, as in 곡 설정. No spinner:
    it walks the value past the limits it is given. */
 .editor__track-vol {
-  height: 28px; padding: 0 8px; text-align: right; background: transparent; border-color: transparent;
+  height: 28px; padding: 0 3px; text-align: left; background: transparent; border-color: transparent;
   font-variant-numeric: tabular-nums; appearance: textfield; -moz-appearance: textfield;
 }
+/* Note(yoochan.kim): wide enough for 100 (23px of digits), which at 28 lost its last 0. */
+.editor__vol .editor__track-vol { width: 32px; }
 .editor__track:hover .editor__track-vol { background: var(--well); border-color: var(--line); }
 .editor__track .editor__track-vol:focus { background: var(--panel); border-color: var(--go); }
 .editor__track-vol::-webkit-inner-spin-button,
@@ -1025,7 +1120,7 @@ body.has-modal { overflow: hidden; }
 .editor__track .textbtn, .editor__track .textbtn--bad { color: var(--c-fnt); }
 .editor__track .textbtn:hover { color: var(--c-ink); }
 .editor__track .textbtn--bad:hover { color: var(--bad); }
-.editor__adders { position: relative; display: flex; align-items: flex-start; margin-top: 6px; }
+.editor__adders { position: relative; display: flex; align-items: flex-start; }
 /* The library, open only while somebody is choosing from it. It hangs over what
    is below rather than pushing it down — a menu that moves the rest of the form
    out of the way takes the thing you were reading with it. */
