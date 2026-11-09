@@ -939,7 +939,8 @@ body.has-modal { overflow: hidden; }
 .setlist--edit .setlist__r { grid-template-columns: 22px 1fr 60px 54px 44px; }
 .setlist--edit .setlist__r > :nth-child(5) { text-align: right; }
 /* A name that reads as a name until it is touched, like the level beside it. */
-.setlist .editor__input--name { text-align: left; font-variant-numeric: normal; padding-left: 8px; margin-left: -8px; }
+/* Note(yoochan.kim): 7 inside its 1px border, so a name that can be typed into starts where a plain one does. */
+.setlist .editor__input--name { text-align: left; font-variant-numeric: normal; padding-left: 7px; margin-left: -8px; }
 .setlist .editor__input.is-bad { border-color: var(--bad); }
 .setlist__t { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .setlist__t > .editor__input, .setlist__t > .setlist__n { flex: 1; min-width: 0; }
@@ -1422,8 +1423,6 @@ body.has-modal { overflow: hidden; }
   .setlist__r .textbtn { padding: 0 2px; line-height: 22px; }
   .setlist--edit .setlist__r { row-gap: 0; padding-block: 6px; }
   .setlist__r > :nth-child(3), .setlist__r > :nth-child(4), .setlist__r > :nth-child(5) { margin-top: -3px; }
-  /* Note(yoochan.kim): 7 inside its 1px border, so a name that can be typed into starts where the length under it does. */
-  .setlist .editor__input--name { padding-left: 7px; }
   .setlist__r > :nth-child(1) { grid-area: i; }
   .setlist__r > :nth-child(2) { grid-area: t; }
   .setlist__r > :nth-child(3) { grid-area: d; }
