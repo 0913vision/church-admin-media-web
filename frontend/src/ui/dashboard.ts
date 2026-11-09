@@ -55,11 +55,14 @@ function viewOf(hash: string): ViewKey | null {
  * A track's length for a column of them.
  *
  * Note(yoochan.kim): mm:ss rather than the list's "61분 25초". Right-aligned, the two
- * numbers in that form put 분 in a different place on every row.
+ * numbers in that form put 분 in a different place on every row. Past an hour the hours
+ * lead (1:01:24): 173:24 does not read as a length.
  */
 function lengthOf(seconds: number): string {
   const whole = Math.round(seconds);
-  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
+  const pad = (value: number): string => String(value).padStart(2, "0");
+  if (whole >= 3600) return `${Math.floor(whole / 3600)}:${pad(Math.floor((whole % 3600) / 60))}:${pad(whole % 60)}`;
+  return `${Math.floor(whole / 60)}:${pad(whole % 60)}`;
 }
 
 /** Every attribute the dashboard needs before it can claim to show the device */
