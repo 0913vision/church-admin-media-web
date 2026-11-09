@@ -29,6 +29,13 @@ export function holdToFire(button: HTMLElement, onFire: () => void): void {
   button.addEventListener("pointerdown", () => {
     if (!button.classList.contains("cooling")) button.classList.add("arming");
   });
+  // Note(yoochan.kim): a finger's events stay with the key it pressed, so sliding off it is caught here, as a mouse's leave is.
+  button.addEventListener("pointermove", (event) => {
+    const box = button.getBoundingClientRect();
+    const off = event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom;
+    if (off) button.classList.remove("arming");
+  });
+  button.addEventListener("contextmenu", (event) => event.preventDefault());
   for (const event of ["pointerup", "pointerleave", "pointercancel"]) {
     button.addEventListener(event, () => button.classList.remove("arming"));
   }
