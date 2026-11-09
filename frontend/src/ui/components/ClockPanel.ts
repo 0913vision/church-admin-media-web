@@ -41,6 +41,8 @@ export class ClockPanel {
   private offsetSec = 0;
   private gated = false;
   private armed = false;
+  /** A screen with no keyboard to hand, where the flip is pressed on a key instead of Space. */
+  private readonly touch = window.matchMedia("(hover: none) and (pointer: coarse)");
   private readonly onOffset: ClockPanelOptions["onOffset"];
   private readonly clock: ChurchClock;
 
@@ -96,6 +98,7 @@ export class ClockPanel {
     this.clock.start((now) => this.drawChurch(now));
     this.clock.start((now) => this.drawStandard(now), "standard");
     document.addEventListener("keydown", (event) => this.onKey(event));
+    this.touch.addEventListener("change", () => this.renderTap());
   }
 
   /** The offset as the device reports it, plus whether the gate is holding. */
@@ -168,6 +171,17 @@ export class ClockPanel {
         this.armed = false;
         this.renderTap();
       });
+      if (this.touch.matches) {
+        const now = el("button", { class: "btn btn--go tap__now", type: "button", textContent: "분이 바뀔 때 누르십시오" });
+        // Note(yoochan.kim): on the touch, not its release, which lands a tenth of a second or more after the flip.
+        now.addEventListener("pointerdown", (event) => {
+          event.preventDefault();
+          this.markNow();
+        });
+        now.addEventListener("click", (event) => { if (event.detail === 0 && this.armed) this.markNow(); });
+        this.tap.replaceChildren(now, cancel);
+        return;
+      }
       this.tap.replaceChildren(
         el("span", { class: "led led--hold" }),
         el("span", { class: "tap__t" }, [
@@ -189,11 +203,13 @@ export class ClockPanel {
     });
     this.tap.replaceChildren(
       start,
-      el("span", { class: "tap__t" }, [
-        "교회 시계가 바뀔 때를 보고 ",
-        el("kbd", { class: "kbd", textContent: "Space" }),
-        "를 눌러 맞출 수 있습니다",
-      ]),
+      el("span", { class: "tap__t" }, this.touch.matches
+        ? ["교회 시계가 바뀔 때를 보고 맞출 수 있습니다"]
+        : [
+            "교회 시계가 바뀔 때를 보고 ",
+            el("kbd", { class: "kbd", textContent: "Space" }),
+            "를 눌러 맞출 수 있습니다",
+          ]),
     );
   }
 }

@@ -502,9 +502,15 @@ button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--slot); }
        border-top: 1px solid var(--line); }
 .tap.is-off { opacity: 0.35; pointer-events: none; }
 .tap.is-armed { border-top-color: var(--hold); }
-.tap__t { display: block; font-size: 13.5px; color: var(--c-mut); }
+.tap__t { display: block; font-size: 13.5px; color: var(--c-mut); word-break: keep-all; }
 .tap__t b { color: var(--c-ink); font-weight: 600; }
 .tap > .pick:last-child { margin-left: auto; }
+/* Note(yoochan.kim): on a touch screen the flip is pressed on one key that says when, 56 tall (M3's medium button),
+   filled as the main key like 저장, with a plain 취소 beside it. */
+.tap > .btn.tap__now { flex: 1; height: 56px; font-size: 16px; font-weight: 600; }
+/* Note(yoochan.kim): the amber rule goes with the amber lamp, which this key replaces. */
+.tap.is-armed:has(.tap__now) { border-top-color: var(--line); }
+.tap > .tap__now + .pick { height: 56px; }
 
 /* ================= timeline: the whole schedule in one picture ================= */
 .tl { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px 24px; }
