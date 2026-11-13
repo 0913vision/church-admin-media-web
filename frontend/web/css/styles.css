@@ -31,10 +31,12 @@
   --c-ink: #1B2029; --c-mut: #4B5566; --c-fnt: #6C7788;
   --go: #16A34A; --go-soft: rgba(22, 163, 74, 0.13); --go-face: #16A34A;
   --hold: #C2740A; --hold-face: #C2740A; --hold-soft: rgba(194, 116, 10, 0.12);
-  --bad: #DC2626; --bad-soft: rgba(220, 38, 38, 0.12);
+  /* Note(yoochan.kim): Atlassian's danger red (background.danger.bold, text.danger, background.danger); #DC2626 glared (the user, 2026-11-13). */
+  --bad: #C9372C; --bad-soft: #FFECEB;
   /* Note(yoochan.kim): red and green for small words, dark enough to read at 4.5:1. */
-  --bad-ink: #B91C1C; --go-ink: #166534;
-  --bad-line: rgba(220, 38, 38, 0.35);
+  --bad-ink: #AE2E24; --go-ink: #166534;
+  --bad-line: rgba(201, 55, 44, 0.35);
+  --bad-gauge: rgba(201, 55, 44, 0.35); --bad-draft: rgba(201, 55, 44, 0.38);
   --seg-idle: #C3CFE3;
   --ink-tint: rgba(27, 32, 41, 0.05);
   --key-dn: rgba(20, 26, 40, 0.10);
@@ -60,6 +62,7 @@
   --bad: #EF4444; --bad-soft: rgba(239, 68, 68, 0.16);
   --bad-ink: #FCA5A5; --go-ink: #4ADE80;
   --bad-line: rgba(239, 68, 68, 0.45);
+  --bad-gauge: rgba(220, 38, 38, 0.35); --bad-draft: rgba(220, 38, 38, 0.38);
   --seg-idle: #46556E;
   --ink-tint: rgba(233, 237, 244, 0.09);
   --key-dn: rgba(0, 0, 0, 0.25);
@@ -303,7 +306,7 @@ button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--slot); }
    tint: on a chip that is already raised, a soft one could not be seen at all. */
 .gate .arm, .pick .arm { position: absolute; inset: 0; width: 0; background: var(--bad-soft);
                          transition: width 0.9s linear; }
-.gate .arm { background: rgba(220, 38, 38, 0.35); }
+.gate .arm { background: var(--bad-gauge); }
 .gate.on .arm { background: rgba(255, 255, 255, 0.45); }
 .gate.arming .arm, .pick.arming .arm { width: 100%; }
 .gate.cooling .arm, .pick.cooling .arm { width: 0; }
@@ -1352,7 +1355,7 @@ body.has-modal { overflow: hidden; }
 /* A flow being written: dashed until it exists, red where it lands on another. */
 .blk.draft { background: transparent; border: 1.5px dashed var(--c-mut); pointer-events: none; z-index: 2; }
 /* Loud on purpose: it sits on top of the flow it would collide with. */
-.blk.draft.clash { border: 2px dashed var(--bad); background: rgba(220, 38, 38, 0.38); }
+.blk.draft.clash { border: 2px dashed var(--bad); background: var(--bad-draft); }
 
 /* ================= phone ================= */
 /* Note(yoochan.kim): the top bar, its backdrop and the schedule's list exist only on a phone. */
