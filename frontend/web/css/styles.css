@@ -795,6 +795,9 @@ button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--slot); }
 .sys .log { font-size: 13.5px; line-height: 1.9; }
 .sys .log b { width: 46px; }
 .sys .log span { overflow: visible; text-overflow: clip; }
+/* Note(yoochan.kim): on the log tab a long line wraps inside its own column, the time and level kept to the left of it (the user, 2026-11-13). */
+.logs .log div { white-space: normal; align-items: baseline; }
+.logs .log span { flex: 1; min-width: 0; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
 .sys .log::-webkit-scrollbar { width: 10px; height: 10px; }
 .sys .log::-webkit-scrollbar-thumb { background: var(--slot); border-radius: 5px; }
 .sys .log::-webkit-scrollbar-thumb:hover { background: var(--c-fnt); }
