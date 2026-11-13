@@ -543,13 +543,14 @@ button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--slot); }
 /* A block is as wide as its song is long, so it is usually a sliver. It carries
    no writing it cannot fit; one song is told from the next by the gap between
    them, and the one playing by its colour. */
-.seg { position: relative; height: 100%; display: flex; align-items: center; overflow: hidden;
-       min-width: 0; padding: 0 8px; font-size: 13.5px; font-weight: 600; white-space: nowrap;
+/* Note(yoochan.kim): each at its own instant, so a sliver widened by anything cannot push the next one along. */
+.seg { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; overflow: hidden;
+       min-width: 0; font-size: 13.5px; font-weight: 600; white-space: nowrap;
        background: var(--seg-idle); color: var(--c-ink);
        box-shadow: inset -1px 0 0 var(--panel); border-radius: 3px; }
+.seg > span { padding: 0 8px; }
 .seg.is-now { background: var(--go); color: #fff; box-shadow: none; }
 .seg:last-of-type { box-shadow: none; }
-.seg--gap { background: transparent; box-shadow: none; }
 /* Where we are now. It crosses both the pale blocks and the card behind them,
    so it is dark with a light halo — one colour cannot be seen on both. */
 .now { position: absolute; top: 0; bottom: 0; width: 2px; z-index: 3;
@@ -585,9 +586,6 @@ button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--slot); }
 .tl.is-ask .seg, .tl.is-auto .seg { background: rgba(255, 255, 255, 0.94); color: #1B2029;
                                     box-shadow: inset -1px 0 0 var(--go-face); }
 .tl.is-auto .seg { box-shadow: inset -1px 0 0 var(--hold-face); }
-/* The stretch before the first song is silence, and has to look like it. This
-   rule outranks the one above, which was painting it like a song. */
-.tl.is-ask .seg--gap, .tl.is-auto .seg--gap { background: transparent; box-shadow: none; }
 .tl.is-ask .tick.is-music, .tl.is-auto .tick.is-music { color: #fff; }
 .tl.is-ask .tl__ticks, .tl.is-auto .tl__ticks { color: rgba(255, 255, 255, 0.85); }
 /* A painted card keeps its colour in either theme, so the line over it is pinned

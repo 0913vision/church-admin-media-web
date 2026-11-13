@@ -208,21 +208,18 @@ export class FlowPanel {
     // by its edge and, when it is the one playing, by its colour. What it is and
     // when it starts is in the tooltip and on the scale below.
     const minutesPerPercent = width / 100;
-    // Note(yoochan.kim): the bar shows the lock window, so a block that begins earlier is cut at the gate.
-    let cursor = span.opens;
+    // Note(yoochan.kim): each block placed at its own instant, not after the one before: laid end to end,
+    // a sliver held open by its padding pushed the next past its time (a countdown drawn after its zero, 2026-11-13).
     for (const block of blocks) {
       if (block.to <= span.opens) continue;
+      // Note(yoochan.kim): the bar shows the lock window, so a block that begins earlier is cut at the gate.
       const from = Math.max(block.from, span.opens);
-      if (from > cursor || cursor === span.opens) {
-        children.push(el("div", { class: "seg seg--gap", style: `width:${pct(from) - pct(cursor)}%` }));
-      }
       const share = pct(block.to) - pct(from);
-      const seg = el("div", { class: `seg${block.live ? " is-now" : ""}`, style: `width:${share}%` });
+      const seg = el("div", { class: `seg${block.live ? " is-now" : ""}`, style: `left:${pct(from)}%;width:${share}%` });
       seg.title = `${hhmm(from)} ${block.title}`;
       // Room for a name is rare on this bar; when there is, it is worth having.
-      if (share * minutesPerPercent >= 14) seg.append(block.title);
+      if (share * minutesPerPercent >= 14) seg.append(el("span", { textContent: block.title }));
       children.push(seg);
-      cursor = block.to;
     }
     if (nowMinutes >= span.opens && nowMinutes <= span.closes) {
       children.push(el("div", { class: "now", style: `left:${pct(nowMinutes)}%` }));
@@ -262,8 +259,9 @@ export class FlowPanel {
       musicTo: musicEnds,
       segments,
       ...(counts && {
+        // Note(yoochan.kim): one block from where it opens, its 10s lead included, to zero, as the editor's summary has it.
         countdown: {
-          from: counts.first / 60,
+          from: counts.opens / 60,
           to: counts.zero / 60,
           titles: library.filter(isCountdownAudio).map((track) => track.title),
         },
