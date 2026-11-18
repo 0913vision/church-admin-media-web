@@ -3,12 +3,13 @@ import type { FlowStatus, SchedulePart, Track } from "../protocol.js";
 /**
  * Whether a run has the deck.
  *
- * Note(yoochan.kim): the same condition the device applies — sounding music, not
- * merely holding the gate. A flow holding the gate keeps the panel out; the deck
- * is still free, and the device takes writes to it.
+ * Note(yoochan.kim): the same condition the device applies — from the run's first
+ * sound to its last, the quiet between its music and countdown and between notices
+ * included (the user, 2026-11-18), not merely holding the gate. A flow holding the
+ * gate keeps the panel out; the deck is still free, and the device takes writes to it.
  */
 export function flowOwnsDeck(flow: FlowStatus): boolean {
-  return flow.phase === "playing";
+  return flow.phase === "playing" || (flow.phase === "holding" && flow.deckHeld === true);
 }
 
 // Note(yoochan.kim): the quiet a countdown's block keeps ahead of its first sound, as the protocol states it.

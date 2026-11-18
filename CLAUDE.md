@@ -92,6 +92,11 @@ repo speaks that model end to end rather than translating it.
   deleting asks first through `components/Alert.ts`, a layer above the one Modal
   (question as title, result in a sentence, keys bottom right). The [+] and the
   name and 삭제 controls appear only when `ready.commands` lists them
+- **A run's player is closed by one rule**, `util/flow.ts` `flowOwnsDeck`: the run's
+  status is `playing`, or `holding` with `deckHeld` — the quiet between its music and
+  countdown and between notices, which the device refuses as well (the user,
+  2026-11-18). Every player control asks it; a run only holding the gate leaves the
+  player usable
 - **The X32 bands** (`components/DeskBands.ts`, in the X32 tab and the dashboard's X32
   card, from the `deskUse` attribute; the user, 2026-11-13): yellow (Atlassian's Banner
   warning, `--dh-warn`) while the server holds part of the desk, with the row whose

@@ -76,7 +76,7 @@ export class LibraryPanel {
 
   private render(): void {
     const state = this.state;
-    // Note(yoochan.kim): a run sounding music owns the deck, and the server refuses every
+    // Note(yoochan.kim): a run holding the deck (its music, its countdown and the quiet between) owns it, and the server refuses every
     // choice made here — the same rule the deck's own keys follow. A run merely
     // holding the gate owns nothing, so the list stays usable.
     const runOwnsDeck = state !== null && flowOwnsDeck(state.flow);
