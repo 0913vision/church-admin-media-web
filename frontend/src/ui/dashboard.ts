@@ -11,6 +11,7 @@ import { BLANK, el } from "../util/dom.js";
 import { throttle } from "../util/rate.js";
 import { objectParticle } from "../util/korean.js";
 import { ConsolePanel } from "./components/ConsolePanel.js";
+import { DeskBands, heldChip, heldStrips } from "./components/DeskBands.js";
 import { levelText, meter, unmuteButton } from "./components/meter.js";
 import { holdToFire } from "./components/hold.js";
 import { Modal } from "./components/Modal.js";
@@ -260,9 +261,13 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
       });
     },
   });
+  const dismissNote = (id: string): void => guard(deviceApi.invoke({ command: "dismissDeskNote", args: { id } }));
+  const today = (): string => instantOf(church.now()).slice(0, 10);
   const consolePanel = new ConsolePanel({
     onEnable: (input, resend) => sendConsole(input, resend),
     onInitialize: () => initializeConsole(),
+    onDismissNote: dismissNote,
+    today,
   });
   // Note(yoochan.kim): one dialog for the whole page's questions, so a second one
   // can never open behind the first. The alert is the exception that proves it: it
@@ -577,8 +582,10 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
   // Note(yoochan.kim): the desk's inputs — how many and what they are called —
   // come with the state, so rewiring or renaming one is a media-server change
   const consoleStrip = el("div", {});
+  const deskBands = new DeskBands(dismissNote, today);
   let consoleReachable = false;
   let consoleState: State["console"] = [];
+  let deskHeld = new Set<string>();
 
   const renderConsoleRows = (): void => {
     const heard = consoleState.some((input) => input.state.kind === "read");
@@ -589,9 +596,10 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
       ...consoleState.map((input) => {
         const on = input.state.kind === "read" && input.state.on;
         const button = unmuteButton(input, consoleReachable, (resend) => sendConsole(input.id, resend));
+        const held = input.strips?.some((strip) => deskHeld.has(strip)) === true;
 
         return el("div", { class: `chrow${on ? " on" : ""}` }, [
-          el("span", { class: "chrow__n", textContent: input.label }),
+          el("span", { class: "chrow__n" }, [input.label, ...(held ? [heldChip()] : [])]),
           meter(input),
           levelText(input),
           el("span", {}),
@@ -675,6 +683,7 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
           el("span", { class: "x32__link" }, [x32Conn, x32Led]),
           goto("console", true),
         ]),
+        deskBands.el,
         consoleStrip,
       ]),
       el("div", { class: "sum" }, [
@@ -907,7 +916,12 @@ export function renderDashboard(root: HTMLElement, onLoggedOut: () => void): voi
     renderHold();
 
     consoleState = state.console;
+    // Note(yoochan.kim): not one of ATTRIBUTES, so a server too old to report it shows no bands rather than nothing.
+    const deskUse = patch.deskUse;
+    deskBands.set(deskUse);
+    deskHeld = heldStrips(deskUse);
     renderConsoleRows();
+    consolePanel.setDeskUse(deskUse);
     consolePanel.setState(state.console);
 
     schedulePanel.setStatus(state.flow);

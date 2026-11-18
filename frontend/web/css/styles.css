@@ -37,6 +37,8 @@
   --bad-ink: #AE2E24; --go-ink: #166534;
   --bad-line: rgba(201, 55, 44, 0.35);
   --bad-gauge: rgba(201, 55, 44, 0.35); --bad-draft: rgba(201, 55, 44, 0.38);
+  /* Note(yoochan.kim): Atlassian's Banner warning (background.warning.bold, text.warning.inverse), for the server holding the X32. */
+  --dh-warn: #FBC828; --dh-warn-ink: #292A2E;
   --seg-idle: #C3CFE3;
   --ink-tint: rgba(27, 32, 41, 0.05);
   --key-dn: rgba(20, 26, 40, 0.10);
@@ -63,6 +65,7 @@
   --bad-ink: #FCA5A5; --go-ink: #4ADE80;
   --bad-line: rgba(239, 68, 68, 0.45);
   --bad-gauge: rgba(220, 38, 38, 0.35); --bad-draft: rgba(220, 38, 38, 0.38);
+  --dh-warn-ink: #1F1F21;
   --seg-idle: #46556E;
   --ink-tint: rgba(233, 237, 244, 0.09);
   --key-dn: rgba(0, 0, 0, 0.25);
@@ -689,6 +692,33 @@ button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--slot); }
 .iconbtn:active:not(:disabled) { transform: translateY(1px); }
 .iconbtn:disabled { background: var(--raised); color: var(--c-fnt); border-color: transparent; cursor: default; }
 .chrow .pick { font-size: 13.5px; height: 32px; padding: 0 12px; text-align: center; white-space: nowrap; }
+
+/* Note(yoochan.kim): bands over an X32 card while the server uses the desk (the user, 2026-11-13): yellow while it
+   holds, red for a hand on what it holds or what the desk has not taken back, grey for a move put back, until 닫기. */
+.dh { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; row-gap: 2px; min-height: 40px; padding: 8px 12px;
+      margin-top: 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 13.5px; line-height: 20px; word-break: keep-all; }
+.dh + .dh { margin-top: 8px; }
+.dh > .icon { flex: none; }
+.dh__t { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; column-gap: 10px; }
+.dh__t b { font-weight: 600; }
+.dh__t small { font-size: 13.5px; color: var(--c-mut); font-variant-numeric: tabular-nums; }
+.dh--hold { background: var(--dh-warn); border-color: var(--dh-warn); color: var(--dh-warn-ink); }
+.dh--bad { background: var(--bad); border-color: var(--bad); color: #FFFFFF; }
+.dh--bad .dh__t small, .dh--hold .dh__t small { color: inherit; opacity: 0.85; }
+.dh--done { background: var(--raised); color: var(--c-ink); }
+.dh--done .textbtn { flex: none; }
+.dh__more { flex: none; display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 8px; margin: -4px -4px -4px auto;
+            border: 0; border-radius: 6px; background: transparent; color: inherit; font: inherit; font-weight: 600; cursor: pointer; }
+/* Note(yoochan.kim): only where a pointer hovers; a tap on a phone left it tinted. */
+@media (hover: hover) { .dh__more:hover { background: rgba(255, 255, 255, 0.16); } }
+.dh__more .icon { transition: transform 0.15s; }
+.dh__more.on .icon { transform: rotate(180deg); }
+.dh-list { margin-top: 4px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); font-size: 13.5px; }
+.dh-list > div { display: grid; grid-template-columns: 96px minmax(0, 1fr); column-gap: 12px; padding: 8px 12px; border-top: 1px solid var(--line); }
+.dh-list > div:first-child { border-top: 0; }
+.dh-list b { font-weight: 600; color: var(--c-ink); }
+.dh-list span { color: var(--c-mut); word-break: keep-all; }
+.chip--hold { background: var(--dh-warn); color: var(--dh-warn-ink); margin-left: 8px; }
 
 /* ================= dashboard summary: the system tab in miniature ================= */
 /* Two cards like the rest, so the log does not read as a third column of the
@@ -1450,6 +1480,13 @@ body.has-modal { overflow: hidden; }
   .chrow > .chrow__db { grid-area: d; }
   .chrow > :nth-child(4) { display: none; }
   .chrow > :last-child { grid-area: k; }
+  /* Note(yoochan.kim): a band's words take the line and what follows them drops under, lined up past the icon. */
+  .dh { align-items: flex-start; }
+  .dh > .icon { margin-top: 2px; }
+  .dh__t { flex-basis: calc(100% - 26px); }
+  .dh--done .textbtn { margin-left: 26px; }
+  .dh__more { margin: 0 0 0 26px; padding: 0; height: auto; }
+  .dh-list > div { grid-template-columns: minmax(0, 1fr); row-gap: 2px; }
 }
 /* Note(yoochan.kim): under 520px a song in the flow editor is two lines too: its number and name, then its length and level, × at the right. */
 @media (max-width: 520px) {

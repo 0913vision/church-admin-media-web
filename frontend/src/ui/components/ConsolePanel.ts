@@ -1,12 +1,17 @@
 import { el } from "../../util/dom.js";
-import type { ConsoleInput } from "../../protocol.js";
+import type { ConsoleInput, DeskUse } from "../../protocol.js";
 import { levelText, meter, unmuteButton } from "./meter.js";
+import { DeskBands, heldChip, heldStrips } from "./DeskBands.js";
 
 export interface ConsolePanelOptions {
   /** `resend` when the press was a hold on an input that already sounds. */
   onEnable: (inputId: string, resend: boolean) => void;
   /** Puts the whole desk back to where a service starts. */
   onInitialize: () => void;
+  /** Sets a note of a move put back aside. */
+  onDismissNote: (id: string) => void;
+  /** Today in church time, 2026-11-13. */
+  today: () => string;
 }
 
 /**
@@ -22,10 +27,13 @@ export class ConsolePanel {
   private readonly led: HTMLElement;
   private readonly conn: HTMLElement;
   private readonly initialize: HTMLButtonElement;
+  private readonly bands: DeskBands;
   private reachable = false;
   private state: ConsoleInput[] = [];
+  private held = new Set<string>();
 
   constructor(private readonly options: ConsolePanelOptions) {
+    this.bands = new DeskBands(options.onDismissNote, options.today);
     this.strip = el("div", {});
     this.led = el("span", { class: "led led--go" });
     this.conn = el("span", { textContent: "연결됨" });
@@ -43,8 +51,16 @@ export class ConsolePanel {
         el("span", { class: "x32__link" }, [this.conn, this.led]),
         this.initialize,
       ]),
+      this.bands.el,
       this.strip,
     ]);
+  }
+
+  /** What the server does with the desk for itself, absent from a server too old to say. */
+  setDeskUse(use: DeskUse | undefined): void {
+    this.bands.set(use);
+    this.held = heldStrips(use);
+    this.render();
   }
 
   /** Disabled while the media server is out of reach — the console is its job. */
@@ -74,8 +90,9 @@ export class ConsolePanel {
         // Note(yoochan.kim): no per-row reset key. Holding the row's own button
         // already re-sends that input's level, and putting the whole desk back
         // is one act — it belongs to the panel, not to a row.
+        const held = input.strips?.some((strip) => this.held.has(strip)) === true;
         return el("div", { class: `chrow${on ? " on" : ""}` }, [
-          el("span", { class: "chrow__n", textContent: input.label }),
+          el("span", { class: "chrow__n" }, [input.label, ...(held ? [heldChip()] : [])]),
           meter(input),
           levelText(input),
           el("span", {}),

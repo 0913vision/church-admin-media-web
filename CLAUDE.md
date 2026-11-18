@@ -92,6 +92,15 @@ repo speaks that model end to end rather than translating it.
   deleting asks first through `components/Alert.ts`, a layer above the one Modal
   (question as title, result in a sentence, keys bottom right). The [+] and the
   name and 삭제 controls appear only when `ready.commands` lists them
+- **The X32 bands** (`components/DeskBands.ts`, in the X32 tab and the dashboard's X32
+  card, from the `deskUse` attribute; the user, 2026-11-13): yellow (Atlassian's Banner
+  warning, `--dh-warn`) while the server holds part of the desk, with the row whose
+  `strips` it holds marked 사용 중; red for what a hand moved meanwhile and for what the
+  desk has not taken back, whose [자세히] lists each strip in the X32's own English
+  (`Aux 5/6: Main LR, Bus 1–7, 9–16 Sends`); grey for a move the server put back, kept
+  until 닫기 (`dismissDeskNote`), across restarts too. In a sentence the room's words:
+  aux 5/6, 메인 LR, 뮤트. `deskUse` is not one of the attributes the dashboard waits
+  for, so a server without it shows no bands rather than nothing
 - Every dialog's dismiss key says **닫기** (Toss's rule: 취소 reads as undoing the work)
 - **Church time, never the browser's clock.** `util/churchClock.ts` keeps the
   skew from `ping.at` and everything on screen is drawn against that — the
