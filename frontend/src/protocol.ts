@@ -126,6 +126,17 @@ export function isLevelStage(value: unknown): value is LevelStage {
   return typeof value === 'string' && (Object.values(LevelStage) as string[]).includes(value);
 }
 
+/** What the server has set part of the X32 aside for */
+export const DeskUser = {
+  COUNTDOWN: 'countdown',
+  LEVEL_MATCH: 'levelMatch',
+  RESTART: 'restart',
+} as const;
+export type DeskUser = (typeof DeskUser)[keyof typeof DeskUser];
+export function isDeskUser(value: unknown): value is DeskUser {
+  return typeof value === 'string' && (Object.values(DeskUser) as string[]).includes(value);
+}
+
 /**
  * A song a user can select and leave looping. The server names these, so renaming one
  * — or adding another — needs no client release.
@@ -257,8 +268,85 @@ export interface ConsoleInput {
    * hand.
    */
   nominalDb: number;
+  /**
+   * The X32 strips it drives, named as deskUse names them, so a screen can mark it
+   * while the server holds one of them
+   */
+  strips: string[];
   state: ConsoleRead;
 }
+
+/**
+ * One setting on the X32, named as the desk itself names it, so a person standing at
+ * it can find it. The server names each address it touches once, here, rather than
+ * every client learning OSC.
+ */
+export interface DeskSetting {
+  /**
+   * The strip, as the desk or the room calls it: 'Aux 5', 'Ch 7', 'Main LR', or a
+   * room's own name such as 'AuxMix' for bus 8
+   */
+  strip: string;
+  /**
+   * What on that strip: 'Mute', 'Fader', 'Main LR', 'Mono', 'Bus 3 Send', 'Matrix 2
+   * Send', 'Mute Group', 'DCA'. Empty when the strip is the setting itself, as a mute
+   * group is.
+   */
+  setting: string;
+}
+
+/**
+ * A setting the server was holding that someone else moved, at the desk or from
+ * another app, and when it was first seen moved
+ */
+export interface DeskMove {
+  strip: string;
+  setting: string;
+  /** Instant it was first seen moved */
+  at: string;
+}
+
+/**
+ * What someone moved while the server held the desk, kept after the server put it
+ * back, until a person sets it aside with dismissDeskNote. Kept across restarts: it is
+ * the record that the room's desk was touched in the middle of something.
+ */
+export interface DeskNote {
+  /** Value to pass to dismissDeskNote */
+  id: string;
+  /** Instant the desk was put back */
+  at: string;
+  by: DeskUser;
+  /** What was moved, each put back to what it held before the server set it aside */
+  moved: DeskMove[];
+}
+
+/** What the server is doing with the X32 for itself, and what it keeps from earlier. */
+export interface DeskUse {
+  /** What it holds right now. Empty when it holds nothing. */
+  holds: DeskHold[];
+  /** Records of moves it has put back, oldest first. Empty when there are none. */
+  notes: DeskNote[];
+}
+
+/**
+ * One part of the X32 the server has set aside: while it uses it, and if the desk did
+ * not take its old values back when it finished, until it does. Every setting it
+ * changed goes back to what it held before, whatever anyone moved meanwhile.
+ */
+export type DeskHold =
+  /** In use. A person at the desk should leave these strips alone until it ends. */
+  | { phase: 'holding'; by: DeskUser; since: string; strips: string[]; moved: DeskMove[] }
+  /**
+   * Finished, but the desk did not take some old values back, most likely because it
+   * is switched off or out of reach. Tried again every few seconds until it does.
+   */
+  | { phase: 'waiting'; by: DeskUser; since: string; strips: string[]; moved: DeskMove[]; unrestored: DeskSetting[] }
+  ;
+export const DeskHoldKind = {
+  HOLDING: 'holding',
+  WAITING: 'waiting',
+} as const;
 
 /**
  * What a track is for. Music is what people and a flow's music play. A countdown's
@@ -603,7 +691,7 @@ export type FlowStatus =
   /** The flow's music is sounding */
   | { phase: 'playing'; id: string; name: string; track: FlowTrack; endsAt: string }
   /** Nothing is sounding, but the flow still holds the admin lock */
-  | { phase: 'holding'; id: string; name: string; unlockAt: string }
+  | { phase: 'holding'; id: string; name: string; unlockAt: string; deckHeld: boolean }
   ;
 export const FlowStatusKind = {
   IDLE: 'idle',
@@ -616,10 +704,11 @@ export const FlowStatusKind = {
 export const ATTRIBUTES = {
   /**
    * Whether the deck is playing. Writing it fades in or out and holds the audio lock
-   * for the length of the fade. Refused with flowActive while a flow's music is
-   * sounding: the run was handed the deck and puts it back itself. A flow that only
-   * holds the gate is keeping the panel out, not using the deck, so this stays
-   * writable then. Refused with levelMatching while a level measurement has the deck.
+   * for the length of the fade. Refused with flowActive while a flow holds the deck
+   * (its status playing, or holding with deckHeld): the run was handed the deck and
+   * puts it back itself. A flow that only holds the gate is keeping the panel out, not
+   * using the deck, so this stays writable then. Refused with levelMatching while a
+   * level measurement has the deck.
    */
   playback: { access: 'rw', permission: 'any' },
   /**
@@ -628,29 +717,31 @@ export const ATTRIBUTES = {
    * what is *sounding*: while a run plays, this is the level that run was written
    * with, not the one the panel was left at, and the panel's own level comes back with
    * its song. Applies immediately, so it is safe to write continuously while dragging
-   * a fader. Refused with flowActive while a flow's music is sounding: the run was
-   * handed the deck and puts it back itself. A flow that only holds the gate is
-   * keeping the panel out, not using the deck, so this stays writable then. Refused
-   * with levelMatching while a level measurement has the deck.
+   * a fader. Refused with flowActive while a flow holds the deck (its status playing,
+   * or holding with deckHeld): the run was handed the deck and puts it back itself. A
+   * flow that only holds the gate is keeping the panel out, not using the deck, so
+   * this stays writable then. Refused with levelMatching while a level measurement has
+   * the deck.
    */
   volume: { access: 'rw', permission: 'any', range: { min: 0, max: 100 } },
   /**
-   * Whether output is muted. Refused with flowActive while a flow's music is sounding:
-   * the run was handed the deck and puts it back itself. A flow that only holds the
-   * gate is keeping the panel out, not using the deck, so this stays writable then.
-   * Refused with levelMatching while a level measurement has the deck.
+   * Whether output is muted. Refused with flowActive while a flow holds the deck (its
+   * status playing, or holding with deckHeld): the run was handed the deck and puts it
+   * back itself. A flow that only holds the gate is keeping the panel out, not using
+   * the deck, so this stays writable then. Refused with levelMatching while a level
+   * measurement has the deck.
    */
   mute: { access: 'rw', permission: 'any' },
   /**
    * Whether what is on the deck repeats. Always true unless the gate is held: the
    * panel's two songs are meant to run under a service without ending, and nobody at
    * the panel should be able to stop that. Writable only while the gate is held, and
-   * refused with flowActive while a run's music is sounding — it describes what is on
-   * the deck, and a run's track made to repeat is a timeline that never finishes. A
-   * run merely holding the gate is not using the deck, so this stays writable then.
-   * Refused with levelMatching while a level measurement has the deck. Reset to true
-   * when the gate opens — like everything else the gate changes, it goes back to the
-   * user's state.
+   * refused with flowActive while a run holds the deck (its status playing, or holding
+   * with deckHeld) — it describes what is on the deck, and a run's track made to
+   * repeat is a timeline that never finishes. A run merely holding the gate is not
+   * using the deck, so this stays writable then. Refused with levelMatching while a
+   * level measurement has the deck. Reset to true when the gate opens — like
+   * everything else the gate changes, it goes back to the user's state.
    */
   loop: { access: 'rw', permission: 'admin' },
   /**
@@ -702,10 +793,11 @@ export const ATTRIBUTES = {
    * Id of the selected song, one of the ids listed in ready.songs. Writing it fades
    * out, switches, and restores that song's remembered position, paused. It is an id
    * rather than a fixed set because which songs exist, and what they are called, is
-   * the server's to say. Refused with flowActive while a flow's music is sounding: the
-   * run was handed the deck and puts it back itself. A flow that only holds the gate
-   * is keeping the panel out, not using the deck, so this stays writable then. Refused
-   * with levelMatching while a level measurement has the deck.
+   * the server's to say. Refused with flowActive while a flow holds the deck (its
+   * status playing, or holding with deckHeld): the run was handed the deck and puts it
+   * back itself. A flow that only holds the gate is keeping the panel out, not using
+   * the deck, so this stays writable then. Refused with levelMatching while a level
+   * measurement has the deck.
    */
   song: { access: 'rw', permission: 'any' },
   /**
@@ -769,6 +861,13 @@ export const ATTRIBUTES = {
    * unknown when the desk stops answering, so a dead console never wears a live face.
    */
   console: { access: 'ro' },
+  /**
+   * What the server holds on the X32 for itself (a countdown, a level measurement, or
+   * putting back what one left after a restart), what anyone moved there meanwhile,
+   * and the notes it keeps of moves it put back. Read-only: the countdown and the
+   * level measurement set it, and dismissDeskNote sets a note aside.
+   */
+  deskUse: { access: 'ro' },
 } as const;
 export type AttributeName = keyof typeof ATTRIBUTES;
 
@@ -906,15 +1005,15 @@ export const COMMANDS = {
    * act as writing the song attribute, for the tracks that are not among ready.songs.
    * Playing it is a separate write to playback. Refused with adminUnlocked unless the
    * gate is held: while the panel is open it shows the song it thinks is playing, and
-   * a track it never chose would make that a lie. Refused with flowActive while a
-   * run's music is sounding — a run holds the gate, so that first check passes during
-   * a service and this one is what keeps the deck the run's. While a run only holds
-   * the gate this is allowed, and what it puts on is faded out when the run's own
-   * music comes due; the run goes back to the deck it was handed, not to the track
-   * somebody put on during its quiet half. Releasing the gate takes the track off and
-   * puts the user's song back. Refused with levelMatching while a level measurement
-   * has the deck, and with noticeTrack for a countdown track — only a flow's countdown
-   * plays those.
+   * a track it never chose would make that a lie. Refused with flowActive while a run
+   * holds the deck (its status playing, or holding with deckHeld) — a run holds the
+   * gate, so that first check passes during a service and this one is what keeps the
+   * deck the run's. While a run only holds the gate this is allowed, and what it puts
+   * on is faded out when the run's own music comes due; the run goes back to the deck
+   * it was handed, not to the track somebody put on during its quiet half. Releasing
+   * the gate takes the track off and puts the user's song back. Refused with
+   * levelMatching while a level measurement has the deck, and with noticeTrack for a
+   * countdown track — only a flow's countdown plays those.
    */
   selectTrack: { permission: 'admin' },
   /**
@@ -974,6 +1073,11 @@ export const COMMANDS = {
    * one was applied, and unknownTrack when the track has gone.
    */
   revertLevelMatch: { permission: 'admin' },
+  /**
+   * Set one desk note aside once a person has read it. It changes nothing on the desk.
+   * Refused with invalidValue for a note that is not there.
+   */
+  dismissDeskNote: { permission: 'admin' },
 } as const;
 export type CommandName = keyof typeof COMMANDS;
 
@@ -981,10 +1085,11 @@ export type CommandName = keyof typeof COMMANDS;
 export interface State {
   /**
    * Whether the deck is playing. Writing it fades in or out and holds the audio lock
-   * for the length of the fade. Refused with flowActive while a flow's music is
-   * sounding: the run was handed the deck and puts it back itself. A flow that only
-   * holds the gate is keeping the panel out, not using the deck, so this stays
-   * writable then. Refused with levelMatching while a level measurement has the deck.
+   * for the length of the fade. Refused with flowActive while a flow holds the deck
+   * (its status playing, or holding with deckHeld): the run was handed the deck and
+   * puts it back itself. A flow that only holds the gate is keeping the panel out, not
+   * using the deck, so this stays writable then. Refused with levelMatching while a
+   * level measurement has the deck.
    */
   playback: PlaybackState;
   /**
@@ -993,29 +1098,31 @@ export interface State {
    * what is *sounding*: while a run plays, this is the level that run was written
    * with, not the one the panel was left at, and the panel's own level comes back with
    * its song. Applies immediately, so it is safe to write continuously while dragging
-   * a fader. Refused with flowActive while a flow's music is sounding: the run was
-   * handed the deck and puts it back itself. A flow that only holds the gate is
-   * keeping the panel out, not using the deck, so this stays writable then. Refused
-   * with levelMatching while a level measurement has the deck.
+   * a fader. Refused with flowActive while a flow holds the deck (its status playing,
+   * or holding with deckHeld): the run was handed the deck and puts it back itself. A
+   * flow that only holds the gate is keeping the panel out, not using the deck, so
+   * this stays writable then. Refused with levelMatching while a level measurement has
+   * the deck.
    */
   volume: number;
   /**
-   * Whether output is muted. Refused with flowActive while a flow's music is sounding:
-   * the run was handed the deck and puts it back itself. A flow that only holds the
-   * gate is keeping the panel out, not using the deck, so this stays writable then.
-   * Refused with levelMatching while a level measurement has the deck.
+   * Whether output is muted. Refused with flowActive while a flow holds the deck (its
+   * status playing, or holding with deckHeld): the run was handed the deck and puts it
+   * back itself. A flow that only holds the gate is keeping the panel out, not using
+   * the deck, so this stays writable then. Refused with levelMatching while a level
+   * measurement has the deck.
    */
   mute: MuteState;
   /**
    * Whether what is on the deck repeats. Always true unless the gate is held: the
    * panel's two songs are meant to run under a service without ending, and nobody at
    * the panel should be able to stop that. Writable only while the gate is held, and
-   * refused with flowActive while a run's music is sounding — it describes what is on
-   * the deck, and a run's track made to repeat is a timeline that never finishes. A
-   * run merely holding the gate is not using the deck, so this stays writable then.
-   * Refused with levelMatching while a level measurement has the deck. Reset to true
-   * when the gate opens — like everything else the gate changes, it goes back to the
-   * user's state.
+   * refused with flowActive while a run holds the deck (its status playing, or holding
+   * with deckHeld) — it describes what is on the deck, and a run's track made to
+   * repeat is a timeline that never finishes. A run merely holding the gate is not
+   * using the deck, so this stays writable then. Refused with levelMatching while a
+   * level measurement has the deck. Reset to true when the gate opens — like
+   * everything else the gate changes, it goes back to the user's state.
    */
   loop: boolean;
   /**
@@ -1067,10 +1174,11 @@ export interface State {
    * Id of the selected song, one of the ids listed in ready.songs. Writing it fades
    * out, switches, and restores that song's remembered position, paused. It is an id
    * rather than a fixed set because which songs exist, and what they are called, is
-   * the server's to say. Refused with flowActive while a flow's music is sounding: the
-   * run was handed the deck and puts it back itself. A flow that only holds the gate
-   * is keeping the panel out, not using the deck, so this stays writable then. Refused
-   * with levelMatching while a level measurement has the deck.
+   * the server's to say. Refused with flowActive while a flow holds the deck (its
+   * status playing, or holding with deckHeld): the run was handed the deck and puts it
+   * back itself. A flow that only holds the gate is keeping the panel out, not using
+   * the deck, so this stays writable then. Refused with levelMatching while a level
+   * measurement has the deck.
    */
   song: string;
   /**
@@ -1134,6 +1242,13 @@ export interface State {
    * unknown when the desk stops answering, so a dead console never wears a live face.
    */
   console: ConsoleInput[];
+  /**
+   * What the server holds on the X32 for itself (a countdown, a level measurement, or
+   * putting back what one left after a restart), what anyone moved there meanwhile,
+   * and the notes it keeps of moves it put back. Read-only: the countdown and the
+   * level measurement set it, and dismissDeskNote sets a note aside.
+   */
+  deskUse: DeskUse;
 }
 export type StatePatch = Partial<State>;
 
@@ -1173,6 +1288,7 @@ export type InvokeRequest =
   | { command: 'applyLevelMatch'; args: Record<string, never> }
   | { command: 'cancelLevelMatch'; args: Record<string, never> }
   | { command: 'revertLevelMatch'; args: Record<string, never> }
+  | { command: 'dismissDeskNote'; args: { id: string } }
   ;
 
 /** C2S event names */

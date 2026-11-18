@@ -105,6 +105,13 @@ class LevelStage(str, Enum):
     PLAYING = "playing"
 
 
+class DeskUser(str, Enum):
+    """What the server has set part of the X32 aside for"""
+    COUNTDOWN = "countdown"
+    LEVEL_MATCH = "levelMatch"
+    RESTART = "restart"
+
+
 class Song(TypedDict):
     """
     A song a user can select and leave looping. The server names these, so
@@ -198,7 +205,85 @@ class ConsoleInput(TypedDict):
     id: str  # Value to pass to enableConsoleInput
     label: str  # What to call it on screen, e.g. '목사님 마이크'
     nominalDb: float  # Where this input is meant to sit, in decibels — the level enableConsoleInput puts it back to. Marked on a meter, it shows at a glance that a fader has been moved by hand.
+    strips: list[str]  # The X32 strips it drives, named as deskUse names them, so a screen can mark it while the server holds one of them
     state: ConsoleRead
+
+
+class DeskSetting(TypedDict):
+    """
+    One setting on the X32, named as the desk itself names it, so a person
+    standing at it can find it. The server names each address it touches once,
+    here, rather than every client learning OSC.
+    """
+    strip: str  # The strip, as the desk or the room calls it: 'Aux 5', 'Ch 7', 'Main LR', or a room's own name such as 'AuxMix' for bus 8
+    setting: str  # What on that strip: 'Mute', 'Fader', 'Main LR', 'Mono', 'Bus 3 Send', 'Matrix 2 Send', 'Mute Group', 'DCA'. Empty when the strip is the setting itself, as a mute group is.
+
+
+class DeskMove(TypedDict):
+    """
+    A setting the server was holding that someone else moved, at the desk or
+    from another app, and when it was first seen moved
+    """
+    strip: str
+    setting: str
+    at: str  # Instant it was first seen moved
+
+
+class DeskNote(TypedDict):
+    """
+    What someone moved while the server held the desk, kept after the server
+    put it back, until a person sets it aside with dismissDeskNote. Kept
+    across restarts: it is the record that the room's desk was touched in the
+    middle of something.
+    """
+    id: str  # Value to pass to dismissDeskNote
+    at: str  # Instant the desk was put back
+    by: DeskUser
+    moved: list[DeskMove]  # What was moved, each put back to what it held before the server set it aside
+
+
+class DeskUse(TypedDict):
+    """
+    What the server is doing with the X32 for itself, and what it keeps from
+    earlier.
+    """
+    holds: list[DeskHold]  # What it holds right now. Empty when it holds nothing.
+    notes: list[DeskNote]  # Records of moves it has put back, oldest first. Empty when there are none.
+
+
+class DeskHoldHolding(TypedDict):
+    """
+    In use. A person at the desk should leave these strips alone until it
+    ends.
+    """
+    phase: Literal["holding"]
+    by: DeskUser
+    since: str  # Instant it set them aside
+    strips: list[str]  # The strips it changed, as the desk or the room calls them, in the desk's own order: inputs first, outputs last
+    moved: list[DeskMove]  # What someone moved since. Empty when nobody did.
+
+
+class DeskHoldWaiting(TypedDict):
+    """
+    Finished, but the desk did not take some old values back, most likely
+    because it is switched off or out of reach. Tried again every few seconds
+    until it does.
+    """
+    phase: Literal["waiting"]
+    by: DeskUser
+    since: str
+    strips: list[str]
+    moved: list[DeskMove]
+    unrestored: list[DeskSetting]  # What is not back yet, strip by strip in the desk's order
+
+
+"""
+One part of the X32 the server has set aside: while it uses it, and if the
+desk did not take its old values back when it finished, until it does. Every
+setting it changed goes back to what it held before, whatever anyone moved
+meanwhile.
+"""
+DeskHold = DeskHoldHolding | DeskHoldWaiting
 
 
 class TrackRoleMusic(TypedDict):
@@ -674,6 +759,7 @@ class FlowStatusHolding(TypedDict):
     id: str  # The id the caller gave this flow, handed back so it can tell which of its flows is running. A name cannot: two may share one.
     name: str
     unlockAt: str  # Instant the lock releases
+    deckHeld: bool  # True while the run keeps the deck between its own sounds: from its first sound to its last, the quiet between its music and its countdown and between notices included. The deck is refused with flowActive meanwhile, so a client shows its controls closed. False while the run only holds the gate.
 
 
 """
@@ -687,17 +773,17 @@ FlowStatus = FlowStatusIdle | FlowStatusWaiting | FlowStatusPlaying | FlowStatus
 
 class State(TypedDict):
     """Attribute values, all present."""
-    playback: PlaybackState  # Whether the deck is playing. Writing it fades in or out and holds the audio lock for the length of the fade. Refused with flowActive while a flow's music is sounding: the run was handed the deck and puts it back itself. A flow that only holds the gate is keeping the panel out, not using the deck, so this stays writable then. Refused with levelMatching while a level measurement has the deck.
-    volume: float  # Output volume, 0-100, whole numbers — a value with a fraction is rounded rather than refused, since a dragged fader sends the ratio of a pixel to a width. Reports what is *sounding*: while a run plays, this is the level that run was written with, not the one the panel was left at, and the panel's own level comes back with its song. Applies immediately, so it is safe to write continuously while dragging a fader. Refused with flowActive while a flow's music is sounding: the run was handed the deck and puts it back itself. A flow that only holds the gate is keeping the panel out, not using the deck, so this stays writable then. Refused with levelMatching while a level measurement has the deck.
-    mute: MuteState  # Whether output is muted. Refused with flowActive while a flow's music is sounding: the run was handed the deck and puts it back itself. A flow that only holds the gate is keeping the panel out, not using the deck, so this stays writable then. Refused with levelMatching while a level measurement has the deck.
-    loop: bool  # Whether what is on the deck repeats. Always true unless the gate is held: the panel's two songs are meant to run under a service without ending, and nobody at the panel should be able to stop that. Writable only while the gate is held, and refused with flowActive while a run's music is sounding — it describes what is on the deck, and a run's track made to repeat is a timeline that never finishes. A run merely holding the gate is not using the deck, so this stays writable then. Refused with levelMatching while a level measurement has the deck. Reset to true when the gate opens — like everything else the gate changes, it goes back to the user's state.
+    playback: PlaybackState  # Whether the deck is playing. Writing it fades in or out and holds the audio lock for the length of the fade. Refused with flowActive while a flow holds the deck (its status playing, or holding with deckHeld): the run was handed the deck and puts it back itself. A flow that only holds the gate is keeping the panel out, not using the deck, so this stays writable then. Refused with levelMatching while a level measurement has the deck.
+    volume: float  # Output volume, 0-100, whole numbers — a value with a fraction is rounded rather than refused, since a dragged fader sends the ratio of a pixel to a width. Reports what is *sounding*: while a run plays, this is the level that run was written with, not the one the panel was left at, and the panel's own level comes back with its song. Applies immediately, so it is safe to write continuously while dragging a fader. Refused with flowActive while a flow holds the deck (its status playing, or holding with deckHeld): the run was handed the deck and puts it back itself. A flow that only holds the gate is keeping the panel out, not using the deck, so this stays writable then. Refused with levelMatching while a level measurement has the deck.
+    mute: MuteState  # Whether output is muted. Refused with flowActive while a flow holds the deck (its status playing, or holding with deckHeld): the run was handed the deck and puts it back itself. A flow that only holds the gate is keeping the panel out, not using the deck, so this stays writable then. Refused with levelMatching while a level measurement has the deck.
+    loop: bool  # Whether what is on the deck repeats. Always true unless the gate is held: the panel's two songs are meant to run under a service without ending, and nobody at the panel should be able to stop that. Writable only while the gate is held, and refused with flowActive while a run holds the deck (its status playing, or holding with deckHeld) — it describes what is on the deck, and a run's track made to repeat is a timeline that never finishes. A run merely holding the gate is not using the deck, so this stays writable then. Refused with levelMatching while a level measurement has the deck. Reset to true when the gate opens — like everything else the gate changes, it goes back to the user's state.
     tracks: list[Track]  # Every track the server can play, each with the level it sounds at, in the order to show them. State rather than part of ready, because tracks are added, renamed and deleted while clients are connected. Read-only — addTrack, setTrackVolume, renameTrack and deleteTrack move it.
     trackFetch: TrackFetch  # Whether a track is being fetched from YouTube right now. Changes in the same patch as the tracks it produced, so a screen never sees the fetch end before the track appears. Read-only — addTrack moves it.
     levelMatch: LevelMatch  # What the level measurement is doing, or what the last one came to. Changes in the same patch as the tracks it moved, so a screen never sees it done before the new level. Read-only — the level commands (matchTrackLevel, stopLevelMatch, resumeLevelMatch, applyLevelMatch, cancelLevelMatch, revertLevelMatch) move it.
     deck: DeckSource  # What is on the deck: the panel's own song, or a library track an admin put on. Read-only — song and playTrack are what move it.
     unlockWhenDone: bool  # Whether the music stopping also releases the gate, restoring the user's song on the way out. For putting one piece on and walking away. 'Stopping' means either the track running out or musicEndsAt arriving — with loop on, only the latter can ever happen. Writable only while a *person* is holding the gate — during a run the gate is the run's and there is no hold to arm, so this is refused with flowActive. False again once the gate opens.
     musicEndsAt: MusicEnd  # When the music an admin put on should stop. This is what makes a repeating track finite: looping audio has no end of its own, so without it a gate held over that music is held until somebody comes back. A client should ask the moment loop is switched on, and while the answer is undecided say plainly — in words, not as an alarm — that nothing will stop by itself. Reaching an instant stops the music and puts the user's song back; the gate goes too if unlockWhenDone is on. Writable only while a *person* is holding the gate, for the same reason unlockWhenDone is; refused with flowActive during a run. Undecided again once the gate opens.
-    song: str  # Id of the selected song, one of the ids listed in ready.songs. Writing it fades out, switches, and restores that song's remembered position, paused. It is an id rather than a fixed set because which songs exist, and what they are called, is the server's to say. Refused with flowActive while a flow's music is sounding: the run was handed the deck and puts it back itself. A flow that only holds the gate is keeping the panel out, not using the deck, so this stays writable then. Refused with levelMatching while a level measurement has the deck.
+    song: str  # Id of the selected song, one of the ids listed in ready.songs. Writing it fades out, switches, and restores that song's remembered position, paused. It is an id rather than a fixed set because which songs exist, and what they are called, is the server's to say. Refused with flowActive while a flow holds the deck (its status playing, or holding with deckHeld): the run was handed the deck and puts it back itself. A flow that only holds the gate is keeping the panel out, not using the deck, so this stays writable then. Refused with levelMatching while a level measurement has the deck.
     adminLock: bool  # Global gate on non-admin writes. Any admin may release it, it survives disconnects, and it is cleared by a restart. A gate a person engaged also lapses by itself — see adminHold. A run engages the same gate, and a run starting over a person's hold takes it: a scheduled service outranks an ad-hoc lock, and the hold stops counting from that moment rather than expiring later under music that is playing. Releasing it, or a run taking it, ends a level measurement, which puts the deck and the desk back on its way out.
     adminHold: Deadline  # When a gate a person engaged lapses by itself. It waits for music that has an end — a track that will finish, or one told when to stop — because releasing under a song that is still sounding opens the panel mid-music. Never more than an hour ahead: a panel locked and forgotten is a panel nobody in the building can use, and the person who locked it has usually gone home. Lapsing does what releasing does — the user's song comes back with it. extendAdminHold pushes it out while somebody is still there. Reads none when the gate is open, and while a flow holds it: a run names its own window and ends on its own.
     audioLock: bool  # True while the audio device is mid-transition. Read-only, and it refuses everyone including admins: it guards the device, not permissions.
@@ -706,21 +792,22 @@ class State(TypedDict):
     schedule: list[ScheduleEntry]  # The weekly calendar this server keeps: every flow that may be run, in the order they were written. State rather than a one-shot list, because it is edited while clients are connected. Read-only — saveFlow and deleteFlow move it. It lives here because it is persistent, and because whether a track may be deleted depends on whether a flow still names it, which only whoever holds both can answer.
     clockOffsetSec: float  # How far ahead of standard time the church clock runs, in seconds, kept to the millisecond — a correction set by pressing a key on the wall clock's flip is rarely a whole second. Negative means behind. Every instant on this wire is read against it, so writing it moves the whole schedule. Refused with adminLocked while the gate is held: a flow holds the gate for its whole run, which makes it impossible to move the clock out from under music that is already playing. Survives restarts.
     console: list[ConsoleInput]  # The inputs this server drives, in the order to show them, each with what the mixing desk itself reports for it. Read-only: enableConsoleInput changes the desk, and the desk's next answer changes this. Each starts unknown and falls back to unknown when the desk stops answering, so a dead console never wears a live face.
+    deskUse: DeskUse  # What the server holds on the X32 for itself (a countdown, a level measurement, or putting back what one left after a restart), what anyone moved there meanwhile, and the notes it keeps of moves it put back. Read-only: the countdown and the level measurement set it, and dismissDeskNote sets a note aside.
 
 
 class StatePatch(TypedDict, total=False):
     """Attributes that changed. Absent means unchanged."""
-    playback: PlaybackState  # Whether the deck is playing. Writing it fades in or out and holds the audio lock for the length of the fade. Refused with flowActive while a flow's music is sounding: the run was handed the deck and puts it back itself. A flow that only holds the gate is keeping the panel out, not using the deck, so this stays writable then. Refused with levelMatching while a level measurement has the deck.
-    volume: float  # Output volume, 0-100, whole numbers — a value with a fraction is rounded rather than refused, since a dragged fader sends the ratio of a pixel to a width. Reports what is *sounding*: while a run plays, this is the level that run was written with, not the one the panel was left at, and the panel's own level comes back with its song. Applies immediately, so it is safe to write continuously while dragging a fader. Refused with flowActive while a flow's music is sounding: the run was handed the deck and puts it back itself. A flow that only holds the gate is keeping the panel out, not using the deck, so this stays writable then. Refused with levelMatching while a level measurement has the deck.
-    mute: MuteState  # Whether output is muted. Refused with flowActive while a flow's music is sounding: the run was handed the deck and puts it back itself. A flow that only holds the gate is keeping the panel out, not using the deck, so this stays writable then. Refused with levelMatching while a level measurement has the deck.
-    loop: bool  # Whether what is on the deck repeats. Always true unless the gate is held: the panel's two songs are meant to run under a service without ending, and nobody at the panel should be able to stop that. Writable only while the gate is held, and refused with flowActive while a run's music is sounding — it describes what is on the deck, and a run's track made to repeat is a timeline that never finishes. A run merely holding the gate is not using the deck, so this stays writable then. Refused with levelMatching while a level measurement has the deck. Reset to true when the gate opens — like everything else the gate changes, it goes back to the user's state.
+    playback: PlaybackState  # Whether the deck is playing. Writing it fades in or out and holds the audio lock for the length of the fade. Refused with flowActive while a flow holds the deck (its status playing, or holding with deckHeld): the run was handed the deck and puts it back itself. A flow that only holds the gate is keeping the panel out, not using the deck, so this stays writable then. Refused with levelMatching while a level measurement has the deck.
+    volume: float  # Output volume, 0-100, whole numbers — a value with a fraction is rounded rather than refused, since a dragged fader sends the ratio of a pixel to a width. Reports what is *sounding*: while a run plays, this is the level that run was written with, not the one the panel was left at, and the panel's own level comes back with its song. Applies immediately, so it is safe to write continuously while dragging a fader. Refused with flowActive while a flow holds the deck (its status playing, or holding with deckHeld): the run was handed the deck and puts it back itself. A flow that only holds the gate is keeping the panel out, not using the deck, so this stays writable then. Refused with levelMatching while a level measurement has the deck.
+    mute: MuteState  # Whether output is muted. Refused with flowActive while a flow holds the deck (its status playing, or holding with deckHeld): the run was handed the deck and puts it back itself. A flow that only holds the gate is keeping the panel out, not using the deck, so this stays writable then. Refused with levelMatching while a level measurement has the deck.
+    loop: bool  # Whether what is on the deck repeats. Always true unless the gate is held: the panel's two songs are meant to run under a service without ending, and nobody at the panel should be able to stop that. Writable only while the gate is held, and refused with flowActive while a run holds the deck (its status playing, or holding with deckHeld) — it describes what is on the deck, and a run's track made to repeat is a timeline that never finishes. A run merely holding the gate is not using the deck, so this stays writable then. Refused with levelMatching while a level measurement has the deck. Reset to true when the gate opens — like everything else the gate changes, it goes back to the user's state.
     tracks: list[Track]  # Every track the server can play, each with the level it sounds at, in the order to show them. State rather than part of ready, because tracks are added, renamed and deleted while clients are connected. Read-only — addTrack, setTrackVolume, renameTrack and deleteTrack move it.
     trackFetch: TrackFetch  # Whether a track is being fetched from YouTube right now. Changes in the same patch as the tracks it produced, so a screen never sees the fetch end before the track appears. Read-only — addTrack moves it.
     levelMatch: LevelMatch  # What the level measurement is doing, or what the last one came to. Changes in the same patch as the tracks it moved, so a screen never sees it done before the new level. Read-only — the level commands (matchTrackLevel, stopLevelMatch, resumeLevelMatch, applyLevelMatch, cancelLevelMatch, revertLevelMatch) move it.
     deck: DeckSource  # What is on the deck: the panel's own song, or a library track an admin put on. Read-only — song and playTrack are what move it.
     unlockWhenDone: bool  # Whether the music stopping also releases the gate, restoring the user's song on the way out. For putting one piece on and walking away. 'Stopping' means either the track running out or musicEndsAt arriving — with loop on, only the latter can ever happen. Writable only while a *person* is holding the gate — during a run the gate is the run's and there is no hold to arm, so this is refused with flowActive. False again once the gate opens.
     musicEndsAt: MusicEnd  # When the music an admin put on should stop. This is what makes a repeating track finite: looping audio has no end of its own, so without it a gate held over that music is held until somebody comes back. A client should ask the moment loop is switched on, and while the answer is undecided say plainly — in words, not as an alarm — that nothing will stop by itself. Reaching an instant stops the music and puts the user's song back; the gate goes too if unlockWhenDone is on. Writable only while a *person* is holding the gate, for the same reason unlockWhenDone is; refused with flowActive during a run. Undecided again once the gate opens.
-    song: str  # Id of the selected song, one of the ids listed in ready.songs. Writing it fades out, switches, and restores that song's remembered position, paused. It is an id rather than a fixed set because which songs exist, and what they are called, is the server's to say. Refused with flowActive while a flow's music is sounding: the run was handed the deck and puts it back itself. A flow that only holds the gate is keeping the panel out, not using the deck, so this stays writable then. Refused with levelMatching while a level measurement has the deck.
+    song: str  # Id of the selected song, one of the ids listed in ready.songs. Writing it fades out, switches, and restores that song's remembered position, paused. It is an id rather than a fixed set because which songs exist, and what they are called, is the server's to say. Refused with flowActive while a flow holds the deck (its status playing, or holding with deckHeld): the run was handed the deck and puts it back itself. A flow that only holds the gate is keeping the panel out, not using the deck, so this stays writable then. Refused with levelMatching while a level measurement has the deck.
     adminLock: bool  # Global gate on non-admin writes. Any admin may release it, it survives disconnects, and it is cleared by a restart. A gate a person engaged also lapses by itself — see adminHold. A run engages the same gate, and a run starting over a person's hold takes it: a scheduled service outranks an ad-hoc lock, and the hold stops counting from that moment rather than expiring later under music that is playing. Releasing it, or a run taking it, ends a level measurement, which puts the deck and the desk back on its way out.
     adminHold: Deadline  # When a gate a person engaged lapses by itself. It waits for music that has an end — a track that will finish, or one told when to stop — because releasing under a song that is still sounding opens the panel mid-music. Never more than an hour ahead: a panel locked and forgotten is a panel nobody in the building can use, and the person who locked it has usually gone home. Lapsing does what releasing does — the user's song comes back with it. extendAdminHold pushes it out while somebody is still there. Reads none when the gate is open, and while a flow holds it: a run names its own window and ends on its own.
     audioLock: bool  # True while the audio device is mid-transition. Read-only, and it refuses everyone including admins: it guards the device, not permissions.
@@ -729,6 +816,7 @@ class StatePatch(TypedDict, total=False):
     schedule: list[ScheduleEntry]  # The weekly calendar this server keeps: every flow that may be run, in the order they were written. State rather than a one-shot list, because it is edited while clients are connected. Read-only — saveFlow and deleteFlow move it. It lives here because it is persistent, and because whether a track may be deleted depends on whether a flow still names it, which only whoever holds both can answer.
     clockOffsetSec: float  # How far ahead of standard time the church clock runs, in seconds, kept to the millisecond — a correction set by pressing a key on the wall clock's flip is rarely a whole second. Negative means behind. Every instant on this wire is read against it, so writing it moves the whole schedule. Refused with adminLocked while the gate is held: a flow holds the gate for its whole run, which makes it impossible to move the clock out from under music that is already playing. Survives restarts.
     console: list[ConsoleInput]  # The inputs this server drives, in the order to show them, each with what the mixing desk itself reports for it. Read-only: enableConsoleInput changes the desk, and the desk's next answer changes this. Each starts unknown and falls back to unknown when the desk stops answering, so a dead console never wears a live face.
+    deskUse: DeskUse  # What the server holds on the X32 for itself (a countdown, a level measurement, or putting back what one left after a restart), what anyone moved there meanwhile, and the notes it keeps of moves it put back. Read-only: the countdown and the level measurement set it, and dismissDeskNote sets a note aside.
 
 
 class WriteRequest(TypedDict):
@@ -927,15 +1015,16 @@ class SelectTrackArgs(TypedDict):
     among ready.songs. Playing it is a separate write to playback. Refused
     with adminUnlocked unless the gate is held: while the panel is open it
     shows the song it thinks is playing, and a track it never chose would make
-    that a lie. Refused with flowActive while a run's music is sounding — a
-    run holds the gate, so that first check passes during a service and this
-    one is what keeps the deck the run's. While a run only holds the gate this
-    is allowed, and what it puts on is faded out when the run's own music
-    comes due; the run goes back to the deck it was handed, not to the track
-    somebody put on during its quiet half. Releasing the gate takes the track
-    off and puts the user's song back. Refused with levelMatching while a
-    level measurement has the deck, and with noticeTrack for a countdown track
-    — only a flow's countdown plays those.
+    that a lie. Refused with flowActive while a run holds the deck (its status
+    playing, or holding with deckHeld) — a run holds the gate, so that first
+    check passes during a service and this one is what keeps the deck the
+    run's. While a run only holds the gate this is allowed, and what it puts
+    on is faded out when the run's own music comes due; the run goes back to
+    the deck it was handed, not to the track somebody put on during its quiet
+    half. Releasing the gate takes the track off and puts the user's song
+    back. Refused with levelMatching while a level measurement has the deck,
+    and with noticeTrack for a countdown track — only a flow's countdown plays
+    those.
     """
     id: str  # Track id from the tracks attribute
 
@@ -1023,6 +1112,14 @@ class RevertLevelMatchArgs(TypedDict):
     pass
 
 
+class DismissDeskNoteArgs(TypedDict):
+    """
+    Set one desk note aside once a person has read it. It changes nothing on
+    the desk. Refused with invalidValue for a note that is not there.
+    """
+    id: str  # Note id from the deskUse attribute
+
+
 class InvokeRequest(TypedDict):
     """One invoke runs one command. See the *Args types for its arguments."""
     command: str
@@ -1049,6 +1146,7 @@ ATTRIBUTES: dict[str, dict] = {
     "schedule": {"access": "ro"},
     "clockOffsetSec": {"access": "rw", "permission": "admin", "range": (-3600, 3600)},
     "console": {"access": "ro"},
+    "deskUse": {"access": "ro"},
 }
 
 COMMANDS: dict[str, dict] = {
@@ -1073,6 +1171,7 @@ COMMANDS: dict[str, dict] = {
     "applyLevelMatch": {"permission": "admin"},
     "cancelLevelMatch": {"permission": "admin"},
     "revertLevelMatch": {"permission": "admin"},
+    "dismissDeskNote": {"permission": "admin"},
 }
 
 
